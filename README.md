@@ -13,7 +13,7 @@ You still ask for work in normal language. The project supplies the operating ru
 
 ![Claude Bounded Orchestrator role tree showing the owner and bounded responsibilities](docs/assets/claude-bounded-orchestrator-roles-tr.png)
 
-The visual overview uses short Turkish labels. Version 0.3.0 adds guided model/effort profiles and an optional proposal-only OpenAI role; the default routing remains listed below.
+The visual overview uses short Turkish labels. Version 0.3.1 includes guided model/effort profiles, an optional proposal-only OpenAI role, and safer interactive output on restrictive Windows terminal encodings.
 
 ```mermaid
 flowchart LR
@@ -162,6 +162,7 @@ This project does not turn model instructions into a security boundary. The nati
 - [FAQ and troubleshooting](docs/faq.md)
 - [Roadmap](docs/roadmap.md)
 - [Runtime smoke test](docs/runtime-smoke-test.md)
+- [v0.3.1 release notes](docs/release-v0.3.1.md)
 - [v0.3.0 release notes](docs/release-v0.3.0.md)
 - [v0.2.0 release notes](docs/release-v0.2.0.md)
 - [macOS/Linux installation](INSTALL-MACOS.md)
@@ -170,7 +171,7 @@ This project does not turn model instructions into a security boundary. The nati
 
 ## Project status
 
-Version `0.3.0` adds guided profiles and an optional OpenAI proposal role while preserving the bounded workflow and native single writer. The project adapts [Codex Bounded Orchestrator](https://github.com/metapak/codex-bounded-orchestrator) to Claude Code's native project agents, skills, shared instructions, and settings. See [NOTICE](NOTICE) and [provenance](docs/provenance.md) for attribution.
+Version `0.3.1` keeps guided profiles and the optional OpenAI proposal role while fixing interactive setup on Windows terminals with restrictive output encodings. The project adapts [Codex Bounded Orchestrator](https://github.com/metapak/codex-bounded-orchestrator) to Claude Code's native project agents, skills, shared instructions, and settings. See [NOTICE](NOTICE) and [provenance](docs/provenance.md) for attribution.
 
 If the project helps your team, a GitHub star helps other people discover it. Issues and focused pull requests are welcome.
 

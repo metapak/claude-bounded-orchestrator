@@ -113,6 +113,14 @@ class InstallError(RuntimeError):
     """Expected installer failure."""
 
 
+def configure_stdio() -> None:
+    """Keep prompts usable when a terminal cannot encode Turkish characters."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            reconfigure(errors="replace")
+
+
 def source_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
@@ -681,6 +689,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def main(argv: list[str] | None = None) -> int:
+    configure_stdio()
     args = parse_args(argv)
     root = source_root()
     try:

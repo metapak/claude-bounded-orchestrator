@@ -93,8 +93,8 @@ def main() -> int:
         for target in re.findall(r"\[[^]]+\]\(([^)]+)\)", text):
             if "://" not in target and not (doc.parent / target).resolve().exists():
                 errors.append(f"broken local link in {doc.name}: {target}")
-    if (ROOT / "VERSION").read_text(encoding="utf-8").strip() != "0.3.0":
-        errors.append("VERSION must be 0.3.0")
+    if (ROOT / "VERSION").read_text(encoding="utf-8").strip() != "0.3.1":
+        errors.append("VERSION must be 0.3.1")
     if errors:
         print("Repository validation failed:", file=sys.stderr)
         for error in errors:

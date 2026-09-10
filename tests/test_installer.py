@@ -154,6 +154,34 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(manifest["preset"], "custom")
         self.assertFalse(manifest["external_openai"])
 
+    def test_interactive_setup_survives_restrictive_windows_encoding(self) -> None:
+        environment = dict(os.environ)
+        environment["PYTHONIOENCODING"] = "cp1252:strict"
+        result = subprocess.run(
+            [sys.executable, str(INSTALLER), str(self.target), "--interactive"],
+            input="1\n1\n",
+            encoding="cp1252",
+            capture_output=True,
+            env=environment,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Claude Bounded Orchestrator", result.stdout)
+        self.assertTrue((self.target / ".claude/settings.json").is_file())
+
+        rejected_target = Path(self.temp.name) / "rejected"
+        rejected_target.mkdir()
+        rejected = subprocess.run(
+            [sys.executable, str(INSTALLER), str(rejected_target), "--interactive"],
+            input="9\n",
+            encoding="cp1252",
+            capture_output=True,
+            env=environment,
+            check=False,
+        )
+        self.assertEqual(rejected.returncode, 2)
+        self.assertIn("error:", rejected.stderr)
+
     def test_rejects_frontmatter_injection_and_invalid_native_effort_before_writing(self) -> None:
         cases = (
             ("model-newline", ["--role-model", "implementer=sonnet\nname: injected"]),

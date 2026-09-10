@@ -2,6 +2,12 @@
 
 All notable changes are documented here.
 
+## [0.3.1] - 2026-09-10
+
+- Prevented Turkish interactive setup prompts from crashing on Windows terminals that use restrictive encodings such as CP1252.
+- Preserved native Turkish output on capable terminals and replaced only characters unsupported by the active output encoding.
+- Added a restrictive-encoding interactive installation regression test.
+
 ## [0.3.0] - 2026-09-10
 
 - Added interactive `balanced`, `quality`, `economy`, and per-role `custom` installation profiles.

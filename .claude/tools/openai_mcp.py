@@ -11,7 +11,7 @@ import urllib.request
 from typing import Any
 
 SERVER_NAME = "openai-bounded-implementer"
-SERVER_VERSION = "0.3.0"
+SERVER_VERSION = "0.3.1"
 DEFAULT_ENDPOINT = "https://api.openai.com/v1/responses"
 DEFAULT_MODEL = "gpt-5.6-sol"
 DEFAULT_EFFORT = "high"

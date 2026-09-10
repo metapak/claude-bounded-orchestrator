@@ -13,7 +13,7 @@ Siz ne istediğinizi normal şekilde yazmaya devam edersiniz. Proje, arka planda
 
 ![Claude Bounded Orchestrator orkestra şefi ve görev dağılımı](docs/assets/claude-bounded-orchestrator-roles-tr.png)
 
-Görsel, ana Claude oturumunun işi yardımcılara nasıl dağıttığını özetler. 0.3.0 sürümü kurulum profilleri ve isteğe bağlı OpenAI öneri rolü ekler; varsayılan dağılım aşağıdadır.
+Görsel, ana Claude oturumunun işi yardımcılara nasıl dağıttığını özetler. 0.3.1 sürümünde kurulum profilleri, isteğe bağlı OpenAI öneri rolü ve kısıtlı Windows terminal kodlamalarında güvenli etkileşimli çıktı bulunur.
 
 ```mermaid
 flowchart LR
@@ -162,6 +162,7 @@ Talimatlar tek başına kesin bir güvenlik sınırı değildir. Yardımcı deri
 - [Sık sorulan sorular ve sorun giderme](docs/faq.md)
 - [Yol haritası](docs/roadmap.md)
 - [Canlı deneme rehberi](docs/runtime-smoke-test.md)
+- [v0.3.1 sürüm notları](docs/release-v0.3.1.tr.md)
 - [v0.3.0 sürüm notları](docs/release-v0.3.0.tr.md)
 - [v0.2.0 sürüm notları](docs/release-v0.2.0.tr.md)
 - [macOS/Linux kurulumu](INSTALL-MACOS.md)
@@ -170,7 +171,7 @@ Talimatlar tek başına kesin bir güvenlik sınırı değildir. Yardımcı deri
 
 ## Projenin durumu
 
-`0.3.0`, sınırlı çalışma düzenini ve yerel tek uygulayıcıyı koruyarak seçimli profiller ile isteğe bağlı OpenAI öneri rolünü ekler. Proje, [Codex Bounded Orchestrator](https://github.com/metapak/codex-bounded-orchestrator) çalışma düzenini Claude Code'un proje yardımcılarına, becerilerine, ortak talimatlarına ve ayarlarına uyarlar. Atıflar için [NOTICE](NOTICE) ve [kaynak bilgisi](docs/provenance.md) belgelerine bakabilirsiniz.
+`0.3.1`, seçimli profilleri ve isteğe bağlı OpenAI öneri rolünü korurken kısıtlı çıktı kodlaması kullanan Windows terminallerindeki etkileşimli kurulum hatasını düzeltir. Proje, [Codex Bounded Orchestrator](https://github.com/metapak/codex-bounded-orchestrator) çalışma düzenini Claude Code'un proje yardımcılarına, becerilerine, ortak talimatlarına ve ayarlarına uyarlar. Atıflar için [NOTICE](NOTICE) ve [kaynak bilgisi](docs/provenance.md) belgelerine bakabilirsiniz.
 
 Proje işinize yararsa vereceğiniz bir GitHub yıldızı daha fazla kişinin projeyi bulmasına yardımcı olur. Hata bildirimleri ve odaklı katkılar memnuniyetle karşılanır.
 
