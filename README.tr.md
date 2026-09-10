@@ -11,6 +11,10 @@ Claude Bounded Orchestrator, ana Claude oturumuna işin sorumluluğunu verir. İ
 
 Siz ne istediğinizi normal şekilde yazmaya devam edersiniz. Proje, arka plandaki çalışma düzenini sağlar.
 
+![Claude Bounded Orchestrator orkestra şefi ve görev dağılımı](docs/assets/claude-bounded-orchestrator-roles-tr.png)
+
+Görsel, ana Claude oturumunun işi yardımcılara nasıl dağıttığını özetler. Yardımcılar etkin oturum modelini devralır; bu nedenle sabit bir model adı belirtilmez.
+
 ```mermaid
 flowchart LR
     U[İstediğiniz sonucu anlatırsınız] --> O[Ana Claude oturumu işi yönetir]

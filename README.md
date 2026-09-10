@@ -11,6 +11,10 @@ Claude Bounded Orchestrator gives the main Claude session clear ownership, separ
 
 You still ask for work in normal language. The project supplies the operating rules behind the scenes.
 
+![Claude Bounded Orchestrator role tree showing the owner and inherited-model responsibilities](docs/assets/claude-bounded-orchestrator-roles-tr.png)
+
+The visual overview uses short Turkish labels. Claude project agents inherit the active session model, so the repository does not assign or claim fixed model names.
+
 ```mermaid
 flowchart LR
     U[You describe the outcome] --> O[Main Claude session owns the work]
