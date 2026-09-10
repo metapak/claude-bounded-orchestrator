@@ -2,6 +2,15 @@
 
 All notable changes are documented here.
 
+## [0.3.0] - 2026-09-10
+
+- Added interactive `balanced`, `quality`, `economy`, and per-role `custom` installation profiles.
+- Added repeatable non-interactive role model and effort overrides.
+- Added an optional dependency-free OpenAI Responses API MCP bridge for bounded implementation proposals.
+- Kept the external model proposal-only so the native Claude implementer remains the single workspace writer.
+- Added safe `.mcp.json` merging and surgical uninstall without persisting `OPENAI_API_KEY`.
+- Added MCP protocol, mocked provider HTTP, profile, interaction, conflict, uninstall, and secret-absence tests.
+
 ## [0.2.0] - 2026-09-10
 
 - Set the main owner to the `opus` alias with `xhigh` effort.

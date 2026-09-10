@@ -20,6 +20,18 @@ The installer preserves `.claude/settings.json` by default because replacing it 
 
 Yes. Claude Code environment variables and per-session or per-invocation options can take precedence over project settings. Agent frontmatter supplies the intended role-level routing where supported, while environment effort configuration can still override it. Confirm the active model and effort in your current client when exact routing matters.
 
+The installer also supports `--preset balanced|quality|economy|custom`, plus repeatable `--role-model ROLE=MODEL` and `--role-effort ROLE=EFFORT` overrides. The one-click launchers show the same choices in Turkish.
+
+## Can Claude use a GPT model in this workflow?
+
+Yes, through the optional local MCP bridge and OpenAI Responses API. This is an external tool call, not a native Claude subagent model alias. Select it during guided setup or use `--external-openai`, then define `OPENAI_API_KEY` in the environment that launches Claude Code. The key is never stored by the installer.
+
+The GPT role returns a proposal and cannot inspect or write the workspace. The native Claude implementer remains the only writer and reviews any proposed patch before applying it. If the MCP server name already has a different configuration, the installer preserves it and writes an example for manual review.
+
+## Why does the OpenAI tool report that the key is missing?
+
+Claude Code did not inherit `OPENAI_API_KEY`. Define the variable in the same terminal or operating-system environment used to start Claude Code, restart the client, and try again. Never place the key in `CLAUDE.md`, `.mcp.json`, prompts, or the task ledger.
+
 ## Why was an agent or skill skipped?
 
 A different file already existed at the managed path. The safe default is to keep it. Compare the project version, then use `--force` if replacement is intentional; the installer stores an ignored backup first.

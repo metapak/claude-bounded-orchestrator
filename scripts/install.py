@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -21,7 +22,71 @@ MANIFEST_RELATIVE = Path(".claude/.bounded-orchestrator/install.json")
 BACKUP_RELATIVE = Path(".claude/.bounded-orchestrator/backups")
 SETTINGS_RELATIVE = Path(".claude/settings.json")
 SETTINGS_EXAMPLE_RELATIVE = Path(".claude/bounded-orchestrator.settings.example.json")
-MANAGED_FILES = (
+MCP_RELATIVE = Path(".mcp.json")
+MCP_EXAMPLE_RELATIVE = Path(".claude/bounded-orchestrator.mcp.example.json")
+OPENAI_BRIDGE_RELATIVE = Path(".claude/tools/openai_mcp.py")
+MCP_SERVER_NAME = "openai-bounded-implementer"
+MODEL_TOKEN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}\Z")
+CLAUDE_EFFORTS = frozenset({"low", "medium", "high", "xhigh", "max"})
+OPENAI_EFFORTS = frozenset({"none", "low", "medium", "high", "xhigh", "max"})
+ROLES = (
+    "owner",
+    "explorer",
+    "researcher",
+    "implementer",
+    "verifier",
+    "failure-analyst",
+    "qa-operator",
+    "reviewer",
+    "advisor",
+)
+ROLE_LABELS = {
+    "owner": "ana yönetici",
+    "explorer": "inceleyici",
+    "researcher": "araştırmacı",
+    "implementer": "uygulayıcı",
+    "verifier": "kontrolcü",
+    "failure-analyst": "hata çözümleyici",
+    "qa-operator": "kullanım kontrolcüsü",
+    "reviewer": "son inceleyici",
+    "advisor": "danışman",
+}
+PRESETS = {
+    "balanced": {
+        "owner": ("opus", "xhigh"),
+        "explorer": ("sonnet", "medium"),
+        "researcher": ("sonnet", "medium"),
+        "implementer": ("sonnet", "high"),
+        "verifier": ("sonnet", "high"),
+        "failure-analyst": ("opus", "high"),
+        "qa-operator": ("sonnet", "high"),
+        "reviewer": ("opus", "high"),
+        "advisor": ("opus", "xhigh"),
+    },
+    "quality": {
+        "owner": ("opus", "xhigh"),
+        "explorer": ("opus", "high"),
+        "researcher": ("opus", "high"),
+        "implementer": ("opus", "xhigh"),
+        "verifier": ("opus", "xhigh"),
+        "failure-analyst": ("opus", "xhigh"),
+        "qa-operator": ("opus", "high"),
+        "reviewer": ("opus", "xhigh"),
+        "advisor": ("opus", "xhigh"),
+    },
+    "economy": {
+        "owner": ("sonnet", "medium"),
+        "explorer": ("sonnet", "low"),
+        "researcher": ("sonnet", "low"),
+        "implementer": ("sonnet", "medium"),
+        "verifier": ("sonnet", "medium"),
+        "failure-analyst": ("sonnet", "medium"),
+        "qa-operator": ("sonnet", "medium"),
+        "reviewer": ("sonnet", "medium"),
+        "advisor": ("sonnet", "high"),
+    },
+}
+BASE_MANAGED_FILES = (
     Path(".claude/agents/explorer.md"),
     Path(".claude/agents/researcher.md"),
     Path(".claude/agents/implementer.md"),
@@ -35,10 +100,11 @@ MANAGED_FILES = (
     Path(".claude/tools/task_ledger.py"),
     Path(".claude/.bounded-orchestrator/.gitignore"),
 )
+OPTIONAL_MANAGED_FILES = (OPENAI_BRIDGE_RELATIVE, MCP_EXAMPLE_RELATIVE)
 RUNTIME_IGNORE_RELATIVE = Path(".claude/.bounded-orchestrator/.gitignore")
 ALLOWED_UNINSTALL_FILES = frozenset(
     path.as_posix()
-    for path in (*MANAGED_FILES, SETTINGS_RELATIVE, SETTINGS_EXAMPLE_RELATIVE)
+    for path in (*BASE_MANAGED_FILES, *OPTIONAL_MANAGED_FILES, SETTINGS_RELATIVE, SETTINGS_EXAMPLE_RELATIVE)
 )
 
 
@@ -67,6 +133,13 @@ def digest(path: Path) -> str:
 
 def same_file(left: Path, right: Path) -> bool:
     return left.is_file() and right.is_file() and digest(left) == digest(right)
+
+
+def same_text(path: Path, content: str) -> bool:
+    try:
+        return path.is_file() and path.read_text(encoding="utf-8") == content
+    except (OSError, UnicodeDecodeError):
+        return False
 
 
 def atomic_copy(source: Path, destination: Path, dry_run: bool) -> None:
@@ -133,14 +206,14 @@ def backup(target: Path, destination: Path, dry_run: bool) -> Path:
 
 
 def ensure_sources(root: Path) -> None:
-    required = [root / item for item in MANAGED_FILES]
+    required = [root / item for item in (*BASE_MANAGED_FILES, OPENAI_BRIDGE_RELATIVE)]
     required += [root / SETTINGS_RELATIVE, root / "templates/CLAUDE.block.md", root / "VERSION"]
     missing = [str(path) for path in required if not path.is_file()]
     if missing:
         raise InstallError("installer source is incomplete:\n  - " + "\n  - ".join(missing))
 
 
-def install_one(root: Path, target: Path, relative: Path, manifest: dict[str, Any], force: bool, dry_run: bool, output: list[str]) -> None:
+def install_one(root: Path, target: Path, relative: Path, manifest: dict[str, Any], force: bool, dry_run: bool, output: list[str], content: str | None = None) -> None:
     source = root / relative
     destination = target / relative
     previous = manifest.get("files", {}).get(relative.as_posix(), {})
@@ -148,10 +221,13 @@ def install_one(root: Path, target: Path, relative: Path, manifest: dict[str, An
         output.append(f"SKIP {relative}: destination is a directory")
     elif not destination.exists():
         output.append(f"INSTALL {relative}")
-        atomic_copy(source, destination, dry_run)
+        if content is None:
+            atomic_copy(source, destination, dry_run)
+        else:
+            atomic_text(destination, content, dry_run)
         if not dry_run:
             remember(manifest, relative, destination, True)
-    elif same_file(source, destination):
+    elif (same_text(destination, content) if content is not None else same_file(source, destination)):
         output.append(f"UNCHANGED {relative}")
         if not dry_run:
             remember(manifest, relative, destination, bool(previous.get("owned")))
@@ -161,21 +237,23 @@ def install_one(root: Path, target: Path, relative: Path, manifest: dict[str, An
         saved = backup(target, destination, dry_run)
         output.append(f"BACKUP {relative} -> {saved.relative_to(target)}")
         output.append(f"REPLACE {relative}")
-        atomic_copy(source, destination, dry_run)
+        if content is None:
+            atomic_copy(source, destination, dry_run)
+        else:
+            atomic_text(destination, content, dry_run)
         if not dry_run:
             remember(manifest, relative, destination, True)
 
 
-def install_settings(root: Path, target: Path, manifest: dict[str, Any], force_settings: bool, dry_run: bool, output: list[str]) -> None:
-    source = root / SETTINGS_RELATIVE
+def install_settings(root: Path, target: Path, manifest: dict[str, Any], force_settings: bool, dry_run: bool, output: list[str], content: str) -> None:
     destination = target / SETTINGS_RELATIVE
     if not destination.exists():
         output.append(f"INSTALL {SETTINGS_RELATIVE}")
-        atomic_copy(source, destination, dry_run)
+        atomic_text(destination, content, dry_run)
         if not dry_run:
             remember(manifest, SETTINGS_RELATIVE, destination, True)
         return
-    if same_file(source, destination):
+    if same_text(destination, content):
         previous = manifest.get("files", {}).get(SETTINGS_RELATIVE.as_posix(), {})
         output.append(f"UNCHANGED {SETTINGS_RELATIVE}")
         if not dry_run:
@@ -185,19 +263,218 @@ def install_settings(root: Path, target: Path, manifest: dict[str, Any], force_s
         saved = backup(target, destination, dry_run)
         output.append(f"BACKUP {SETTINGS_RELATIVE} -> {saved.relative_to(target)}")
         output.append(f"REPLACE {SETTINGS_RELATIVE}")
-        atomic_copy(source, destination, dry_run)
+        atomic_text(destination, content, dry_run)
         if not dry_run:
             remember(manifest, SETTINGS_RELATIVE, destination, True)
         return
     output.append(f"PRESERVE {SETTINGS_RELATIVE}")
     output.append(f"INSTALL {SETTINGS_EXAMPLE_RELATIVE} (merge manually)")
     example = target / SETTINGS_EXAMPLE_RELATIVE
-    if example.exists() and not same_file(source, example) and not dry_run:
+    if example.exists() and not same_text(example, content) and not dry_run:
         output.append(f"SKIP {SETTINGS_EXAMPLE_RELATIVE}: existing example differs")
         return
-    atomic_copy(source, example, dry_run)
+    atomic_text(example, content, dry_run)
     if not dry_run:
         remember(manifest, SETTINGS_EXAMPLE_RELATIVE, example, True)
+
+
+def validate_model_token(value: str, option: str) -> str:
+    if not MODEL_TOKEN.fullmatch(value):
+        raise InstallError(
+            f"invalid model for {option}: use 1-128 letters, digits, dots, underscores, or hyphens"
+        )
+    return value
+
+
+def validate_effort(value: str, option: str, allowed: frozenset[str]) -> str:
+    if value not in allowed:
+        raise InstallError(f"invalid effort for {option}: choose {', '.join(sorted(allowed))}")
+    return value
+
+
+def parse_override(values: list[str], option: str, *, effort: bool = False) -> dict[str, str]:
+    result: dict[str, str] = {}
+    for value in values:
+        if "=" not in value:
+            raise InstallError(f"{option} must use ROLE=VALUE: {value}")
+        role, selected = (part.strip() for part in value.split("=", 1))
+        if role not in ROLES:
+            raise InstallError(f"unknown role for {option}: {role}")
+        result[role] = (
+            validate_effort(selected, option, CLAUDE_EFFORTS)
+            if effort
+            else validate_model_token(selected, option)
+        )
+    return result
+
+
+def prompt_choice(prompt: str, choices: list[tuple[str, str]], default: str) -> str:
+    print(prompt)
+    for index, (value, label) in enumerate(choices, 1):
+        suffix = " (önerilen)" if value == default else ""
+        print(f"  {index}. {label}{suffix}")
+    raw = input(f"Seçiminiz [{next(i for i, item in enumerate(choices, 1) if item[0] == default)}]: ").strip()
+    if not raw:
+        return default
+    if raw.isdigit() and 1 <= int(raw) <= len(choices):
+        return choices[int(raw) - 1][0]
+    for value, _ in choices:
+        if raw == value:
+            return value
+    raise InstallError(f"geçersiz seçim: {raw}")
+
+
+def interactive_options(args: argparse.Namespace) -> None:
+    print("\nClaude Bounded Orchestrator kurulum ayarları")
+    args.preset = prompt_choice(
+        "Hazır profil seçin:",
+        [
+            ("balanced", "Dengeli"),
+            ("quality", "Yüksek kalite"),
+            ("economy", "Ekonomik"),
+            ("custom", "Özel - rolleri tek tek seç"),
+        ],
+        args.preset,
+    )
+    if args.preset == "custom":
+        base = PRESETS["balanced"]
+        for role in ROLES:
+            default_model, default_effort = base[role]
+            label = ROLE_LABELS[role]
+            model = input(f"{label} ({role}) modeli [{default_model}]: ").strip() or default_model
+            effort = input(f"{label} ({role}) düşünme düzeyi [{default_effort}]: ").strip() or default_effort
+            args.role_model.append(f"{role}={model}")
+            args.role_effort.append(f"{role}={effort}")
+    external = prompt_choice(
+        "OpenAI GPT dış uygulama önericisi eklensin mi?",
+        [("no", "Hayır"), ("yes", "Evet")],
+        "yes" if args.external_openai else "no",
+    )
+    args.external_openai = external == "yes"
+    if args.external_openai:
+        args.external_model = input(f"OpenAI modeli [{args.external_model}]: ").strip() or args.external_model
+        args.external_effort = input(f"OpenAI düşünme düzeyi [{args.external_effort}]: ").strip() or args.external_effort
+        if not os.environ.get("OPENAI_API_KEY"):
+            print("Bilgi: OPENAI_API_KEY şu anda ayarlı değil; anahtar dosyaya kaydedilmeyecek.")
+
+
+def routing_for(args: argparse.Namespace) -> dict[str, tuple[str, str]]:
+    preset = "balanced" if args.preset == "custom" else args.preset
+    routing = dict(PRESETS[preset])
+    models = parse_override(args.role_model, "--role-model")
+    efforts = parse_override(args.role_effort, "--role-effort", effort=True)
+    for role in ROLES:
+        model, effort = routing[role]
+        routing[role] = (models.get(role, model), efforts.get(role, effort))
+    return routing
+
+
+def render_agent(source: Path, model: str, effort: str) -> str:
+    text = source.read_text(encoding="utf-8")
+    lines = text.splitlines(keepends=True)
+    for index, line in enumerate(lines):
+        if line.startswith("model:"):
+            lines[index] = f"model: {model}\n"
+        elif line.startswith("effort:"):
+            lines[index] = f"effort: {effort}\n"
+    return "".join(lines)
+
+
+def settings_content(routing: dict[str, tuple[str, str]]) -> str:
+    model, effort = routing["owner"]
+    return json.dumps(
+        {
+            "model": model,
+            "effortLevel": effort,
+            "env": {"CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "1"},
+        },
+        indent=2,
+    ) + "\n"
+
+
+def mcp_server(target: Path, model: str, effort: str) -> dict[str, Any]:
+    return {
+        "type": "stdio",
+        "command": sys.executable,
+        "args": [str(target / OPENAI_BRIDGE_RELATIVE)],
+        "env": {"OPENAI_MODEL": model, "OPENAI_REASONING_EFFORT": effort},
+    }
+
+
+def write_mcp_example(target: Path, manifest: dict[str, Any], desired: dict[str, Any], dry_run: bool, output: list[str]) -> None:
+    content = json.dumps({"mcpServers": {MCP_SERVER_NAME: desired}}, indent=2) + "\n"
+    path = target / MCP_EXAMPLE_RELATIVE
+    if path.is_symlink():
+        output.append(f"SKIP {MCP_EXAMPLE_RELATIVE}: destination is a symlink")
+        return
+    if path.exists() and not same_text(path, content):
+        output.append(f"SKIP {MCP_EXAMPLE_RELATIVE}: existing example differs")
+        return
+    output.append(f"INSTALL {MCP_EXAMPLE_RELATIVE} (merge manually)")
+    atomic_text(path, content, dry_run)
+    if not dry_run:
+        remember(manifest, MCP_EXAMPLE_RELATIVE, path, True)
+
+
+def install_mcp(target: Path, manifest: dict[str, Any], model: str, effort: str, dry_run: bool, output: list[str]) -> None:
+    desired = mcp_server(target, model, effort)
+    path = target / MCP_RELATIVE
+    if path.is_symlink():
+        output.append(f"PRESERVE {MCP_RELATIVE}: destination is a symlink")
+        write_mcp_example(target, manifest, desired, dry_run, output)
+        return
+    if not path.exists():
+        output.append(f"INSTALL {MCP_RELATIVE}")
+        atomic_text(path, json.dumps({"mcpServers": {MCP_SERVER_NAME: desired}}, indent=2) + "\n", dry_run)
+        if not dry_run:
+            manifest["mcp_entry"] = {"owned_file": True, "server": desired}
+        return
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        servers = data.get("mcpServers")
+        if not isinstance(data, dict) or not isinstance(servers, dict):
+            raise ValueError("mcpServers must be an object")
+    except (OSError, json.JSONDecodeError, ValueError):
+        output.append(f"PRESERVE {MCP_RELATIVE}: invalid or unsupported structure")
+        write_mcp_example(target, manifest, desired, dry_run, output)
+        return
+    existing = servers.get(MCP_SERVER_NAME)
+    if existing is not None and existing != desired:
+        output.append(f"PRESERVE {MCP_RELATIVE}: {MCP_SERVER_NAME} already differs")
+        write_mcp_example(target, manifest, desired, dry_run, output)
+        return
+    if existing == desired:
+        output.append(f"UNCHANGED {MCP_RELATIVE} entry")
+        return
+    output.append(f"UPDATE {MCP_RELATIVE}: add {MCP_SERVER_NAME}")
+    data["mcpServers"][MCP_SERVER_NAME] = desired
+    atomic_text(path, json.dumps(data, indent=2) + "\n", dry_run)
+    if not dry_run:
+        manifest["mcp_entry"] = {"owned_file": False, "server": desired}
+
+
+def uninstall_mcp(target: Path, manifest: dict[str, Any], dry_run: bool, output: list[str]) -> None:
+    entry = manifest.get("mcp_entry")
+    if not isinstance(entry, dict):
+        return
+    path = safe_uninstall_path(target, MCP_RELATIVE)
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        output.append(f"KEEP {MCP_RELATIVE}: modified after installation")
+        return
+    servers = data.get("mcpServers") if isinstance(data, dict) else None
+    if not isinstance(servers, dict) or servers.get(MCP_SERVER_NAME) != entry.get("server"):
+        output.append(f"KEEP {MCP_RELATIVE}: modified after installation")
+        return
+    output.append(f"REMOVE {MCP_RELATIVE}" if entry.get("owned_file") and len(servers) == 1 else f"UPDATE {MCP_RELATIVE}: remove {MCP_SERVER_NAME}")
+    if dry_run:
+        return
+    del servers[MCP_SERVER_NAME]
+    if entry.get("owned_file") and not servers and set(data) == {"mcpServers"}:
+        path.unlink()
+    else:
+        atomic_text(path, json.dumps(data, indent=2) + "\n", False)
 
 
 def remove_managed_block(text: str) -> tuple[str, bool]:
@@ -270,6 +547,8 @@ def uninstall(target: Path, manifest: dict[str, Any], dry_run: bool, output: lis
     manifest_path = safe_uninstall_path(target, MANIFEST_RELATIVE)
     claude = safe_uninstall_path(target, Path("CLAUDE.md"))
 
+    uninstall_mcp(target, manifest, dry_run, output)
+
     for name, entry in sorted(entries.items(), reverse=True):
         path = safe_paths[name]
         if not entry.get("owned") or not path.exists():
@@ -305,6 +584,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--force", action="store_true", help="replace conflicting managed files after backup")
     parser.add_argument("--force-settings", action="store_true", help="replace .claude/settings.json after backup")
     parser.add_argument("--uninstall", action="store_true", help="remove unchanged files installed by this tool")
+    parser.add_argument("--interactive", action="store_true", help="show Turkish profile and provider choices")
+    parser.add_argument(
+        "--preset",
+        choices=("balanced", "quality", "economy", "custom"),
+        default="balanced",
+        help="prepared model/effort profile (default: balanced)",
+    )
+    parser.add_argument("--role-model", action="append", default=[], metavar="ROLE=MODEL", help="override one role model; repeatable")
+    parser.add_argument("--role-effort", action="append", default=[], metavar="ROLE=EFFORT", help="override one role effort; repeatable")
+    parser.add_argument("--external-openai", action="store_true", help="configure the proposal-only OpenAI MCP role")
+    parser.add_argument("--external-model", default="gpt-5.6-sol", help="OpenAI Responses API model")
+    parser.add_argument("--external-effort", default="high", help="OpenAI reasoning effort")
     return parser.parse_args(argv)
 
 
@@ -312,6 +603,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     root = source_root()
     try:
+        if args.interactive and not args.uninstall:
+            interactive_options(args)
         target = args.target.expanduser().resolve()
         if not target.is_dir():
             raise InstallError(f"target must be an existing directory: {target}")
@@ -325,10 +618,33 @@ def main(argv: list[str] | None = None) -> int:
                 raise InstallError("no installation manifest found")
             uninstall(target, manifest, args.dry_run, output)
         else:
-            for relative in MANAGED_FILES:
-                install_one(root, target, relative, manifest, args.force, args.dry_run, output)
-            install_settings(root, target, manifest, args.force_settings, args.dry_run, output)
+            routing = routing_for(args)
+            if args.external_openai:
+                validate_model_token(args.external_model, "--external-model")
+                validate_effort(args.external_effort, "--external-effort", OPENAI_EFFORTS)
+            for relative in BASE_MANAGED_FILES:
+                content = None
+                if relative.parent == Path(".claude/agents"):
+                    model, effort = routing[relative.stem]
+                    content = render_agent(root / relative, model, effort)
+                install_one(root, target, relative, manifest, args.force, args.dry_run, output, content)
+            install_settings(
+                root,
+                target,
+                manifest,
+                args.force_settings,
+                args.dry_run,
+                output,
+                settings_content(routing),
+            )
+            if args.external_openai:
+                install_one(root, target, OPENAI_BRIDGE_RELATIVE, manifest, args.force, args.dry_run, output)
+                install_mcp(target, manifest, args.external_model, args.external_effort, args.dry_run, output)
             install_claude_block(root, target, manifest, args.dry_run, output)
+            if not args.dry_run:
+                manifest["preset"] = args.preset
+                manifest["routing"] = {role: {"model": model, "effort": effort} for role, (model, effort) in routing.items()}
+                manifest["external_openai"] = bool(args.external_openai)
             save_manifest(target, manifest, root, args.dry_run)
         print("\n".join(output))
         return 0

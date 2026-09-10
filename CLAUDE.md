@@ -40,6 +40,8 @@ Every delegated request names the objective, exact scope, write ownership or rea
 
 Use `/ui-design` or `/secure-change` only when the user or owner explicitly chooses that expertise for the current task. Skills add guidance, never tools or permissions.
 
+When `openai_bounded_implementation` is configured, it is a proposal-only external role. Pass an exact task, repository-relative allowed paths, reviewed context, constraints, and acceptance criteria. It cannot inspect or write the workspace. The native `implementer` remains the only writer and must review the returned patch, apply only accepted in-scope edits, and run normal verification and review. Never send credentials or unrelated source as context.
+
 ## Completion gate
 
 Before finishing, confirm that required agents stopped, the final candidate matches the reviewed candidate, accepted material findings are resolved or disclosed, the highest-value checks passed, the task ledger is complete when used, and no external action occurred without authority.

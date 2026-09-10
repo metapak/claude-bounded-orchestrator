@@ -43,8 +43,15 @@ class InstallerTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.temp.cleanup()
 
-    def installer(self, *args: str) -> subprocess.CompletedProcess[str]:
-        return subprocess.run([sys.executable, str(INSTALLER), str(self.target), *args], text=True, capture_output=True, check=False)
+    def installer(self, *args: str, input_text: str | None = None, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [sys.executable, str(INSTALLER), str(self.target), *args],
+            text=True,
+            input=input_text,
+            env=env,
+            capture_output=True,
+            check=False,
+        )
 
     def test_fresh_idempotent_install_and_uninstall(self) -> None:
         self.assertEqual(self.installer().returncode, 0)
@@ -103,8 +110,138 @@ class InstallerTests(unittest.TestCase):
         self.assertIn("modified after installation", result.stdout)
 
     def test_dry_run_writes_nothing(self) -> None:
-        self.assertEqual(self.installer("--dry-run").returncode, 0)
+        self.assertEqual(self.installer("--dry-run", "--preset", "quality", "--external-openai").returncode, 0)
         self.assertEqual(list(self.target.iterdir()), [])
+
+    def test_prepared_profiles_and_noninteractive_overrides(self) -> None:
+        self.assertEqual(self.installer("--preset", "quality").returncode, 0)
+        settings = json.loads((self.target / ".claude/settings.json").read_text())
+        self.assertEqual((settings["model"], settings["effortLevel"]), ("opus", "xhigh"))
+        explorer = agent_frontmatter(self.target / ".claude/agents/explorer.md")
+        self.assertEqual((explorer["model"], explorer["effort"]), ("opus", "high"))
+
+        other = Path(self.temp.name) / "economy"
+        other.mkdir()
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(INSTALLER),
+                str(other),
+                "--preset",
+                "economy",
+                "--role-model",
+                "implementer=claude-sonnet-4-6",
+                "--role-effort",
+                "implementer=xhigh",
+            ],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        economy = json.loads((other / ".claude/settings.json").read_text())
+        self.assertEqual((economy["model"], economy["effortLevel"]), ("sonnet", "medium"))
+        implementer = agent_frontmatter(other / ".claude/agents/implementer.md")
+        self.assertEqual((implementer["model"], implementer["effort"]), ("claude-sonnet-4-6", "xhigh"))
+
+    def test_interactive_custom_profile_prompts_for_every_role(self) -> None:
+        answers = ["4", "sonnet", "low"] + [""] * 16 + ["1"]
+        result = self.installer("--interactive", input_text="\n".join(answers) + "\n")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        settings = json.loads((self.target / ".claude/settings.json").read_text())
+        self.assertEqual((settings["model"], settings["effortLevel"]), ("sonnet", "low"))
+        manifest = json.loads((self.target / ".claude/.bounded-orchestrator/install.json").read_text())
+        self.assertEqual(manifest["preset"], "custom")
+        self.assertFalse(manifest["external_openai"])
+
+    def test_rejects_frontmatter_injection_and_invalid_native_effort_before_writing(self) -> None:
+        cases = (
+            ("model-newline", ["--role-model", "implementer=sonnet\nname: injected"]),
+            ("model-colon", ["--role-model", "implementer=sonnet:injected"]),
+            ("effort", ["--role-effort", "implementer=ultra"]),
+        )
+        for name, arguments in cases:
+            with self.subTest(name=name):
+                target = Path(self.temp.name) / name
+                target.mkdir()
+                result = subprocess.run(
+                    [sys.executable, str(INSTALLER), str(target), *arguments],
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 2)
+                self.assertEqual(list(target.iterdir()), [])
+
+    def test_interactive_invalid_model_is_rejected_before_rendering(self) -> None:
+        answers = ["4", "sonnet:name", "low"] + [""] * 16 + ["1"]
+        result = self.installer("--interactive", input_text="\n".join(answers) + "\n")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("invalid model", result.stderr)
+        self.assertEqual(list(self.target.iterdir()), [])
+
+    def test_rejects_invalid_external_model_and_effort_before_writing(self) -> None:
+        cases = (
+            ("model", ["--external-openai", "--external-model", "gpt:injected"]),
+            ("effort", ["--external-openai", "--external-effort", "ultra"]),
+        )
+        for name, arguments in cases:
+            with self.subTest(name=name):
+                target = Path(self.temp.name) / f"external-{name}"
+                target.mkdir()
+                result = subprocess.run(
+                    [sys.executable, str(INSTALLER), str(target), *arguments],
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 2)
+                self.assertEqual(list(target.iterdir()), [])
+
+    def test_external_openai_configuration_never_persists_api_key(self) -> None:
+        secret = "test-secret-that-must-not-be-written"
+        environment = dict(os.environ)
+        environment["OPENAI_API_KEY"] = secret
+        result = self.installer(
+            "--external-openai",
+            "--external-model",
+            "gpt-5.6-sol",
+            "--external-effort",
+            "high",
+            env=environment,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        config = json.loads((self.target / ".mcp.json").read_text())
+        server = config["mcpServers"]["openai-bounded-implementer"]
+        self.assertEqual(server["env"]["OPENAI_MODEL"], "gpt-5.6-sol")
+        self.assertEqual(server["env"]["OPENAI_REASONING_EFFORT"], "high")
+        self.assertNotIn("OPENAI_API_KEY", json.dumps(config))
+        for path in self.target.rglob("*"):
+            if path.is_file():
+                self.assertNotIn(secret, path.read_text(encoding="utf-8", errors="ignore"))
+        self.assertEqual(self.installer("--uninstall").returncode, 0)
+        self.assertFalse((self.target / ".mcp.json").exists())
+
+    def test_external_openai_merges_and_surgically_uninstalls_mcp_entry(self) -> None:
+        mcp = self.target / ".mcp.json"
+        mcp.write_text(json.dumps({"mcpServers": {"existing": {"command": "keep"}}}) + "\n")
+        self.assertEqual(self.installer("--external-openai").returncode, 0)
+        installed = json.loads(mcp.read_text())
+        self.assertIn("existing", installed["mcpServers"])
+        self.assertIn("openai-bounded-implementer", installed["mcpServers"])
+        self.assertEqual(self.installer("--uninstall").returncode, 0)
+        remaining = json.loads(mcp.read_text())
+        self.assertEqual(remaining, {"mcpServers": {"existing": {"command": "keep"}}})
+
+    def test_external_openai_preserves_conflicting_mcp_entry(self) -> None:
+        original = {"mcpServers": {"openai-bounded-implementer": {"command": "custom"}}}
+        mcp = self.target / ".mcp.json"
+        mcp.write_text(json.dumps(original) + "\n")
+        result = self.installer("--external-openai")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(mcp.read_text()), original)
+        example = json.loads((self.target / ".claude/bounded-orchestrator.mcp.example.json").read_text())
+        self.assertIn("openai-bounded-implementer", example["mcpServers"])
 
     def test_uninstall_rejects_absolute_and_traversal_manifest_entries(self) -> None:
         self.assertEqual(self.installer().returncode, 0)

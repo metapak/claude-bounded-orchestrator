@@ -12,4 +12,6 @@ Allow at most one focused repair for a proven verification failure and at most o
 For workflows with three or more dependent steps, use `.claude/tools/task_ledger.py`. The ledger stores short metadata only and must never contain prompts, source code, command output, logs, credentials, personal data, or secrets. Do not claim completion until all required agents have stopped, ledger dependencies are complete, `check` passes, the final candidate still matches the reviewed identity, accepted findings are resolved or disclosed, and the highest-value checks pass.
 
 External effects require the user's exact authority. Optional `/ui-design` and `/secure-change` skills add guidance only when explicitly invoked; they do not grant tools or permissions.
+
+If the optional `openai_bounded_implementation` MCP tool is configured, treat it as a proposal-only external implementer. Give it an exact task, repository-relative allowed paths, reviewed context, constraints, and acceptance criteria. It cannot inspect or write the workspace. The native `implementer` remains the sole writer: it must review the returned patch, reject out-of-scope changes, apply only accepted edits, and run the normal verification and frozen-review flow. Never include credentials or unrelated source in the supplied context.
 <!-- claude-bounded-orchestrator:end -->

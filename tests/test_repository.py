@@ -19,11 +19,12 @@ class RepositoryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             result = subprocess.run([sys.executable, "scripts/build_release.py", "--output-dir", temp], cwd=ROOT, text=True, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)
-            paths = [Path(temp) / f"claude-bounded-orchestrator-v0.2.0-{kind}.zip" for kind in ("source", "macos-linux", "windows")]
+            paths = [Path(temp) / f"claude-bounded-orchestrator-v0.3.0-{kind}.zip" for kind in ("source", "macos-linux", "windows")]
             self.assertTrue(all(path.is_file() for path in paths))
             with zipfile.ZipFile(paths[0]) as archive:
                 names = set(archive.namelist())
                 self.assertIn("claude-bounded-orchestrator/.claude/agents/implementer.md", names)
+                self.assertIn("claude-bounded-orchestrator/.claude/tools/openai_mcp.py", names)
                 self.assertFalse(any("/.git/" in name or name.endswith(".pyc") for name in names))
             with zipfile.ZipFile(paths[2]) as archive:
                 data = archive.read("claude-bounded-orchestrator/setup.ps1")

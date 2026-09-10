@@ -19,6 +19,19 @@ requirements first, then implement only the approved changes and test the affect
 
 Likely routing: researcher and explorer → implementer → verifier → reviewer.
 
+## Optional GPT implementation proposal
+
+After installing with `--external-openai` and launching Claude Code with `OPENAI_API_KEY` in its environment:
+
+```text
+Ask the optional OpenAI role for a bounded patch proposal for src/checkout.py only.
+Give it the relevant file content, the duplicate-order evidence, and the acceptance
+criteria. Do not send secrets or unrelated source. Have the native implementer review
+and apply only an accepted in-scope change, then verify and review the final candidate.
+```
+
+The external role sees only the supplied context and cannot write files. It does not replace the native implementer's single-writer responsibility.
+
 ## Opt-in UI design expertise
 
 ```text

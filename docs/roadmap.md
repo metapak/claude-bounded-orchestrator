@@ -2,9 +2,10 @@
 
 Roadmap items are proposals, not compatibility promises.
 
-## 0.2.x
+## 0.3.x
 
 - Gather live smoke-test reports across current Claude Code clients.
+- Gather live OpenAI MCP reports for supported model/account combinations.
 - Improve installation diagnostics without weakening conflict preservation.
 - Add more metadata-only ledger usability checks.
 

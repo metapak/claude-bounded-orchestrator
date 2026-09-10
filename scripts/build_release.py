@@ -31,7 +31,7 @@ def write_archive(path: Path, members: list[Path], *, windows: bool, start_file:
         for source in members:
             relative = source.relative_to(ROOT).as_posix()
             info = zipfile.ZipInfo(f"{NAME}/{relative}", (2026, 1, 1, 0, 0, 0))
-            mode = 0o755 if relative in {"setup.command", "scripts/install.sh", "scripts/install.py", "scripts/build_release.py", "scripts/validate.py", ".claude/tools/task_ledger.py"} else 0o644
+            mode = 0o755 if relative in {"setup.command", "scripts/install.sh", "scripts/install.py", "scripts/build_release.py", "scripts/validate.py", ".claude/tools/task_ledger.py", ".claude/tools/openai_mcp.py"} else 0o644
             info.external_attr = (stat.S_IFREG | mode) << 16
             archive.writestr(info, payload(source, windows))
         if start_file:

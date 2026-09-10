@@ -39,6 +39,14 @@ See the official Claude Code documentation for [model and effort configuration](
 
 The aliases intentionally follow the current Claude family instead of pinning dated model IDs. The main session uses Opus at `xhigh`; broad exploration and production work use Sonnet at bounded effort; difficult causal analysis and independent review use Opus. Account access and active-client support still determine what can run. Environment variables and launch-time overrides can take precedence over project settings, and environment effort overrides can take precedence over agent frontmatter.
 
+Installation profiles change only model and effort routing. `balanced` matches the repository defaults, `quality` routes every role to Opus, and `economy` uses Sonnet at lower effort. `custom` accepts per-role choices. Every profile keeps the same tool allowlists, depth cap, one-writer rule, verification separation, and finite repair budgets.
+
+## Optional external OpenAI proposal
+
+When selected, the installer adds one local stdio MCP server whose only tool sends a bounded prompt to the OpenAI Responses API. The bridge uses Python's standard library, reads `OPENAI_API_KEY` from its process environment, and stores only model and effort names in `.mcp.json`.
+
+The tool deliberately has no filesystem functions. Its input contains an exact task, allowed repository-relative paths, constraints, and context selected by the owner. Its output is untrusted proposal text, preferably a unified diff. The native Claude implementer reviews and applies accepted changes, so workspace mutation still has one writer. Provider access does not bypass normal verification, candidate freezing, review, or user-authority rules.
+
 ## Instruction-level controls
 
 Some constraints remain model instructions rather than hard security boundaries:

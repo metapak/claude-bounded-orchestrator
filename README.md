@@ -13,7 +13,7 @@ You still ask for work in normal language. The project supplies the operating ru
 
 ![Claude Bounded Orchestrator role tree showing the owner and bounded responsibilities](docs/assets/claude-bounded-orchestrator-roles-tr.png)
 
-The visual overview uses short Turkish labels. Version 0.2.0 assigns Claude model-family aliases and effort by role; the exact routing is listed below.
+The visual overview uses short Turkish labels. Version 0.3.0 adds guided model/effort profiles and an optional proposal-only OpenAI role; the default routing remains listed below.
 
 ```mermaid
 flowchart LR
@@ -36,6 +36,8 @@ flowchart LR
 - **Completion gating:** dependencies and unfinished work remain visible in a lightweight local ledger.
 - **Optional expertise:** UI design and security guidance are available only when explicitly invoked and grant no tools.
 - **Safe installation:** existing Claude settings and conflicting managed files are preserved by default.
+- **Guided profiles:** choose balanced, quality, economy, or configure every role during one-click setup.
+- **Optional GPT proposals:** a local MCP bridge can call the OpenAI Responses API without giving the external model workspace access.
 
 ## Quick start
 
@@ -50,6 +52,18 @@ Clone or download this repository, then preview installation into your project:
 python scripts/install.py /path/to/your-project --dry-run
 python scripts/install.py /path/to/your-project
 ```
+
+For a guided Turkish setup on macOS/Linux, run `./setup.command /path/to/your-project`. On Windows, run `setup.ps1` or double-click `setup.cmd`. The setup asks you to choose `balanced`, `quality`, `economy`, or `custom`. Custom setup asks for the model and effort of the owner and every agent.
+
+The direct installer stays non-interactive and uses `balanced` unless you choose another profile:
+
+```bash
+python scripts/install.py /path/to/your-project --preset economy
+python scripts/install.py /path/to/your-project --preset custom \
+  --role-model implementer=opus --role-effort implementer=xhigh
+```
+
+Custom model values accept provider model IDs containing letters, digits, dots, underscores, and hyphens. Native Claude efforts are `low`, `medium`, `high`, `xhigh`, or `max`.
 
 On Windows PowerShell:
 
@@ -83,12 +97,30 @@ The ledger is ignored by Git and stores only short metadata. Do not place prompt
 ├── agents/                  # bounded project agents
 ├── skills/                  # opt-in UI and security guidance
 ├── tools/task_ledger.py     # metadata-only task tracking
+├── tools/openai_mcp.py      # installed only when OpenAI is selected
 ├── settings.json            # owner model/effort and depth cap on a fresh install
 └── .bounded-orchestrator/   # ignored manifest, backups, and ledger state
 CLAUDE.md                    # a marked, removable instruction block
+.mcp.json                    # added/merged only when OpenAI is selected
 ```
 
 If `.claude/settings.json` already exists, the installer preserves it and writes `bounded-orchestrator.settings.example.json` for manual merging. Merge the `model`, `effortLevel`, and `env` entries you want. Use `--force-settings` only after reviewing the backup plan. Conflicting managed files are also preserved unless `--force` is chosen.
+
+## Optional OpenAI GPT role
+
+Choose OpenAI in guided setup, or enable it without prompts:
+
+```bash
+export OPENAI_API_KEY="your key"
+python scripts/install.py /path/to/your-project --external-openai \
+  --external-model gpt-5.6-sol --external-effort high
+```
+
+Set `OPENAI_API_KEY` in the environment that launches Claude Code. The installer never stores the key. It writes only the selected model and effort to MCP configuration. Existing `.mcp.json` servers are preserved; a conflicting server entry is left untouched and a reviewable example is written instead.
+
+OpenAI effort accepts `none`, `low`, `medium`, `high`, `xhigh`, or `max`, subject to support by the selected model.
+
+The bridge uses the official [OpenAI Responses API](https://developers.openai.com/api/reference/resources/responses/methods/create) through Claude Code's [local stdio MCP support](https://code.claude.com/docs/en/mcp). The external model receives only the task, allowed relative paths, constraints, and context supplied by the owner. It returns a patch or proposal and has no filesystem functions. The native Claude implementer reviews and applies accepted edits, preserving the single-writer rule. API calls may incur OpenAI charges and require access to the selected model.
 
 Uninstall unchanged files created by the installer:
 
@@ -128,6 +160,7 @@ This project does not turn model instructions into a security boundary. The nati
 - [FAQ and troubleshooting](docs/faq.md)
 - [Roadmap](docs/roadmap.md)
 - [Runtime smoke test](docs/runtime-smoke-test.md)
+- [v0.3.0 release notes](docs/release-v0.3.0.md)
 - [v0.2.0 release notes](docs/release-v0.2.0.md)
 - [macOS/Linux installation](INSTALL-MACOS.md)
 - [Windows installation](INSTALL-WINDOWS.md)
@@ -135,7 +168,7 @@ This project does not turn model instructions into a security boundary. The nati
 
 ## Project status
 
-Version `0.2.0` adds explicit model-family and effort routing while preserving the bounded workflow introduced in 0.1.0. The project adapts [Codex Bounded Orchestrator](https://github.com/metapak/codex-bounded-orchestrator) to Claude Code's native project agents, skills, shared instructions, and settings. See [NOTICE](NOTICE) and [provenance](docs/provenance.md) for attribution.
+Version `0.3.0` adds guided profiles and an optional OpenAI proposal role while preserving the bounded workflow and native single writer. The project adapts [Codex Bounded Orchestrator](https://github.com/metapak/codex-bounded-orchestrator) to Claude Code's native project agents, skills, shared instructions, and settings. See [NOTICE](NOTICE) and [provenance](docs/provenance.md) for attribution.
 
 If the project helps your team, a GitHub star helps other people discover it. Issues and focused pull requests are welcome.
 

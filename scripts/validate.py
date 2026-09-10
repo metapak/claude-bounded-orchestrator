@@ -37,7 +37,7 @@ def frontmatter(path: Path) -> dict[str, str]:
 
 def main() -> int:
     errors: list[str] = []
-    required = ["README.md", "README.tr.md", "LICENSE", "NOTICE", "CLAUDE.md", ".claude/settings.json", ".claude/tools/task_ledger.py", "scripts/install.py", "scripts/build_release.py"]
+    required = ["README.md", "README.tr.md", "LICENSE", "NOTICE", "CLAUDE.md", ".claude/settings.json", ".claude/tools/task_ledger.py", ".claude/tools/openai_mcp.py", "scripts/install.py", "scripts/build_release.py"]
     for name in required:
         if not (ROOT / name).is_file():
             errors.append(f"missing {name}")
@@ -93,8 +93,8 @@ def main() -> int:
         for target in re.findall(r"\[[^]]+\]\(([^)]+)\)", text):
             if "://" not in target and not (doc.parent / target).resolve().exists():
                 errors.append(f"broken local link in {doc.name}: {target}")
-    if (ROOT / "VERSION").read_text(encoding="utf-8").strip() != "0.2.0":
-        errors.append("VERSION must be 0.2.0")
+    if (ROOT / "VERSION").read_text(encoding="utf-8").strip() != "0.3.0":
+        errors.append("VERSION must be 0.3.0")
     if errors:
         print("Repository validation failed:", file=sys.stderr)
         for error in errors:
