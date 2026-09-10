@@ -93,7 +93,7 @@ python scripts/install.py /projenizin/yolu --uninstall --dry-run
 python scripts/install.py /projenizin/yolu --uninstall
 ```
 
-Kurulumdan sonra değiştirilmiş dosyalar silinmez.
+Kurulumdan sonra değiştirilmiş dosyalar silinmez. Kalan görev durumu ve yedeklerin Git'e eklenmemesi için çalışma klasöründeki `.gitignore` dosyası da korunur.
 
 ## Roller
 

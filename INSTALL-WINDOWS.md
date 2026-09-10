@@ -15,3 +15,5 @@ To remove unchanged installed files:
 .\scripts\install.ps1 -Target C:\path\to\project -Uninstall -DryRun
 .\scripts\install.ps1 -Target C:\path\to\project -Uninstall
 ```
+
+The runtime `.gitignore` remains in place to keep any retained ledger state and backups out of Git.

@@ -9,3 +9,4 @@ All notable changes are documented here.
 - Added opt-in UI design and secure-change expertise.
 - Added safe install, preview, backup, and uninstall flows.
 - Added source, macOS/Linux, and Windows package generation plus cross-platform CI.
+- Hardened uninstall path validation, expanded installed workflow rules, and retained the runtime ignore file so private ledger and backup data stay untracked after uninstall.

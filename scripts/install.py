@@ -35,6 +35,11 @@ MANAGED_FILES = (
     Path(".claude/tools/task_ledger.py"),
     Path(".claude/.bounded-orchestrator/.gitignore"),
 )
+RUNTIME_IGNORE_RELATIVE = Path(".claude/.bounded-orchestrator/.gitignore")
+ALLOWED_UNINSTALL_FILES = frozenset(
+    path.as_posix()
+    for path in (*MANAGED_FILES, SETTINGS_RELATIVE, SETTINGS_EXAMPLE_RELATIVE)
+)
 
 
 class InstallError(RuntimeError):
@@ -234,10 +239,43 @@ def save_manifest(target: Path, manifest: dict[str, Any], root: Path, dry_run: b
     atomic_text(target / MANIFEST_RELATIVE, json.dumps(manifest, indent=2, sort_keys=True) + "\n", False)
 
 
+def safe_uninstall_path(target: Path, relative: Path) -> Path:
+    """Return a contained non-symlink path or reject the uninstall."""
+    if relative.is_absolute() or ".." in relative.parts:
+        raise InstallError(f"unsafe uninstall path: {relative}")
+    current = target
+    for part in relative.parts[:-1]:
+        current = current / part
+        if current.is_symlink():
+            raise InstallError(f"refusing uninstall through symlinked directory: {current}")
+    candidate = target / relative
+    if candidate.is_symlink():
+        raise InstallError(f"refusing to uninstall symlink: {candidate}")
+    try:
+        candidate.resolve(strict=False).relative_to(target)
+    except ValueError as exc:
+        raise InstallError(f"uninstall path escapes target: {relative}") from exc
+    return candidate
+
+
 def uninstall(target: Path, manifest: dict[str, Any], dry_run: bool, output: list[str]) -> None:
-    for name, entry in sorted(manifest.get("files", {}).items(), reverse=True):
-        path = target / name
+    entries = manifest.get("files", {})
+    safe_paths: dict[str, Path] = {}
+    for name, entry in entries.items():
+        if not isinstance(name, str) or name not in ALLOWED_UNINSTALL_FILES:
+            raise InstallError(f"manifest contains unmanaged uninstall path: {name!r}")
+        if not isinstance(entry, dict):
+            raise InstallError(f"manifest contains invalid entry for: {name}")
+        safe_paths[name] = safe_uninstall_path(target, Path(name))
+    manifest_path = safe_uninstall_path(target, MANIFEST_RELATIVE)
+    claude = safe_uninstall_path(target, Path("CLAUDE.md"))
+
+    for name, entry in sorted(entries.items(), reverse=True):
+        path = safe_paths[name]
         if not entry.get("owned") or not path.exists():
+            continue
+        if Path(name) == RUNTIME_IGNORE_RELATIVE:
+            output.append(f"KEEP {name}: protects retained private runtime data")
             continue
         if not path.is_file() or digest(path) != entry.get("sha256"):
             output.append(f"KEEP {name}: modified after installation")
@@ -245,7 +283,6 @@ def uninstall(target: Path, manifest: dict[str, Any], dry_run: bool, output: lis
         output.append(f"REMOVE {name}")
         if not dry_run:
             path.unlink()
-    claude = target / "CLAUDE.md"
     if manifest.get("claude_block") and claude.is_file():
         current = claude.read_text(encoding="utf-8")
         cleaned, removed = remove_managed_block(current)
@@ -256,7 +293,6 @@ def uninstall(target: Path, manifest: dict[str, Any], dry_run: bool, output: lis
                     atomic_text(claude, cleaned, False)
                 else:
                     claude.unlink()
-    manifest_path = target / MANIFEST_RELATIVE
     output.append(f"REMOVE {MANIFEST_RELATIVE}")
     if not dry_run and manifest_path.exists():
         manifest_path.unlink()

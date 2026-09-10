@@ -15,3 +15,5 @@ To remove unchanged installed files:
 python3 scripts/install.py /path/to/project --uninstall --dry-run
 python3 scripts/install.py /path/to/project --uninstall
 ```
+
+The runtime `.gitignore` remains in place to keep any retained ledger state and backups out of Git.

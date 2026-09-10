@@ -93,7 +93,7 @@ python scripts/install.py /path/to/your-project --uninstall --dry-run
 python scripts/install.py /path/to/your-project --uninstall
 ```
 
-Files changed after installation are kept.
+Files changed after installation are kept. The runtime `.gitignore` is also retained so any remaining ledger state or backups stay untracked.
 
 ## Roles
 

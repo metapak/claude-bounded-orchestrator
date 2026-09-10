@@ -47,7 +47,7 @@ python scripts/install.py /path/to/project --uninstall --dry-run
 python scripts/install.py /path/to/project --uninstall
 ```
 
-The uninstaller removes only unchanged files recorded as installer-owned and removes its marked block from `CLAUDE.md`. Modified files remain.
+The uninstaller removes only unchanged files recorded as installer-owned and removes its marked block from `CLAUDE.md`. Modified files remain. It preserves `.claude/.bounded-orchestrator/.gitignore` so retained ledger state and backups remain untracked.
 
 ## Claude does not use the agents as expected
 
