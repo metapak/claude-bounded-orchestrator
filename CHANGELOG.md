@@ -10,6 +10,8 @@ All notable changes are documented here.
 - Kept the external model proposal-only so the native Claude implementer remains the single workspace writer.
 - Added safe `.mcp.json` merging and surgical uninstall without persisting `OPENAI_API_KEY`.
 - Added MCP protocol, mocked provider HTTP, profile, interaction, conflict, uninstall, and secret-absence tests.
+- Distinguished omitted and explicit OpenAI disable choices, preserving existing selections while safely removing unchanged installer-owned integration files on request.
+- Hardened owner-effort validation and malformed `.mcp.json` root handling before release.
 
 ## [0.2.0] - 2026-09-10
 

@@ -12,5 +12,7 @@
 - `OPENAI_API_KEY` yalnızca çalışma ortamından okunur ve hiçbir dosyaya kaydedilmez.
 - OpenAI rolü sadece kendisine verilen bağlamı görür ve öneri döndürür. Çalışma alanına erişemez; yerel Claude uygulayıcısı tek dosya yazarı olarak kalır.
 - Var olan ayarlar, çakışan dosyalar ve MCP sunucuları korunur. Kaldırma işlemi yalnızca bu proje tarafından eklenen ve değişmemiş girişleri temizler.
+- Sağlayıcı seçeneğinin yazılmaması önceki seçimi korur; seçim ekranındaki “Hayır” veya `--no-external-openai` yalnızca kurucuya ait değişmemiş bağlantı dosyalarını açıkça kapatır.
+- Ana oturum ayarlarında desteklenmeyen `max` değeri dosya yazılmadan reddedilir; yardımcıların ön yüz ayarlarında kullanılabilir.
 
 MCP akışı ve sağlayıcı isteği yerel bir sahte Responses API ile baştan sona test edilmiştir. Yayın ortamında API anahtarı bulunmadığı için ücretli canlı istek çalıştırılmamıştır.

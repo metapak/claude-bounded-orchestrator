@@ -198,6 +198,105 @@ class InstallerTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 2)
                 self.assertEqual(list(target.iterdir()), [])
 
+    def test_owner_rejects_max_before_writing_but_child_accepts_it(self) -> None:
+        rejected = self.installer("--role-effort", "owner=max")
+        self.assertEqual(rejected.returncode, 2)
+        self.assertEqual(list(self.target.iterdir()), [])
+
+        accepted = self.installer("--role-effort", "implementer=max")
+        self.assertEqual(accepted.returncode, 0, accepted.stderr)
+        implementer = agent_frontmatter(self.target / ".claude/agents/implementer.md")
+        self.assertEqual(implementer["effort"], "max")
+
+    def test_omitted_external_option_preserves_enabled_configuration(self) -> None:
+        self.assertEqual(self.installer("--external-openai").returncode, 0)
+        before = (self.target / ".mcp.json").read_text()
+        result = self.installer()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.target / ".mcp.json").read_text(), before)
+        self.assertTrue((self.target / ".claude/tools/openai_mcp.py").is_file())
+        manifest = json.loads((self.target / ".claude/.bounded-orchestrator/install.json").read_text())
+        self.assertTrue(manifest["external_openai"])
+
+    def test_interactive_no_disables_openai_and_preserves_unrelated_mcp_server(self) -> None:
+        mcp = self.target / ".mcp.json"
+        mcp.write_text(json.dumps({"mcpServers": {"existing": {"command": "keep"}}}) + "\n")
+        self.assertEqual(self.installer("--external-openai").returncode, 0)
+        result = self.installer("--interactive", input_text="1\n1\n")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        config = json.loads(mcp.read_text())
+        self.assertEqual(config, {"mcpServers": {"existing": {"command": "keep"}}})
+        self.assertFalse((self.target / ".claude/tools/openai_mcp.py").exists())
+        manifest = json.loads((self.target / ".claude/.bounded-orchestrator/install.json").read_text())
+        self.assertFalse(manifest["external_openai"])
+        self.assertNotIn("mcp_entry", manifest)
+
+    def test_explicit_disable_preserves_modified_mcp_entry_and_bridge(self) -> None:
+        self.assertEqual(self.installer("--external-openai").returncode, 0)
+        mcp = self.target / ".mcp.json"
+        config = json.loads(mcp.read_text())
+        config["mcpServers"]["openai-bounded-implementer"]["env"]["OPENAI_MODEL"] = "gpt-custom"
+        mcp.write_text(json.dumps(config, indent=2) + "\n")
+
+        result = self.installer("--no-external-openai")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("changed after installation", result.stdout)
+        self.assertTrue((self.target / ".claude/tools/openai_mcp.py").is_file())
+        manifest = json.loads((self.target / ".claude/.bounded-orchestrator/install.json").read_text())
+        self.assertTrue(manifest["external_openai"])
+        self.assertIn("mcp_entry", manifest)
+
+    def test_explicit_disable_removes_mcp_but_preserves_modified_bridge(self) -> None:
+        self.assertEqual(self.installer("--external-openai").returncode, 0)
+        bridge = self.target / ".claude/tools/openai_mcp.py"
+        bridge.write_text(bridge.read_text() + "# local change\n")
+
+        result = self.installer("--no-external-openai")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("modified after installation", result.stdout)
+        self.assertTrue(bridge.is_file())
+        self.assertFalse((self.target / ".mcp.json").exists())
+        manifest = json.loads((self.target / ".claude/.bounded-orchestrator/install.json").read_text())
+        self.assertFalse(manifest["external_openai"])
+        self.assertIn(".claude/tools/openai_mcp.py", manifest["files"])
+
+    def test_explicit_disable_preserves_unowned_conflicting_entry_and_marks_feature_off(self) -> None:
+        original = {"mcpServers": {"openai-bounded-implementer": {"command": "custom"}}}
+        mcp = self.target / ".mcp.json"
+        mcp.write_text(json.dumps(original) + "\n")
+        self.assertEqual(self.installer("--external-openai").returncode, 0)
+
+        result = self.installer("--no-external-openai")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("not installer-owned", result.stdout)
+        self.assertEqual(json.loads(mcp.read_text()), original)
+        self.assertTrue((self.target / ".claude/tools/openai_mcp.py").is_file())
+        manifest = json.loads((self.target / ".claude/.bounded-orchestrator/install.json").read_text())
+        self.assertFalse(manifest["external_openai"])
+
+    def test_external_install_preserves_non_object_mcp_roots_and_completes_manifest(self) -> None:
+        variants = ([], None, "invalid-root")
+        for index, value in enumerate(variants):
+            with self.subTest(value=value):
+                target = Path(self.temp.name) / f"mcp-root-{index}"
+                target.mkdir()
+                mcp = target / ".mcp.json"
+                original = json.dumps(value) + "\n"
+                mcp.write_text(original)
+                result = subprocess.run(
+                    [sys.executable, str(INSTALLER), str(target), "--external-openai"],
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(mcp.read_text(), original)
+                example = json.loads((target / ".claude/bounded-orchestrator.mcp.example.json").read_text())
+                self.assertIn("openai-bounded-implementer", example["mcpServers"])
+                manifest = json.loads((target / ".claude/.bounded-orchestrator/install.json").read_text())
+                self.assertFalse(manifest["external_openai"])
+                self.assertNotIn("mcp_entry", manifest)
+
     def test_external_openai_configuration_never_persists_api_key(self) -> None:
         secret = "test-secret-that-must-not-be-written"
         environment = dict(os.environ)

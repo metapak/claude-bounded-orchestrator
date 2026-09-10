@@ -24,6 +24,8 @@ $env:OPENAI_API_KEY = "your key"
 
 The API key is inherited at runtime and is never written to project files.
 
+Later runs preserve the existing provider choice when neither provider switch is supplied. Use `-NoExternalOpenAI` to remove only an unchanged installer-owned MCP entry and bridge. Modified entries are kept with a warning.
+
 To remove unchanged installed files:
 
 ```powershell

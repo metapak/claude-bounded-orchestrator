@@ -63,7 +63,7 @@ python scripts/install.py /projenizin/yolu --preset custom \
   --role-model implementer=opus --role-effort implementer=xhigh
 ```
 
-Özel model adlarında harf, rakam, nokta, alt çizgi ve kısa çizgi kullanılabilir. Yerel Claude düşünme düzeyi `low`, `medium`, `high`, `xhigh` veya `max` olabilir.
+Özel model adlarında harf, rakam, nokta, alt çizgi ve kısa çizgi kullanılabilir. Ana Claude oturumu için düşünme düzeyi `low`, `medium`, `high` veya `xhigh` olabilir; yardımcıların ön yüz ayarlarında ayrıca `max` kullanılabilir.
 
 Windows PowerShell için:
 
@@ -117,6 +117,8 @@ python scripts/install.py /projenizin/yolu --external-openai \
 ```
 
 `OPENAI_API_KEY`, Claude Code'u başlattığınız ortamda tanımlı olmalıdır. Kurucu anahtarı hiçbir dosyaya kaydetmez; MCP ayarına yalnızca seçilen model ve düşünme düzeyi yazılır. Var olan `.mcp.json` sunucuları korunur. Aynı adlı farklı bir ayar varsa bu ayara dokunulmaz ve elle inceleyebileceğiniz bir örnek dosya oluşturulur.
+
+Daha sonraki komutlu kurulumda iki OpenAI seçeneğini de yazmazsanız önceki seçim korunur. Kurucunun eklediği bağlantıyı kapatmak için seçim ekranında “Hayır” seçin veya `--no-external-openai` kullanın. Kurucu yalnızca kendisine ait, değişmemiş MCP girdisi ile köprüyü kaldırır; diğer sunucuları korur ve değiştirilmiş ya da çakışan bir girdiyi silmek yerine uyarı verir.
 
 OpenAI düşünme düzeyi `none`, `low`, `medium`, `high`, `xhigh` veya `max` olabilir; seçilen modelin bunu desteklemesi gerekir.
 

@@ -63,7 +63,7 @@ python scripts/install.py /path/to/your-project --preset custom \
   --role-model implementer=opus --role-effort implementer=xhigh
 ```
 
-Custom model values accept provider model IDs containing letters, digits, dots, underscores, and hyphens. Native Claude efforts are `low`, `medium`, `high`, `xhigh`, or `max`.
+Custom model values accept provider model IDs containing letters, digits, dots, underscores, and hyphens. The main Claude session accepts `low`, `medium`, `high`, or `xhigh`; child-agent frontmatter additionally accepts `max`.
 
 On Windows PowerShell:
 
@@ -117,6 +117,8 @@ python scripts/install.py /path/to/your-project --external-openai \
 ```
 
 Set `OPENAI_API_KEY` in the environment that launches Claude Code. The installer never stores the key. It writes only the selected model and effort to MCP configuration. Existing `.mcp.json` servers are preserved; a conflicting server entry is left untouched and a reviewable example is written instead.
+
+Omitting both OpenAI flags on a later non-interactive run preserves the previous selection. To disable an installer-owned integration, choose “Hayır” in guided setup or run `--no-external-openai`. The installer removes only its unchanged MCP entry and bridge, keeps unrelated servers, and warns instead of deleting a modified or conflicting entry.
 
 OpenAI effort accepts `none`, `low`, `medium`, `high`, `xhigh`, or `max`, subject to support by the selected model.
 

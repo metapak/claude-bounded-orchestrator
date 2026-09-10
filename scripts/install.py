@@ -28,6 +28,7 @@ OPENAI_BRIDGE_RELATIVE = Path(".claude/tools/openai_mcp.py")
 MCP_SERVER_NAME = "openai-bounded-implementer"
 MODEL_TOKEN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}\Z")
 CLAUDE_EFFORTS = frozenset({"low", "medium", "high", "xhigh", "max"})
+CLAUDE_OWNER_EFFORTS = frozenset({"low", "medium", "high", "xhigh"})
 OPENAI_EFFORTS = frozenset({"none", "low", "medium", "high", "xhigh", "max"})
 ROLES = (
     "owner",
@@ -300,11 +301,11 @@ def parse_override(values: list[str], option: str, *, effort: bool = False) -> d
         role, selected = (part.strip() for part in value.split("=", 1))
         if role not in ROLES:
             raise InstallError(f"unknown role for {option}: {role}")
-        result[role] = (
-            validate_effort(selected, option, CLAUDE_EFFORTS)
-            if effort
-            else validate_model_token(selected, option)
-        )
+        if effort:
+            allowed = CLAUDE_OWNER_EFFORTS if role == "owner" else CLAUDE_EFFORTS
+            result[role] = validate_effort(selected, option, allowed)
+        else:
+            result[role] = validate_model_token(selected, option)
     return result
 
 
@@ -382,6 +383,7 @@ def render_agent(source: Path, model: str, effort: str) -> str:
 
 def settings_content(routing: dict[str, tuple[str, str]]) -> str:
     model, effort = routing["owner"]
+    validate_effort(effort, "owner settings", CLAUDE_OWNER_EFFORTS)
     return json.dumps(
         {
             "model": model,
@@ -416,41 +418,117 @@ def write_mcp_example(target: Path, manifest: dict[str, Any], desired: dict[str,
         remember(manifest, MCP_EXAMPLE_RELATIVE, path, True)
 
 
-def install_mcp(target: Path, manifest: dict[str, Any], model: str, effort: str, dry_run: bool, output: list[str]) -> None:
+def install_mcp(target: Path, manifest: dict[str, Any], model: str, effort: str, dry_run: bool, output: list[str]) -> bool:
     desired = mcp_server(target, model, effort)
     path = target / MCP_RELATIVE
     if path.is_symlink():
         output.append(f"PRESERVE {MCP_RELATIVE}: destination is a symlink")
         write_mcp_example(target, manifest, desired, dry_run, output)
-        return
+        return False
     if not path.exists():
         output.append(f"INSTALL {MCP_RELATIVE}")
         atomic_text(path, json.dumps({"mcpServers": {MCP_SERVER_NAME: desired}}, indent=2) + "\n", dry_run)
         if not dry_run:
             manifest["mcp_entry"] = {"owned_file": True, "server": desired}
-        return
+        return True
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            raise ValueError("JSON root must be an object")
         servers = data.get("mcpServers")
-        if not isinstance(data, dict) or not isinstance(servers, dict):
+        if not isinstance(servers, dict):
             raise ValueError("mcpServers must be an object")
     except (OSError, json.JSONDecodeError, ValueError):
         output.append(f"PRESERVE {MCP_RELATIVE}: invalid or unsupported structure")
         write_mcp_example(target, manifest, desired, dry_run, output)
-        return
+        return False
     existing = servers.get(MCP_SERVER_NAME)
     if existing is not None and existing != desired:
         output.append(f"PRESERVE {MCP_RELATIVE}: {MCP_SERVER_NAME} already differs")
         write_mcp_example(target, manifest, desired, dry_run, output)
-        return
+        return False
     if existing == desired:
         output.append(f"UNCHANGED {MCP_RELATIVE} entry")
-        return
+        return True
     output.append(f"UPDATE {MCP_RELATIVE}: add {MCP_SERVER_NAME}")
     data["mcpServers"][MCP_SERVER_NAME] = desired
     atomic_text(path, json.dumps(data, indent=2) + "\n", dry_run)
     if not dry_run:
         manifest["mcp_entry"] = {"owned_file": False, "server": desired}
+    return True
+
+
+def disable_mcp(target: Path, manifest: dict[str, Any], dry_run: bool, output: list[str]) -> tuple[bool, bool]:
+    entry = manifest.get("mcp_entry")
+    path = safe_uninstall_path(target, MCP_RELATIVE)
+    if not isinstance(entry, dict):
+        if not path.exists():
+            return True, False
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return True, False
+        servers = data.get("mcpServers") if isinstance(data, dict) else None
+        if isinstance(servers, dict) and MCP_SERVER_NAME in servers:
+            output.append(f"KEEP {MCP_RELATIVE}: {MCP_SERVER_NAME} is not installer-owned")
+            return True, True
+        return True, False
+    if not path.exists():
+        if not dry_run:
+            manifest.pop("mcp_entry", None)
+        return True, False
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        output.append(f"KEEP {MCP_RELATIVE}: modified after installation; OpenAI remains configured")
+        return False, True
+    servers = data.get("mcpServers") if isinstance(data, dict) else None
+    if not isinstance(servers, dict) or servers.get(MCP_SERVER_NAME) != entry.get("server"):
+        output.append(f"KEEP {MCP_RELATIVE}: {MCP_SERVER_NAME} changed after installation; OpenAI remains configured")
+        return False, True
+    output.append(
+        f"REMOVE {MCP_RELATIVE}"
+        if entry.get("owned_file") and len(servers) == 1 and set(data) == {"mcpServers"}
+        else f"UPDATE {MCP_RELATIVE}: remove {MCP_SERVER_NAME}"
+    )
+    if not dry_run:
+        del servers[MCP_SERVER_NAME]
+        if entry.get("owned_file") and not servers and set(data) == {"mcpServers"}:
+            path.unlink()
+        else:
+            atomic_text(path, json.dumps(data, indent=2) + "\n", False)
+        manifest.pop("mcp_entry", None)
+    return True, False
+
+
+def remove_optional_file(target: Path, manifest: dict[str, Any], relative: Path, dry_run: bool, output: list[str]) -> None:
+    entry = manifest.get("files", {}).get(relative.as_posix())
+    if not isinstance(entry, dict) or not entry.get("owned"):
+        return
+    path = safe_uninstall_path(target, relative)
+    if not path.exists():
+        if not dry_run:
+            manifest["files"].pop(relative.as_posix(), None)
+        return
+    if not path.is_file() or digest(path) != entry.get("sha256"):
+        output.append(f"KEEP {relative}: modified after installation")
+        return
+    output.append(f"REMOVE {relative}")
+    if not dry_run:
+        path.unlink()
+        manifest["files"].pop(relative.as_posix(), None)
+
+
+def disable_external_openai(target: Path, manifest: dict[str, Any], dry_run: bool, output: list[str]) -> bool:
+    disabled, preserve_bridge = disable_mcp(target, manifest, dry_run, output)
+    if not disabled:
+        return False
+    if preserve_bridge:
+        output.append(f"KEEP {OPENAI_BRIDGE_RELATIVE}: an unowned MCP entry may still use it")
+    else:
+        remove_optional_file(target, manifest, OPENAI_BRIDGE_RELATIVE, dry_run, output)
+    remove_optional_file(target, manifest, MCP_EXAMPLE_RELATIVE, dry_run, output)
+    return True
 
 
 def uninstall_mcp(target: Path, manifest: dict[str, Any], dry_run: bool, output: list[str]) -> None:
@@ -593,7 +671,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--role-model", action="append", default=[], metavar="ROLE=MODEL", help="override one role model; repeatable")
     parser.add_argument("--role-effort", action="append", default=[], metavar="ROLE=EFFORT", help="override one role effort; repeatable")
-    parser.add_argument("--external-openai", action="store_true", help="configure the proposal-only OpenAI MCP role")
+    external = parser.add_mutually_exclusive_group()
+    external.add_argument("--external-openai", dest="external_openai", action="store_true", help="configure the proposal-only OpenAI MCP role")
+    external.add_argument("--no-external-openai", dest="external_openai", action="store_false", help="remove an unchanged installer-owned OpenAI MCP role")
+    parser.set_defaults(external_openai=None)
     parser.add_argument("--external-model", default="gpt-5.6-sol", help="OpenAI Responses API model")
     parser.add_argument("--external-effort", default="high", help="OpenAI reasoning effort")
     return parser.parse_args(argv)
@@ -619,7 +700,7 @@ def main(argv: list[str] | None = None) -> int:
             uninstall(target, manifest, args.dry_run, output)
         else:
             routing = routing_for(args)
-            if args.external_openai:
+            if args.external_openai is True:
                 validate_model_token(args.external_model, "--external-model")
                 validate_effort(args.external_effort, "--external-effort", OPENAI_EFFORTS)
             for relative in BASE_MANAGED_FILES:
@@ -637,14 +718,19 @@ def main(argv: list[str] | None = None) -> int:
                 output,
                 settings_content(routing),
             )
-            if args.external_openai:
+            external_effective = bool(manifest.get("external_openai", False))
+            if args.external_openai is True:
                 install_one(root, target, OPENAI_BRIDGE_RELATIVE, manifest, args.force, args.dry_run, output)
-                install_mcp(target, manifest, args.external_model, args.external_effort, args.dry_run, output)
+                external_effective = install_mcp(
+                    target, manifest, args.external_model, args.external_effort, args.dry_run, output
+                )
+            elif args.external_openai is False:
+                external_effective = not disable_external_openai(target, manifest, args.dry_run, output)
             install_claude_block(root, target, manifest, args.dry_run, output)
             if not args.dry_run:
                 manifest["preset"] = args.preset
                 manifest["routing"] = {role: {"model": model, "effort": effort} for role, (model, effort) in routing.items()}
-                manifest["external_openai"] = bool(args.external_openai)
+                manifest["external_openai"] = external_effective
             save_manifest(target, manifest, root, args.dry_run)
         print("\n".join(output))
         return 0

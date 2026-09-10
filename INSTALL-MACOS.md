@@ -19,6 +19,8 @@ python3 scripts/install.py /path/to/project --external-openai --external-model g
 
 The API key is inherited at runtime and is never written to project files.
 
+Later runs preserve the existing provider choice when neither provider flag is supplied. Use `--no-external-openai` to remove only an unchanged installer-owned MCP entry and bridge. Modified entries are kept with a warning.
+
 To remove unchanged installed files:
 
 ```bash

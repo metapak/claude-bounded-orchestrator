@@ -22,11 +22,15 @@ Yes. Claude Code environment variables and per-session or per-invocation options
 
 The installer also supports `--preset balanced|quality|economy|custom`, plus repeatable `--role-model ROLE=MODEL` and `--role-effort ROLE=EFFORT` overrides. The one-click launchers show the same choices in Turkish.
 
+The main session settings accept efforts through `xhigh`; `max` is available only for child-agent frontmatter. Invalid combinations are rejected before installation writes any files.
+
 ## Can Claude use a GPT model in this workflow?
 
 Yes, through the optional local MCP bridge and OpenAI Responses API. This is an external tool call, not a native Claude subagent model alias. Select it during guided setup or use `--external-openai`, then define `OPENAI_API_KEY` in the environment that launches Claude Code. The key is never stored by the installer.
 
 The GPT role returns a proposal and cannot inspect or write the workspace. The native Claude implementer remains the only writer and reviews any proposed patch before applying it. If the MCP server name already has a different configuration, the installer preserves it and writes an example for manual review.
+
+An omitted provider option preserves an earlier installation. Choose “Hayır” during interactive setup or pass `--no-external-openai` to remove an unchanged installer-owned integration. Modified entries remain configured and produce a warning so user changes are not lost.
 
 ## Why does the OpenAI tool report that the key is missing?
 
