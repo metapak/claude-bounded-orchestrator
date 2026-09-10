@@ -30,10 +30,14 @@ The project uses Claude Code features for concrete limits:
 - each agent has an explicit `tools` and `disallowedTools` list;
 - only `implementer` includes `Edit` and `Write`;
 - every child disallows `Agent`;
+- project settings select the main owner with `model: opus` and `effortLevel: xhigh`;
+- each project agent selects an `opus` or `sonnet` alias and an explicit effort level in frontmatter;
 - `.claude/settings.json` sets `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` to the string value `"1"`;
 - optional skills use `disable-model-invocation: true` and are not preloaded into agents.
 
-See the official Claude Code documentation for [subagents](https://code.claude.com/docs/en/sub-agents), [skills](https://code.claude.com/docs/en/skills), [shared instructions](https://code.claude.com/docs/en/memory), and [settings](https://code.claude.com/docs/en/settings).
+See the official Claude Code documentation for [model and effort configuration](https://code.claude.com/docs/en/model-config), [subagents](https://code.claude.com/docs/en/sub-agents), [skills](https://code.claude.com/docs/en/skills), [shared instructions](https://code.claude.com/docs/en/memory), and [settings](https://code.claude.com/docs/en/settings).
+
+The aliases intentionally follow the current Claude family instead of pinning dated model IDs. The main session uses Opus at `xhigh`; broad exploration and production work use Sonnet at bounded effort; difficult causal analysis and independent review use Opus. Account access and active-client support still determine what can run. Environment variables and launch-time overrides can take precedence over project settings, and environment effort overrides can take precedence over agent frontmatter.
 
 ## Instruction-level controls
 

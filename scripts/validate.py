@@ -10,6 +10,16 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 AGENTS = {"explorer", "researcher", "implementer", "verifier", "failure-analyst", "qa-operator", "reviewer", "advisor"}
+EXPECTED_ROUTING = {
+    "explorer": ("sonnet", "medium"),
+    "researcher": ("sonnet", "medium"),
+    "implementer": ("sonnet", "high"),
+    "verifier": ("sonnet", "high"),
+    "qa-operator": ("sonnet", "high"),
+    "failure-analyst": ("opus", "high"),
+    "reviewer": ("opus", "high"),
+    "advisor": ("opus", "xhigh"),
+}
 
 
 def frontmatter(path: Path) -> dict[str, str]:
@@ -33,6 +43,10 @@ def main() -> int:
             errors.append(f"missing {name}")
     try:
         settings = json.loads((ROOT / ".claude/settings.json").read_text(encoding="utf-8"))
+        if settings.get("model") != "opus":
+            errors.append("main owner model must be opus")
+        if settings.get("effortLevel") != "xhigh":
+            errors.append("main owner effortLevel must be xhigh")
         if settings.get("env", {}).get("CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH") != "1":
             errors.append("subagent spawn depth must be the string '1'")
     except Exception as exc:
@@ -48,6 +62,15 @@ def main() -> int:
             if not name or name in names:
                 errors.append(f"non-unique name in {path.name}")
             names.add(name)
+            expected_model, expected_effort = EXPECTED_ROUTING[path.stem]
+            if data.get("model") != expected_model:
+                errors.append(
+                    f"{path.name} model must be {expected_model}, got {data.get('model')}"
+                )
+            if data.get("effort") != expected_effort:
+                errors.append(
+                    f"{path.name} effort must be {expected_effort}, got {data.get('effort')}"
+                )
             tools = {item.strip() for item in data.get("tools", "").split(",")}
             writers = {"Edit", "Write"}.intersection(tools)
             if path.stem == "implementer":
@@ -70,8 +93,8 @@ def main() -> int:
         for target in re.findall(r"\[[^]]+\]\(([^)]+)\)", text):
             if "://" not in target and not (doc.parent / target).resolve().exists():
                 errors.append(f"broken local link in {doc.name}: {target}")
-    if (ROOT / "VERSION").read_text(encoding="utf-8").strip() != "0.1.0":
-        errors.append("VERSION must be 0.1.0")
+    if (ROOT / "VERSION").read_text(encoding="utf-8").strip() != "0.2.0":
+        errors.append("VERSION must be 0.2.0")
     if errors:
         print("Repository validation failed:", file=sys.stderr)
         for error in errors:

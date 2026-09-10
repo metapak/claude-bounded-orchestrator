@@ -13,7 +13,7 @@ Siz ne istediğinizi normal şekilde yazmaya devam edersiniz. Proje, arka planda
 
 ![Claude Bounded Orchestrator orkestra şefi ve görev dağılımı](docs/assets/claude-bounded-orchestrator-roles-tr.png)
 
-Görsel, ana Claude oturumunun işi yardımcılara nasıl dağıttığını özetler. Yardımcılar etkin oturum modelini devralır; bu nedenle sabit bir model adı belirtilmez.
+Görsel, ana Claude oturumunun işi yardımcılara nasıl dağıttığını özetler. 0.2.0 sürümünde her rol için Claude model ailesi ve düşünme düzeyi açıkça belirlenmiştir; ayrıntılı dağılım aşağıdadır.
 
 ```mermaid
 flowchart LR
@@ -83,12 +83,12 @@ Bu liste Git'e eklenmez ve yalnızca kısa durum bilgileri tutar. Kullanıcı is
 ├── agents/                  # görevleri sınırlı yardımcılar
 ├── skills/                  # isteğe bağlı tasarım ve güvenlik rehberleri
 ├── tools/task_ledger.py     # kısa görev takibi
-├── settings.json            # yeni kurulumda derinlik sınırı
+├── settings.json            # yeni kurulumda ana model, düşünme düzeyi ve derinlik sınırı
 └── .bounded-orchestrator/   # Git dışı kayıt, yedek ve görev durumu
 CLAUDE.md                    # işaretli ve kaldırılabilir talimat bölümü
 ```
 
-Projede `.claude/settings.json` zaten varsa kurulum bu dosyayı değiştirmez; elle birleştirmeniz için `bounded-orchestrator.settings.example.json` oluşturur. Çakışan dosyalar da `--force` seçilmedikçe korunur.
+Projede `.claude/settings.json` zaten varsa kurulum bu dosyayı değiştirmez; elle birleştirmeniz için `bounded-orchestrator.settings.example.json` oluşturur. İstediğiniz `model`, `effortLevel` ve `env` alanlarını inceleyerek birleştirebilirsiniz. Çakışan dosyalar da `--force` seçilmedikçe korunur.
 
 Kaldırma işlemini önce önizleyebilirsiniz:
 
@@ -101,19 +101,19 @@ Kurulumdan sonra değiştirilmiş dosyalar silinmez. Kalan görev durumu ve yede
 
 ## Roller
 
-| Rol | Görevi | Dosya değiştirme |
-|---|---|---:|
-| Ana Claude oturumu | Kapsamı, kararları ve sonucu yönetir | Oturumun normal izinlerine bağlıdır |
-| İnceleyici | Projedeki yolları ve sınırları bulur | Hayır |
-| Araştırmacı | Güncel dış bilgileri doğrular | Hayır |
-| Uygulayıcı | Kendisine verilen değişikliği yapar | Evet |
-| Kontrolcü | Sonucu kanıtlarla sınar | Hayır |
-| Hata çözümleyici | Kanıtlanmış bir hatanın nedenini açıklar | Hayır |
-| Kullanım kontrolcüsü | Sınırlı bir kullanım akışını gözlemler | Hayır |
-| Son inceleyici | Değişmeyen son hâli bağımsız inceler | Hayır |
-| Danışman | Riskli tek bir karar için görüş verir | Hayır |
+| Rol | Görevi | Model ailesi | Düşünme düzeyi | Dosya değiştirme |
+|---|---|---|---|---:|
+| Ana Claude oturumu | Kapsamı, kararları ve sonucu yönetir | `opus` | `xhigh` | Oturumun normal izinlerine bağlıdır |
+| İnceleyici | Projedeki yolları ve sınırları bulur | `sonnet` | `medium` | Hayır |
+| Araştırmacı | Güncel dış bilgileri doğrular | `sonnet` | `medium` | Hayır |
+| Uygulayıcı | Kendisine verilen değişikliği yapar | `sonnet` | `high` | Evet |
+| Kontrolcü | Sonucu kanıtlarla sınar | `sonnet` | `high` | Hayır |
+| Hata çözümleyici | Kanıtlanmış bir hatanın nedenini açıklar | `opus` | `high` | Hayır |
+| Kullanım kontrolcüsü | Sınırlı bir kullanım akışını gözlemler | `sonnet` | `high` | Hayır |
+| Son inceleyici | Değişmeyen son hâli bağımsız inceler | `opus` | `high` | Hayır |
+| Danışman | Riskli tek bir karar için görüş verir | `opus` | `xhigh` | Hayır |
 
-Rollerde `model: inherit` kullanılır. Böylece belirli bir model sürümü veya kalite iddiası sabitlenmez; gerçek model erişimini güncel Claude Code istemciniz ve hesabınız belirler.
+Bu adlar tarihli bir model sürümünü sabitlemek yerine güncel Claude ailesini seçen kısa adlardır. Model erişimi ve desteklenen düşünme düzeyleri hesabınıza ve güncel Claude Code istemcinize bağlıdır. Ortam değişkenleri ile oturum veya çalıştırma sırasında verilen seçenekler proje ayarlarının önüne geçebilir; yardımcı dosyalarındaki ayarlar desteklendiği yerde hedeflenen rol dağılımını uygular.
 
 ## Desteklenen sistemler ve sınırlar
 
@@ -128,13 +128,14 @@ Talimatlar tek başına kesin bir güvenlik sınırı değildir. Yardımcı deri
 - [Sık sorulan sorular ve sorun giderme](docs/faq.md)
 - [Yol haritası](docs/roadmap.md)
 - [Canlı deneme rehberi](docs/runtime-smoke-test.md)
+- [v0.2.0 sürüm notları](docs/release-v0.2.0.md)
 - [macOS/Linux kurulumu](INSTALL-MACOS.md)
 - [Windows kurulumu](INSTALL-WINDOWS.md)
 - [Katkı rehberi](CONTRIBUTING.md) · [Güvenlik](SECURITY.md) · [Değişiklikler](CHANGELOG.md)
 
 ## Projenin durumu
 
-`0.1.0`, Claude Code için hazırlanan ilk herkese açık sürümdür. [Codex Bounded Orchestrator](https://github.com/metapak/codex-bounded-orchestrator) çalışma düzenini Claude Code'un proje yardımcılarına, becerilerine, ortak talimatlarına ve ayarlarına uyarlar. Atıflar için [NOTICE](NOTICE) ve [kaynak bilgisi](docs/provenance.md) belgelerine bakabilirsiniz.
+`0.2.0`, 0.1.0 ile gelen sınırlı çalışma düzenine açık model ailesi ve düşünme düzeyi dağılımını ekler. Proje, [Codex Bounded Orchestrator](https://github.com/metapak/codex-bounded-orchestrator) çalışma düzenini Claude Code'un proje yardımcılarına, becerilerine, ortak talimatlarına ve ayarlarına uyarlar. Atıflar için [NOTICE](NOTICE) ve [kaynak bilgisi](docs/provenance.md) belgelerine bakabilirsiniz.
 
 Proje işinize yararsa vereceğiniz bir GitHub yıldızı daha fazla kişinin projeyi bulmasına yardımcı olur. Hata bildirimleri ve odaklı katkılar memnuniyetle karşılanır.
 

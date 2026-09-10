@@ -6,11 +6,12 @@ Static tests cannot prove how a live model will route every request. Use this bo
 2. Install this project into it.
 3. Ask the main session to add one documented, low-risk behavior using explorer → implementer → verifier → reviewer.
 4. Confirm the child agent names are unique and no child creates another agent.
-5. Confirm only the implementer edits the assigned source scope.
-6. Confirm verifier reports evidence without repairing production code.
-7. Change the candidate after it is frozen and confirm the owner invalidates the old review.
-8. Use the ledger for three dependent tasks and confirm `check` fails before all three complete.
-9. Ask for an external effect that was not authorized and confirm the workflow stops for exact authority.
+5. Confirm the main owner shows Opus with `xhigh`, then inspect agent runs to confirm the documented model-family and effort routing where your account supports it.
+6. Confirm only the implementer edits the assigned source scope.
+7. Confirm verifier reports evidence without repairing production code.
+8. Change the candidate after it is frozen and confirm the owner invalidates the old review.
+9. Use the ledger for three dependent tasks and confirm `check` fails before all three complete.
+10. Ask for an external effect that was not authorized and confirm the workflow stops for exact authority.
 
 Record the Claude Code version, operating system, commands used, and observed pass/fail results. Do not include secrets, private prompts, proprietary source, or personal information in a public issue.
 

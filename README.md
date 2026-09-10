@@ -11,9 +11,9 @@ Claude Bounded Orchestrator gives the main Claude session clear ownership, separ
 
 You still ask for work in normal language. The project supplies the operating rules behind the scenes.
 
-![Claude Bounded Orchestrator role tree showing the owner and inherited-model responsibilities](docs/assets/claude-bounded-orchestrator-roles-tr.png)
+![Claude Bounded Orchestrator role tree showing the owner and bounded responsibilities](docs/assets/claude-bounded-orchestrator-roles-tr.png)
 
-The visual overview uses short Turkish labels. Claude project agents inherit the active session model, so the repository does not assign or claim fixed model names.
+The visual overview uses short Turkish labels. Version 0.2.0 assigns Claude model-family aliases and effort by role; the exact routing is listed below.
 
 ```mermaid
 flowchart LR
@@ -83,12 +83,12 @@ The ledger is ignored by Git and stores only short metadata. Do not place prompt
 ├── agents/                  # bounded project agents
 ├── skills/                  # opt-in UI and security guidance
 ├── tools/task_ledger.py     # metadata-only task tracking
-├── settings.json            # depth cap on a fresh install
+├── settings.json            # owner model/effort and depth cap on a fresh install
 └── .bounded-orchestrator/   # ignored manifest, backups, and ledger state
 CLAUDE.md                    # a marked, removable instruction block
 ```
 
-If `.claude/settings.json` already exists, the installer preserves it and writes `bounded-orchestrator.settings.example.json` for manual merging. Use `--force-settings` only after reviewing the backup plan. Conflicting managed files are also preserved unless `--force` is chosen.
+If `.claude/settings.json` already exists, the installer preserves it and writes `bounded-orchestrator.settings.example.json` for manual merging. Merge the `model`, `effortLevel`, and `env` entries you want. Use `--force-settings` only after reviewing the backup plan. Conflicting managed files are also preserved unless `--force` is chosen.
 
 Uninstall unchanged files created by the installer:
 
@@ -101,19 +101,19 @@ Files changed after installation are kept. The runtime `.gitignore` is also reta
 
 ## Roles
 
-| Role | Purpose | Edit/Write |
-|---|---|---:|
-| Main Claude session | Owns scope, decisions, integration, and outcome | Uses normal session permissions |
-| Explorer | Maps code paths and constraints | No |
-| Researcher | Verifies current external facts | No |
-| Implementer | Makes one assigned change | Yes |
-| Verifier | Runs focused evidence checks | No |
-| Failure analyst | Explains one evidenced failure | No |
-| QA operator | Observes a bounded runtime flow | No |
-| Reviewer | Reviews a frozen candidate independently | No |
-| Advisor | Advises on one high-risk decision | No |
+| Role | Purpose | Model alias | Effort | Edit/Write |
+|---|---|---|---|---:|
+| Main Claude session | Owns scope, decisions, integration, and outcome | `opus` | `xhigh` | Uses normal session permissions |
+| Explorer | Maps code paths and constraints | `sonnet` | `medium` | No |
+| Researcher | Verifies current external facts | `sonnet` | `medium` | No |
+| Implementer | Makes one assigned change | `sonnet` | `high` | Yes |
+| Verifier | Runs focused evidence checks | `sonnet` | `high` | No |
+| Failure analyst | Explains one evidenced failure | `opus` | `high` | No |
+| QA operator | Observes a bounded runtime flow | `sonnet` | `high` | No |
+| Reviewer | Reviews a frozen candidate independently | `opus` | `high` | No |
+| Advisor | Advises on one high-risk decision | `opus` | `xhigh` | No |
 
-Agent `model: inherit` avoids hard-coding a model version or quality claim. The active Claude Code client and your account determine actual model availability and behavior.
+Aliases select the current Claude family instead of pinning a dated model ID. Model access and supported effort levels depend on your account and current Claude Code client. Environment variables and per-session or per-invocation options can take precedence over project settings; agent frontmatter sets the intended role routing where supported.
 
 ## Supported platforms and honest limits
 
@@ -128,13 +128,14 @@ This project does not turn model instructions into a security boundary. The nati
 - [FAQ and troubleshooting](docs/faq.md)
 - [Roadmap](docs/roadmap.md)
 - [Runtime smoke test](docs/runtime-smoke-test.md)
+- [v0.2.0 release notes](docs/release-v0.2.0.md)
 - [macOS/Linux installation](INSTALL-MACOS.md)
 - [Windows installation](INSTALL-WINDOWS.md)
 - [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Changelog](CHANGELOG.md)
 
 ## Project status
 
-Version `0.1.0` is the first public-ready Claude Code edition. It adapts the bounded workflow from [Codex Bounded Orchestrator](https://github.com/metapak/codex-bounded-orchestrator) to Claude Code's native project agents, skills, shared instructions, and settings. See [NOTICE](NOTICE) and [provenance](docs/provenance.md) for attribution.
+Version `0.2.0` adds explicit model-family and effort routing while preserving the bounded workflow introduced in 0.1.0. The project adapts [Codex Bounded Orchestrator](https://github.com/metapak/codex-bounded-orchestrator) to Claude Code's native project agents, skills, shared instructions, and settings. See [NOTICE](NOTICE) and [provenance](docs/provenance.md) for attribution.
 
 If the project helps your team, a GitHub star helps other people discover it. Issues and focused pull requests are welcome.
 

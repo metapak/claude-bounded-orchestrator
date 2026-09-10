@@ -2,13 +2,13 @@
 
 Roadmap items are proposals, not compatibility promises.
 
-## 0.1.x
+## 0.2.x
 
 - Gather live smoke-test reports across current Claude Code clients.
 - Improve installation diagnostics without weakening conflict preservation.
 - Add more metadata-only ledger usability checks.
 
-## 0.2.0 candidates
+## Future candidates
 
 - Optional domain expertise packs with the same explicit invocation and no tool grants.
 - A machine-readable, privacy-preserving workflow summary for local inspection.

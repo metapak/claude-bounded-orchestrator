@@ -12,6 +12,26 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 INSTALLER = ROOT / "scripts/install.py"
+EXPECTED_ROUTING = {
+    "explorer": ("sonnet", "medium"),
+    "researcher": ("sonnet", "medium"),
+    "implementer": ("sonnet", "high"),
+    "verifier": ("sonnet", "high"),
+    "qa-operator": ("sonnet", "high"),
+    "failure-analyst": ("opus", "high"),
+    "reviewer": ("opus", "high"),
+    "advisor": ("opus", "xhigh"),
+}
+
+
+def agent_frontmatter(path: Path) -> dict[str, str]:
+    raw = path.read_text(encoding="utf-8").split("\n---\n", 1)[0][4:]
+    return {
+        key.strip(): value.strip()
+        for line in raw.splitlines()
+        if ":" in line
+        for key, value in [line.split(":", 1)]
+    }
 
 
 class InstallerTests(unittest.TestCase):
@@ -30,7 +50,13 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(self.installer().returncode, 0)
         self.assertEqual(self.installer().returncode, 0)
         settings = json.loads((self.target / ".claude/settings.json").read_text())
+        self.assertEqual(settings["model"], "opus")
+        self.assertEqual(settings["effortLevel"], "xhigh")
         self.assertEqual(settings["env"]["CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH"], "1")
+        for name, (model, effort) in EXPECTED_ROUTING.items():
+            agent = agent_frontmatter(self.target / f".claude/agents/{name}.md")
+            self.assertEqual(agent["model"], model)
+            self.assertEqual(agent["effort"], effort)
         instructions = (self.target / "CLAUDE.md").read_text()
         self.assertEqual(instructions.count("<!-- claude-bounded-orchestrator:start -->"), 1)
         for phrase in (
@@ -58,7 +84,11 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(self.installer().returncode, 0)
         self.assertEqual(settings.read_text(), '{"custom": true}\n')
         self.assertEqual(agent.read_text(), "custom\n")
-        self.assertTrue((self.target / ".claude/bounded-orchestrator.settings.example.json").exists())
+        example = json.loads(
+            (self.target / ".claude/bounded-orchestrator.settings.example.json").read_text()
+        )
+        self.assertEqual(example["model"], "opus")
+        self.assertEqual(example["effortLevel"], "xhigh")
 
     def test_force_backs_up_and_uninstall_keeps_modified(self) -> None:
         agent = self.target / ".claude/agents/explorer.md"

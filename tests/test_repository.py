@@ -19,7 +19,7 @@ class RepositoryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             result = subprocess.run([sys.executable, "scripts/build_release.py", "--output-dir", temp], cwd=ROOT, text=True, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)
-            paths = [Path(temp) / f"claude-bounded-orchestrator-v0.1.0-{kind}.zip" for kind in ("source", "macos-linux", "windows")]
+            paths = [Path(temp) / f"claude-bounded-orchestrator-v0.2.0-{kind}.zip" for kind in ("source", "macos-linux", "windows")]
             self.assertTrue(all(path.is_file() for path in paths))
             with zipfile.ZipFile(paths[0]) as archive:
                 names = set(archive.namelist())

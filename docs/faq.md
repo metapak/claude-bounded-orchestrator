@@ -6,7 +6,7 @@ No. It is a project configuration and workflow for a current Claude Code install
 
 ## Does it choose a specific Claude model?
 
-No. Project agents use `model: inherit`. Your Claude Code client and account determine the active model and availability.
+It chooses model-family aliases and effort levels by role: the main owner uses `opus`/`xhigh`; exploration and routine implementation use `sonnet`; difficult failure analysis and independent review use `opus`. These aliases do not pin a dated model ID. Availability and supported effort levels depend on your account and current Claude Code client.
 
 ## Is one-writer enforcement absolute?
 
@@ -14,7 +14,11 @@ Only `implementer` receives `Edit` and `Write`, and children cannot delegate. Th
 
 ## Why was my existing settings file not changed?
 
-The installer preserves `.claude/settings.json` by default because replacing it could discard hooks, permissions, environment values, or other project configuration. It writes `.claude/bounded-orchestrator.settings.example.json`; merge the `env` entry after review. `--force-settings` creates a backup and replaces the file.
+The installer preserves `.claude/settings.json` by default because replacing it could discard hooks, permissions, environment values, or other project configuration. It writes `.claude/bounded-orchestrator.settings.example.json`; merge the desired `model`, `effortLevel`, and `env` entries after review. `--force-settings` creates a backup and replaces the file.
+
+## Can I override the selected model or effort?
+
+Yes. Claude Code environment variables and per-session or per-invocation options can take precedence over project settings. Agent frontmatter supplies the intended role-level routing where supported, while environment effort configuration can still override it. Confirm the active model and effort in your current client when exact routing matters.
 
 ## Why was an agent or skill skipped?
 

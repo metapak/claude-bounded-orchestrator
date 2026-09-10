@@ -2,6 +2,13 @@
 
 All notable changes are documented here.
 
+## [0.2.0] - 2026-09-10
+
+- Set the main owner to the `opus` alias with `xhigh` effort.
+- Added explicit `opus`/`sonnet` aliases and `medium`/`high`/`xhigh` effort levels for every project agent.
+- Added validation and installer tests that prevent role routing from drifting.
+- Documented settings preservation, override precedence, and account-dependent model access.
+
 ## [0.1.0] - 2026-09-10
 
 - Initial Claude Code project-agent workflow with bounded delegation and one writer per scope.
