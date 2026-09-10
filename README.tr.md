@@ -128,7 +128,7 @@ Talimatlar tek başına kesin bir güvenlik sınırı değildir. Yardımcı deri
 - [Sık sorulan sorular ve sorun giderme](docs/faq.md)
 - [Yol haritası](docs/roadmap.md)
 - [Canlı deneme rehberi](docs/runtime-smoke-test.md)
-- [v0.2.0 sürüm notları](docs/release-v0.2.0.md)
+- [v0.2.0 sürüm notları](docs/release-v0.2.0.tr.md)
 - [macOS/Linux kurulumu](INSTALL-MACOS.md)
 - [Windows kurulumu](INSTALL-WINDOWS.md)
 - [Katkı rehberi](CONTRIBUTING.md) · [Güvenlik](SECURITY.md) · [Değişiklikler](CHANGELOG.md)
