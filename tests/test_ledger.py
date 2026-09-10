@@ -35,7 +35,10 @@ class LedgerTests(unittest.TestCase):
         self.assertEqual(self.tool("complete", "BUILD", "--evidence", "Focused tests passed").returncode, 0)
         self.assertEqual(self.tool("check").returncode, 0)
         path = self.repo / ".claude/.bounded-orchestrator/tasks.json"
-        self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+        self.assertTrue(path.is_file())
+        self.assertFalse(path.is_symlink())
+        if os.name == "posix":
+            self.assertEqual(path.stat().st_mode & 0o777, 0o600)
         data = json.loads(path.read_text())
         self.assertEqual([item["status"] for item in data["tasks"]], ["complete", "complete"])
         self.assertFalse(path.with_name(path.name + ".lock").exists())
