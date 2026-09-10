@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+.DS_Store
+.claude/.bounded-orchestrator/install.json
+.claude/.bounded-orchestrator/backups/
+.claude/.bounded-orchestrator/tasks.json
+.claude/.bounded-orchestrator/tasks.json.lock
+dist/

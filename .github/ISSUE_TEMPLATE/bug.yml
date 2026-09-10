@@ -1,0 +1,30 @@
+name: Bug report
+description: Report reproducible incorrect behavior
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: textarea
+    id: trigger
+    attributes:
+      label: Trigger and expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed behavior
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Claude Code version, OS, and Python version
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Remove secrets, prompts, private source, logs, and personal data.
+    validations:
+      required: true
