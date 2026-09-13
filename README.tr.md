@@ -13,7 +13,7 @@ Siz ne istediğinizi normal şekilde yazmaya devam edersiniz. Proje, arka planda
 
 ![Claude Bounded Orchestrator orkestra şefi ve görev dağılımı](docs/assets/claude-bounded-orchestrator-roles-tr.png)
 
-Görsel, ana Claude oturumunun işi yardımcılara nasıl dağıttığını özetler. 0.3.1 sürümünde kurulum profilleri, isteğe bağlı OpenAI öneri rolü ve kısıtlı Windows terminal kodlamalarında güvenli etkileşimli çıktı bulunur.
+Görsel, ana Claude oturumunun işi yardımcılara nasıl dağıttığını özetler. 0.4.0 sürümünde yerel ve özel roller yalnızca Anthropic Claude modelleriyle çalışır; OpenAI veya DeepSeek ise ancak açıkça seçilen, sadece öneri üreten haricî API olarak eklenir. Kurulum ekranı bütün sistemlerde daha anlaşılırdır.
 
 ```mermaid
 flowchart LR
@@ -36,8 +36,9 @@ flowchart LR
 - Hafif görev listesi bekleyen, engellenen ve tamamlanan adımları görünür tutar.
 - Tasarım ve güvenlik uzmanlığı yalnızca açıkça istendiğinde kullanılır ve yeni yetki vermez.
 - Kurulum mevcut Claude ayarlarını ve çakışan dosyaları varsayılan olarak korur.
-- Dengeli, yüksek kalite, ekonomik veya rolleri tek tek ayarlayabileceğiniz özel profil seçilebilir.
-- İstenirse OpenAI GPT yalnızca yama önerisi üretmek için sisteme eklenebilir.
+- Dengeli, yüksek kalite, ekonomik veya Claude rollerini tek tek ayarlayabileceğiniz özel profil seçilebilir.
+- Yerel ve özel roller yalnızca Claude kısa adlarını veya tam `claude-*` kimliklerini kabul eder.
+- İstenirse OpenAI GPT veya DeepSeek yalnızca yama önerisi üretmek için haricî API olarak eklenebilir.
 
 ## Hızlı başlangıç
 
@@ -53,7 +54,7 @@ python scripts/install.py /projenizin/yolu --dry-run
 python scripts/install.py /projenizin/yolu
 ```
 
-Türkçe seçim ekranı için macOS/Linux'ta `./setup.command /projenizin/yolu` çalıştırın. Windows'ta `setup.ps1` çalıştırabilir veya `setup.cmd` dosyasına çift tıklayabilirsiniz. Kurulum size `balanced` (dengeli), `quality` (yüksek kalite), `economy` (ekonomik) ve `custom` (özel) seçeneklerini sunar. Özel profilde ana oturum ve bütün yardımcıların modeli ile düşünme düzeyi ayrı ayrı sorulur.
+Yönlendirmeli kurulum için macOS/Linux'ta `./setup.command` çalıştırın. Windows'ta `setup.ps1` çalıştırabilir veya `setup.cmd` dosyasına çift tıklayabilirsiniz. Yeni ekran hedef klasörü ve işlemi sorar, her profil için kısa açıklama gösterir, haricî API'leri varsayılan olarak kapalı tutar, son ayar özetini ve sonraki adımları gösterir.
 
 Doğrudan kurucu komutu seçim ekranı açmaz ve varsayılan olarak dengeli profili kullanır:
 
@@ -63,7 +64,7 @@ python scripts/install.py /projenizin/yolu --preset custom \
   --role-model implementer=opus --role-effort implementer=xhigh
 ```
 
-Özel model adlarında harf, rakam, nokta, alt çizgi ve kısa çizgi kullanılabilir. Ana Claude oturumu için düşünme düzeyi `low`, `medium`, `high` veya `xhigh` olabilir; yardımcıların ön yüz ayarlarında ayrıca `max` kullanılabilir.
+Yerel özel model olarak yalnızca `opus`, `sonnet`, `haiku` veya tam bir `claude-*` kimliği kullanılabilir. GPT, DeepSeek ve diğer marka kimlikleri yerel roller için reddedilir; bunlar açıkça seçilen haricî öneri API’si üzerinden kullanılmalıdır. Ana Claude oturumu için düşünme düzeyi `low`, `medium`, `high` veya `xhigh` olabilir; yardımcıların ön yüz ayarlarında ayrıca `max` kullanılabilir.
 
 Windows PowerShell için:
 
@@ -98,31 +99,38 @@ Bu liste Git'e eklenmez ve yalnızca kısa durum bilgileri tutar. Kullanıcı is
 ├── skills/                  # isteğe bağlı tasarım ve güvenlik rehberleri
 ├── tools/task_ledger.py     # kısa görev takibi
 ├── tools/openai_mcp.py      # yalnızca OpenAI seçilirse kurulur
+├── tools/deepseek_mcp.py    # yalnızca DeepSeek seçilirse kurulur
 ├── settings.json            # yeni kurulumda ana model, düşünme düzeyi ve derinlik sınırı
 └── .bounded-orchestrator/   # Git dışı kayıt, yedek ve görev durumu
 CLAUDE.md                    # işaretli ve kaldırılabilir talimat bölümü
-.mcp.json                    # yalnızca OpenAI seçilirse eklenir veya birleştirilir
+.mcp.json                    # yalnızca haricî öneri sağlayıcısı seçilirse eklenir/birleştirilir
 ```
 
 Projede `.claude/settings.json` zaten varsa kurulum bu dosyayı değiştirmez; elle birleştirmeniz için `bounded-orchestrator.settings.example.json` oluşturur. İstediğiniz `model`, `effortLevel` ve `env` alanlarını inceleyerek birleştirebilirsiniz. Çakışan dosyalar da `--force` seçilmedikçe korunur.
 
-## İsteğe bağlı OpenAI GPT rolü
+## İsteğe bağlı haricî öneri sağlayıcısı
 
-Seçim ekranında OpenAI seçeneğini açabilir veya komutla kurabilirsiniz:
+Yerel ve özel görev dağılımı yalnızca Anthropic Claude modelleriyle çalışır. Kurulum ekranında varsayılan seçim **Yok** olur. İsterseniz tek bir haricî öneri sağlayıcısını açıkça seçebilirsiniz:
 
 ```bash
+# OpenAI GPT
 export OPENAI_API_KEY="anahtarınız"
-python scripts/install.py /projenizin/yolu --external-openai \
+python scripts/install.py /projenizin/yolu --external-provider openai \
   --external-model gpt-5.6-sol --external-effort high
+
+# DeepSeek V4.1 Flash
+export DEEPSEEK_API_KEY="anahtarınız"
+python scripts/install.py /projenizin/yolu --external-provider deepseek \
+  --external-model deepseek-flash --external-effort high
 ```
 
-`OPENAI_API_KEY`, Claude Code'u başlattığınız ortamda tanımlı olmalıdır. Kurucu anahtarı hiçbir dosyaya kaydetmez; MCP ayarına yalnızca seçilen model ve düşünme düzeyi yazılır. Var olan `.mcp.json` sunucuları korunur. Aynı adlı farklı bir ayar varsa bu ayara dokunulmaz ve elle inceleyebileceğiniz bir örnek dosya oluşturulur.
+[Güncel resmî DeepSeek V4.1 Flash duyurusuna](https://www.deepseek.com/en/news/deepseek-v4-1-flash/) göre API kısa adı `deepseek-flash`tır; erişim hesabınıza ve bölgenize bağlıdır. DeepSeek düşünme düzeyi `low`, `high` veya `max` olabilir. OpenAI için `none`, `low`, `medium`, `high`, `xhigh` veya `max` seçilebilir; gerçek destek modele bağlıdır.
 
-Daha sonraki komutlu kurulumda iki OpenAI seçeneğini de yazmazsanız önceki seçim korunur. Kurucunun eklediği bağlantıyı kapatmak için seçim ekranında “Hayır” seçin veya `--no-external-openai` kullanın. Kurucu yalnızca kendisine ait, değişmemiş MCP girdisi ile köprüyü kaldırır; diğer sunucuları korur ve değiştirilmiş ya da çakışan bir girdiyi silmek yerine uyarı verir.
+API anahtarı Claude Code'u başlattığınız ortamda tanımlanır. Kurucu anahtarı kaydetmez veya ekrana yazmaz; MCP ayarına yalnızca sağlayıcı, model ve düşünme düzeyi eklenir. Var olan `.mcp.json` sunucuları korunur. Çakışan bir girdi değiştirilmez ve elle inceleme için örnek dosya yazılır.
 
-OpenAI düşünme düzeyi `none`, `low`, `medium`, `high`, `xhigh` veya `max` olabilir; seçilen modelin bunu desteklemesi gerekir.
+Her iki köprü de Python standart kütüphanesini ve Claude Code'un [yerel MCP desteğini](https://code.claude.com/docs/en/mcp) kullanır. Haricî sağlayıcı yalnızca ana yöneticinin açıkça verdiği görev, izinli yollar, kurallar ve seçilmiş bağlamı görür. Çalışma alanını okuyamaz veya değiştiremez; güvenilmeyen bir öneri döndürür. Yerel Claude uygulayıcısı tek dosya yazarı olarak kalır, kabul edilen öneriyi uygular ve normal kontrol süreci devam eder.
 
-Köprü, Claude Code'un [yerel MCP desteği](https://code.claude.com/docs/en/mcp) üzerinden resmi [OpenAI Responses API](https://developers.openai.com/api/reference/resources/responses/methods/create) hizmetini çağırır. GPT yalnızca ana oturumun verdiği görev, izinli göreli dosya yolları, kurallar ve bağlamı görür. Çalışma klasörünü okuyamaz veya değiştiremez; yalnızca yama ya da değişiklik önerisi döndürür. Öneriyi yerel Claude uygulayıcısı inceleyip kabul edilen kısmı uygular. Böylece tek uygulayıcı kuralı korunur. API kullanımı OpenAI hesabınızda ücret oluşturabilir ve seçilen modele erişim gerektirir.
+Sonraki komutlu kurulumda `--external-provider` yazılmazsa önceki seçim korunur. Kurucuya ait değişmemiş bağlantıyı kaldırmak için `--external-provider none`, `--no-external-openai` veya `--no-external-deepseek` kullanılabilir. Değiştirilmiş veya başkasına ait girdiler uyarıyla korunur. Haricî API kullanımı ayrıca ücret oluşturabilir.
 
 Kaldırma işlemini önce önizleyebilirsiniz:
 
@@ -162,6 +170,7 @@ Talimatlar tek başına kesin bir güvenlik sınırı değildir. Yardımcı deri
 - [Sık sorulan sorular ve sorun giderme](docs/faq.md)
 - [Yol haritası](docs/roadmap.md)
 - [Canlı deneme rehberi](docs/runtime-smoke-test.md)
+- [v0.4.0 sürüm notları](docs/release-v0.4.0.tr.md)
 - [v0.3.1 sürüm notları](docs/release-v0.3.1.tr.md)
 - [v0.3.0 sürüm notları](docs/release-v0.3.0.tr.md)
 - [v0.2.0 sürüm notları](docs/release-v0.2.0.tr.md)
@@ -171,7 +180,7 @@ Talimatlar tek başına kesin bir güvenlik sınırı değildir. Yardımcı deri
 
 ## Projenin durumu
 
-`0.3.1`, seçimli profilleri ve isteğe bağlı OpenAI öneri rolünü korurken kısıtlı çıktı kodlaması kullanan Windows terminallerindeki etkileşimli kurulum hatasını düzeltir. Proje, [Codex Bounded Orchestrator](https://github.com/metapak/codex-bounded-orchestrator) çalışma düzenini Claude Code'un proje yardımcılarına, becerilerine, ortak talimatlarına ve ayarlarına uyarlar. Atıflar için [NOTICE](NOTICE) ve [kaynak bilgisi](docs/provenance.md) belgelerine bakabilirsiniz.
+`0.4.0`, Claude’a ait yerel görev dağılımını marka dışı model kimliklerinden korur, isteğe bağlı OpenAI veya DeepSeek öneri sağlayıcısı ekler ve macOS, Linux ile Windows kurulum ekranını yeniler. Proje, [Codex Bounded Orchestrator](https://github.com/metapak/codex-bounded-orchestrator) çalışma düzenini Claude Code'un proje yardımcılarına, becerilerine, ortak talimatlarına ve ayarlarına uyarlar. Atıflar için [NOTICE](NOTICE) ve [kaynak bilgisi](docs/provenance.md) belgelerine bakabilirsiniz.
 
 Proje işinize yararsa vereceğiniz bir GitHub yıldızı daha fazla kişinin projeyi bulmasına yardımcı olur. Hata bildirimleri ve odaklı katkılar memnuniyetle karşılanır.
 

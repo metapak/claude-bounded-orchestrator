@@ -40,7 +40,9 @@ Every delegated request names the objective, exact scope, write ownership or rea
 
 Use `/ui-design` or `/secure-change` only when the user or owner explicitly chooses that expertise for the current task. Skills add guidance, never tools or permissions.
 
-When `openai_bounded_implementation` is configured, it is a proposal-only external role. Pass an exact task, repository-relative allowed paths, reviewed context, constraints, and acceptance criteria. It cannot inspect or write the workspace. The native `implementer` remains the only writer and must review the returned patch, apply only accepted in-scope edits, and run normal verification and review. Never send credentials or unrelated source as context.
+Native owner and child-agent routing uses only Anthropic Claude model aliases or full `claude-*` IDs. OpenAI, DeepSeek, and other brands are external API providers, never native agents.
+
+When `openai_bounded_implementation` or `deepseek_bounded_proposal` is configured, it is a proposal-only external source. Pass an exact task, repository-relative allowed paths, reviewed context, constraints, and acceptance criteria. It cannot inspect or write the workspace. The native `implementer` remains the only writer and must review the returned patch, apply only accepted in-scope edits, and run normal verification and review. Never send credentials or unrelated source as context.
 
 ## Completion gate
 

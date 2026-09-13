@@ -32,6 +32,19 @@ and apply only an accepted in-scope change, then verify and review the final can
 
 The external role sees only the supplied context and cannot write files. It does not replace the native implementer's single-writer responsibility.
 
+## Optional DeepSeek proposal
+
+After installing with `--external-provider deepseek` and launching Claude Code with `DEEPSEEK_API_KEY` in its environment:
+
+```text
+Ask the optional DeepSeek proposal tool to suggest a bounded change for src/cache.py.
+Send only the reviewed code needed to explain the defect. Do not send secrets or
+unrelated files. Have the native Claude implementer inspect and apply any accepted
+change, then run normal verification and independent review.
+```
+
+The prepared model alias is `deepseek-flash`, currently routed by DeepSeek to V4.1 Flash. Availability depends on the user's API account. DeepSeek remains an external proposal source, never a native Claude agent or workspace writer.
+
 ## Opt-in UI design expertise
 
 ```text

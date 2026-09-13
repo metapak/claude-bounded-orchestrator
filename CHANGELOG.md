@@ -2,6 +2,16 @@
 
 All notable changes are documented here.
 
+## [0.4.0] - 2026-09-14
+
+- Enforced Anthropic Claude-only model IDs for all native presets and per-role custom routing.
+- Added an opt-in, proposal-only DeepSeek bridge using the current `deepseek-flash` V4.1 alias, bounded request text, explicit effort validation, and environment-only secrets.
+- Reworked external provider selection to default to none and choose at most one of OpenAI or DeepSeek while preserving older OpenAI flags and manifests.
+- Refreshed guided macOS, Linux, and Windows terminal setup with clearer sections, profile explanations, provider warnings, a configuration review, install summary, and next steps.
+- Added provider lifecycle, secret absence, native-brand enforcement, restrictive terminal encoding, and mocked DeepSeek API tests.
+- Excluded private task-ledger state, locks, and backups from every release archive while retaining the required runtime `.gitignore` scaffold.
+- Kept a provider bridge during uninstall when its user-modified MCP entry is retained, while still fully removing unchanged provider installations.
+
 ## [0.3.1] - 2026-09-10
 
 - Prevented Turkish interactive setup prompts from crashing on Windows terminals that use restrictive encodings such as CP1252.

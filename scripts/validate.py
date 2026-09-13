@@ -37,7 +37,7 @@ def frontmatter(path: Path) -> dict[str, str]:
 
 def main() -> int:
     errors: list[str] = []
-    required = ["README.md", "README.tr.md", "LICENSE", "NOTICE", "CLAUDE.md", ".claude/settings.json", ".claude/tools/task_ledger.py", ".claude/tools/openai_mcp.py", "scripts/install.py", "scripts/build_release.py"]
+    required = ["README.md", "README.tr.md", "LICENSE", "NOTICE", "CLAUDE.md", ".claude/settings.json", ".claude/tools/task_ledger.py", ".claude/tools/openai_mcp.py", ".claude/tools/deepseek_mcp.py", "scripts/install.py", "scripts/build_release.py"]
     for name in required:
         if not (ROOT / name).is_file():
             errors.append(f"missing {name}")
@@ -93,8 +93,12 @@ def main() -> int:
         for target in re.findall(r"\[[^]]+\]\(([^)]+)\)", text):
             if "://" not in target and not (doc.parent / target).resolve().exists():
                 errors.append(f"broken local link in {doc.name}: {target}")
-    if (ROOT / "VERSION").read_text(encoding="utf-8").strip() != "0.3.1":
-        errors.append("VERSION must be 0.3.1")
+    for path in (ROOT / ".claude/agents").glob("*.md"):
+        model = frontmatter(path).get("model", "")
+        if model not in {"opus", "sonnet", "haiku"} and not model.startswith("claude-"):
+            errors.append(f"{path.name}: native route must use an Anthropic Claude model")
+    if (ROOT / "VERSION").read_text(encoding="utf-8").strip() != "0.4.0":
+        errors.append("VERSION must be 0.4.0")
     if errors:
         print("Repository validation failed:", file=sys.stderr)
         for error in errors:

@@ -13,7 +13,7 @@ You still ask for work in normal language. The project supplies the operating ru
 
 ![Claude Bounded Orchestrator role tree showing the owner and bounded responsibilities](docs/assets/claude-bounded-orchestrator-roles-tr.png)
 
-The visual overview uses short Turkish labels. Version 0.3.1 includes guided model/effort profiles, an optional proposal-only OpenAI role, and safer interactive output on restrictive Windows terminal encodings.
+The visual overview uses short Turkish labels. Version 0.4.0 keeps every native and custom role on Anthropic Claude, adds optional proposal-only OpenAI or DeepSeek API providers, and introduces a clearer cross-platform guided installer.
 
 ```mermaid
 flowchart LR
@@ -36,8 +36,9 @@ flowchart LR
 - **Completion gating:** dependencies and unfinished work remain visible in a lightweight local ledger.
 - **Optional expertise:** UI design and security guidance are available only when explicitly invoked and grant no tools.
 - **Safe installation:** existing Claude settings and conflicting managed files are preserved by default.
-- **Guided profiles:** choose balanced, quality, economy, or configure every role during one-click setup.
-- **Optional GPT proposals:** a local MCP bridge can call the OpenAI Responses API without giving the external model workspace access.
+- **Claude-only native routing:** every prepared and custom role accepts only Claude aliases or full `claude-*` IDs.
+- **Guided profiles:** choose balanced, quality, economy, or configure every Claude role during one-click setup.
+- **Optional external proposals:** local MCP bridges can call OpenAI or DeepSeek without giving either provider workspace access.
 
 ## Quick start
 
@@ -53,7 +54,7 @@ python scripts/install.py /path/to/your-project --dry-run
 python scripts/install.py /path/to/your-project
 ```
 
-For a guided Turkish setup on macOS/Linux, run `./setup.command /path/to/your-project`. On Windows, run `setup.ps1` or double-click `setup.cmd`. The setup asks you to choose `balanced`, `quality`, `economy`, or `custom`. Custom setup asks for the model and effort of the owner and every agent.
+For guided setup on macOS/Linux, run `./setup.command`; on Windows, run `setup.ps1` or double-click `setup.cmd`. The installer shows the target and action first, explains each native Claude profile, keeps external APIs off by default, reviews the final configuration, and prints next steps.
 
 The direct installer stays non-interactive and uses `balanced` unless you choose another profile:
 
@@ -63,7 +64,7 @@ python scripts/install.py /path/to/your-project --preset custom \
   --role-model implementer=opus --role-effort implementer=xhigh
 ```
 
-Custom model values accept provider model IDs containing letters, digits, dots, underscores, and hyphens. The main Claude session accepts `low`, `medium`, `high`, or `xhigh`; child-agent frontmatter additionally accepts `max`.
+Native custom values accept `opus`, `sonnet`, `haiku`, or a full `claude-*` model ID. GPT, DeepSeek, and other provider IDs are rejected for native roles and must use an explicit proposal-only API provider. The main Claude session accepts `low`, `medium`, `high`, or `xhigh`; child-agent frontmatter additionally accepts `max`.
 
 On Windows PowerShell:
 
@@ -98,31 +99,38 @@ The ledger is ignored by Git and stores only short metadata. Do not place prompt
 ├── skills/                  # opt-in UI and security guidance
 ├── tools/task_ledger.py     # metadata-only task tracking
 ├── tools/openai_mcp.py      # installed only when OpenAI is selected
+├── tools/deepseek_mcp.py    # installed only when DeepSeek is selected
 ├── settings.json            # owner model/effort and depth cap on a fresh install
 └── .bounded-orchestrator/   # ignored manifest, backups, and ledger state
 CLAUDE.md                    # a marked, removable instruction block
-.mcp.json                    # added/merged only when OpenAI is selected
+.mcp.json                    # added/merged only for an external proposal provider
 ```
 
 If `.claude/settings.json` already exists, the installer preserves it and writes `bounded-orchestrator.settings.example.json` for manual merging. Merge the `model`, `effortLevel`, and `env` entries you want. Use `--force-settings` only after reviewing the backup plan. Conflicting managed files are also preserved unless `--force` is chosen.
 
-## Optional OpenAI GPT role
+## Optional external proposal provider
 
-Choose OpenAI in guided setup, or enable it without prompts:
+Native and custom routing stays Anthropic Claude-only. Guided setup defaults to **None**, or you can explicitly select one external proposal provider:
 
 ```bash
+# OpenAI GPT
 export OPENAI_API_KEY="your key"
-python scripts/install.py /path/to/your-project --external-openai \
+python scripts/install.py /path/to/your-project --external-provider openai \
   --external-model gpt-5.6-sol --external-effort high
+
+# DeepSeek V4.1 Flash
+export DEEPSEEK_API_KEY="your key"
+python scripts/install.py /path/to/your-project --external-provider deepseek \
+  --external-model deepseek-flash --external-effort high
 ```
 
-Set `OPENAI_API_KEY` in the environment that launches Claude Code. The installer never stores the key. It writes only the selected model and effort to MCP configuration. Existing `.mcp.json` servers are preserved; a conflicting server entry is left untouched and a reviewable example is written instead.
+The [current official DeepSeek V4.1 Flash announcement](https://www.deepseek.com/en/news/deepseek-v4-1-flash/) specifies the `deepseek-flash` alias; API availability still depends on your DeepSeek account and region. DeepSeek effort accepts `low`, `high`, or `max`. OpenAI effort accepts `none`, `low`, `medium`, `high`, `xhigh`, or `max`, subject to the selected model.
 
-Omitting both OpenAI flags on a later non-interactive run preserves the previous selection. To disable an installer-owned integration, choose “Hayır” in guided setup or run `--no-external-openai`. The installer removes only its unchanged MCP entry and bridge, keeps unrelated servers, and warns instead of deleting a modified or conflicting entry.
+API keys must exist in the environment that launches Claude Code. The installer never stores or prints them. It records only provider, model, and effort in MCP configuration, preserves unrelated `.mcp.json` servers, and writes a reviewable example instead of replacing a conflicting entry.
 
-OpenAI effort accepts `none`, `low`, `medium`, `high`, `xhigh`, or `max`, subject to support by the selected model.
+Both bridges use Python's standard library and Claude Code's [local stdio MCP support](https://code.claude.com/docs/en/mcp). The external provider receives only the task, allowed relative paths, constraints, and context explicitly supplied by the owner. It has no filesystem functions and returns untrusted proposal text. The native Claude implementer remains the sole writer and reviews any accepted edit before normal verification and review.
 
-The bridge uses the official [OpenAI Responses API](https://developers.openai.com/api/reference/resources/responses/methods/create) through Claude Code's [local stdio MCP support](https://code.claude.com/docs/en/mcp). The external model receives only the task, allowed relative paths, constraints, and context supplied by the owner. It returns a patch or proposal and has no filesystem functions. The native Claude implementer reviews and applies accepted edits, preserving the single-writer rule. API calls may incur OpenAI charges and require access to the selected model.
+Omitting `--external-provider` on a later non-interactive run preserves an earlier selection. Use `--external-provider none`, `--no-external-openai`, or `--no-external-deepseek` to remove an unchanged installer-owned integration. Modified or unowned entries are kept with a warning. External API calls can incur separate provider charges.
 
 Uninstall unchanged files created by the installer:
 
@@ -162,6 +170,7 @@ This project does not turn model instructions into a security boundary. The nati
 - [FAQ and troubleshooting](docs/faq.md)
 - [Roadmap](docs/roadmap.md)
 - [Runtime smoke test](docs/runtime-smoke-test.md)
+- [v0.4.0 release notes](docs/release-v0.4.0.md)
 - [v0.3.1 release notes](docs/release-v0.3.1.md)
 - [v0.3.0 release notes](docs/release-v0.3.0.md)
 - [v0.2.0 release notes](docs/release-v0.2.0.md)
@@ -171,7 +180,7 @@ This project does not turn model instructions into a security boundary. The nati
 
 ## Project status
 
-Version `0.3.1` keeps guided profiles and the optional OpenAI proposal role while fixing interactive setup on Windows terminals with restrictive output encodings. The project adapts [Codex Bounded Orchestrator](https://github.com/metapak/codex-bounded-orchestrator) to Claude Code's native project agents, skills, shared instructions, and settings. See [NOTICE](NOTICE) and [provenance](docs/provenance.md) for attribution.
+Version `0.4.0` enforces Claude-only native routing, adds optional OpenAI or DeepSeek proposal providers, and refreshes the guided terminal setup across macOS, Linux, and Windows. The project adapts [Codex Bounded Orchestrator](https://github.com/metapak/codex-bounded-orchestrator) to Claude Code's native project agents, skills, shared instructions, and settings. See [NOTICE](NOTICE) and [provenance](docs/provenance.md) for attribution.
 
 If the project helps your team, a GitHub star helps other people discover it. Issues and focused pull requests are welcome.
 

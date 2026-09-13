@@ -13,10 +13,22 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 NAME = "claude-bounded-orchestrator"
 EXCLUDED_PARTS = {".git", "__pycache__", "dist"}
+PRIVATE_RUNTIME = Path(".claude/.bounded-orchestrator")
+
+
+def included(path: Path) -> bool:
+    relative = path.relative_to(ROOT)
+    if EXCLUDED_PARTS.intersection(relative.parts) or path.suffix in {".pyc", ".pyo"}:
+        return False
+    try:
+        runtime_relative = relative.relative_to(PRIVATE_RUNTIME)
+    except ValueError:
+        return True
+    return runtime_relative == Path(".gitignore")
 
 
 def files() -> list[Path]:
-    return sorted(path for path in ROOT.rglob("*") if path.is_file() and not EXCLUDED_PARTS.intersection(path.relative_to(ROOT).parts) and path.suffix not in {".pyc", ".pyo"})
+    return sorted(path for path in ROOT.rglob("*") if path.is_file() and included(path))
 
 
 def payload(path: Path, windows: bool) -> bytes:
@@ -31,7 +43,7 @@ def write_archive(path: Path, members: list[Path], *, windows: bool, start_file:
         for source in members:
             relative = source.relative_to(ROOT).as_posix()
             info = zipfile.ZipInfo(f"{NAME}/{relative}", (2026, 1, 1, 0, 0, 0))
-            mode = 0o755 if relative in {"setup.command", "scripts/install.sh", "scripts/install.py", "scripts/build_release.py", "scripts/validate.py", ".claude/tools/task_ledger.py", ".claude/tools/openai_mcp.py"} else 0o644
+            mode = 0o755 if relative in {"setup.command", "scripts/install.sh", "scripts/install.py", "scripts/build_release.py", "scripts/validate.py", ".claude/tools/task_ledger.py", ".claude/tools/openai_mcp.py", ".claude/tools/deepseek_mcp.py"} else 0o644
             info.external_attr = (stat.S_IFREG | mode) << 16
             archive.writestr(info, payload(source, windows))
         if start_file:

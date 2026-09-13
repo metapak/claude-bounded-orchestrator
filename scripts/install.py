@@ -24,12 +24,38 @@ SETTINGS_RELATIVE = Path(".claude/settings.json")
 SETTINGS_EXAMPLE_RELATIVE = Path(".claude/bounded-orchestrator.settings.example.json")
 MCP_RELATIVE = Path(".mcp.json")
 MCP_EXAMPLE_RELATIVE = Path(".claude/bounded-orchestrator.mcp.example.json")
+DEEPSEEK_MCP_EXAMPLE_RELATIVE = Path(".claude/bounded-orchestrator.deepseek.mcp.example.json")
 OPENAI_BRIDGE_RELATIVE = Path(".claude/tools/openai_mcp.py")
+DEEPSEEK_BRIDGE_RELATIVE = Path(".claude/tools/deepseek_mcp.py")
 MCP_SERVER_NAME = "openai-bounded-implementer"
+DEEPSEEK_MCP_SERVER_NAME = "deepseek-bounded-proposal"
 MODEL_TOKEN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}\Z")
 CLAUDE_EFFORTS = frozenset({"low", "medium", "high", "xhigh", "max"})
 CLAUDE_OWNER_EFFORTS = frozenset({"low", "medium", "high", "xhigh"})
 OPENAI_EFFORTS = frozenset({"none", "low", "medium", "high", "xhigh", "max"})
+DEEPSEEK_EFFORTS = frozenset({"low", "high", "max"})
+EXTERNAL_PROVIDERS = {
+    "openai": {
+        "label": "OpenAI GPT",
+        "bridge": OPENAI_BRIDGE_RELATIVE,
+        "example": MCP_EXAMPLE_RELATIVE,
+        "server": MCP_SERVER_NAME,
+        "default_model": "gpt-5.6-sol",
+        "default_effort": "high",
+        "efforts": OPENAI_EFFORTS,
+        "key": "OPENAI_API_KEY",
+    },
+    "deepseek": {
+        "label": "DeepSeek V4.1 Flash",
+        "bridge": DEEPSEEK_BRIDGE_RELATIVE,
+        "example": DEEPSEEK_MCP_EXAMPLE_RELATIVE,
+        "server": DEEPSEEK_MCP_SERVER_NAME,
+        "default_model": "deepseek-flash",
+        "default_effort": "high",
+        "efforts": DEEPSEEK_EFFORTS,
+        "key": "DEEPSEEK_API_KEY",
+    },
+}
 ROLES = (
     "owner",
     "explorer",
@@ -42,15 +68,15 @@ ROLES = (
     "advisor",
 )
 ROLE_LABELS = {
-    "owner": "ana yönetici",
-    "explorer": "inceleyici",
-    "researcher": "araştırmacı",
-    "implementer": "uygulayıcı",
-    "verifier": "kontrolcü",
-    "failure-analyst": "hata çözümleyici",
-    "qa-operator": "kullanım kontrolcüsü",
-    "reviewer": "son inceleyici",
-    "advisor": "danışman",
+    "owner": "owner / ana yonetici",
+    "explorer": "explorer / inceleyici",
+    "researcher": "researcher / arastirmaci",
+    "implementer": "implementer / uygulayici",
+    "verifier": "verifier / kontrolcu",
+    "failure-analyst": "failure analyst / hata cozumleyici",
+    "qa-operator": "QA operator / kullanim kontrolcusu",
+    "reviewer": "reviewer / son inceleyici",
+    "advisor": "advisor / danisman",
 }
 PRESETS = {
     "balanced": {
@@ -101,7 +127,12 @@ BASE_MANAGED_FILES = (
     Path(".claude/tools/task_ledger.py"),
     Path(".claude/.bounded-orchestrator/.gitignore"),
 )
-OPTIONAL_MANAGED_FILES = (OPENAI_BRIDGE_RELATIVE, MCP_EXAMPLE_RELATIVE)
+OPTIONAL_MANAGED_FILES = (
+    OPENAI_BRIDGE_RELATIVE,
+    DEEPSEEK_BRIDGE_RELATIVE,
+    MCP_EXAMPLE_RELATIVE,
+    DEEPSEEK_MCP_EXAMPLE_RELATIVE,
+)
 RUNTIME_IGNORE_RELATIVE = Path(".claude/.bounded-orchestrator/.gitignore")
 ALLOWED_UNINSTALL_FILES = frozenset(
     path.as_posix()
@@ -215,7 +246,7 @@ def backup(target: Path, destination: Path, dry_run: bool) -> Path:
 
 
 def ensure_sources(root: Path) -> None:
-    required = [root / item for item in (*BASE_MANAGED_FILES, OPENAI_BRIDGE_RELATIVE)]
+    required = [root / item for item in (*BASE_MANAGED_FILES, OPENAI_BRIDGE_RELATIVE, DEEPSEEK_BRIDGE_RELATIVE)]
     required += [root / SETTINGS_RELATIVE, root / "templates/CLAUDE.block.md", root / "VERSION"]
     missing = [str(path) for path in required if not path.is_file()]
     if missing:
@@ -295,6 +326,17 @@ def validate_model_token(value: str, option: str) -> str:
     return value
 
 
+def validate_claude_model(value: str, option: str) -> str:
+    """Accept only native Anthropic Claude aliases or full Claude model IDs."""
+    validate_model_token(value, option)
+    if value in {"opus", "sonnet", "haiku"} or value.startswith("claude-"):
+        return value
+    raise InstallError(
+        f"invalid native model for {option}: Anthropic Claude roles require opus, sonnet, haiku, or a claude-* ID; "
+        "use --external-provider openai/deepseek for proposal-only external models"
+    )
+
+
 def validate_effort(value: str, option: str, allowed: frozenset[str]) -> str:
     if value not in allowed:
         raise InstallError(f"invalid effort for {option}: choose {', '.join(sorted(allowed))}")
@@ -313,16 +355,16 @@ def parse_override(values: list[str], option: str, *, effort: bool = False) -> d
             allowed = CLAUDE_OWNER_EFFORTS if role == "owner" else CLAUDE_EFFORTS
             result[role] = validate_effort(selected, option, allowed)
         else:
-            result[role] = validate_model_token(selected, option)
+            result[role] = validate_claude_model(selected, option)
     return result
 
 
 def prompt_choice(prompt: str, choices: list[tuple[str, str]], default: str) -> str:
-    print(prompt)
+    print(f"\n{prompt}")
     for index, (value, label) in enumerate(choices, 1):
-        suffix = " (önerilen)" if value == default else ""
+        suffix = " (recommended / onerilen)" if value == default else ""
         print(f"  {index}. {label}{suffix}")
-    raw = input(f"Seçiminiz [{next(i for i, item in enumerate(choices, 1) if item[0] == default)}]: ").strip()
+    raw = input(f"Select / Secim [{next(i for i, item in enumerate(choices, 1) if item[0] == default)}]: ").strip()
     if not raw:
         return default
     if raw.isdigit() and 1 <= int(raw) <= len(choices):
@@ -330,18 +372,24 @@ def prompt_choice(prompt: str, choices: list[tuple[str, str]], default: str) -> 
     for value, _ in choices:
         if raw == value:
             return value
-    raise InstallError(f"geçersiz seçim: {raw}")
+    raise InstallError(f"invalid selection / gecersiz secim: {raw}")
 
 
 def interactive_options(args: argparse.Namespace) -> None:
-    print("\nClaude Bounded Orchestrator kurulum ayarları")
+    print("\n+------------------------------------------------------------------+")
+    print("| Claude Bounded Orchestrator - Guided Setup                      |")
+    print("+------------------------------------------------------------------+")
+    print("  Native routing : Anthropic Claude only")
+    print("  Safety         : one native Claude writer; bounded review loops")
+    print("  External APIs  : disabled by default; proposal-only when enabled")
+    print("\n[1/3] NATIVE CLAUDE PROFILE")
     args.preset = prompt_choice(
-        "Hazır profil seçin:",
+        "Choose how the native Claude team should work / Profil secin:",
         [
-            ("balanced", "Dengeli"),
-            ("quality", "Yüksek kalite"),
-            ("economy", "Ekonomik"),
-            ("custom", "Özel - rolleri tek tek seç"),
+            ("balanced", "Balanced / Dengeli - daily quality, speed, and cost"),
+            ("quality", "Quality / Yuksek kalite - strongest Claude routing"),
+            ("economy", "Economy / Ekonomik - lighter Claude routing"),
+            ("custom", "Custom / Ozel - choose each Claude model and effort"),
         ],
         args.preset,
     )
@@ -350,21 +398,51 @@ def interactive_options(args: argparse.Namespace) -> None:
         for role in ROLES:
             default_model, default_effort = base[role]
             label = ROLE_LABELS[role]
-            model = input(f"{label} ({role}) modeli [{default_model}]: ").strip() or default_model
-            effort = input(f"{label} ({role}) düşünme düzeyi [{default_effort}]: ").strip() or default_effort
+            model = input(f"{label} ({role}) Claude modeli [{default_model}]: ").strip() or default_model
+            effort = input(f"{label} ({role}) effort / dusunme duzeyi [{default_effort}]: ").strip() or default_effort
+            validate_claude_model(model, f"{role} model")
+            validate_effort(
+                effort,
+                f"{role} effort",
+                CLAUDE_OWNER_EFFORTS if role == "owner" else CLAUDE_EFFORTS,
+            )
             args.role_model.append(f"{role}={model}")
             args.role_effort.append(f"{role}={effort}")
+    print("\n[2/3] OPTIONAL EXTERNAL PROPOSAL PROVIDER")
+    print("  Warning: reviewed task context is sent to the selected provider API.")
+    print("  The provider cannot read/write the workspace; Claude stays sole writer.")
     external = prompt_choice(
-        "OpenAI GPT dış uygulama önericisi eklensin mi?",
-        [("no", "Hayır"), ("yes", "Evet")],
-        "yes" if args.external_openai else "no",
+        "Select an external API / Harici API secin:",
+        [
+            ("none", "None / Yok - Claude models only"),
+            ("openai", "OpenAI GPT - read-only implementation proposals"),
+            ("deepseek", "DeepSeek V4.1 Flash - read-only proposals"),
+        ],
+        args.external_provider or "none",
     )
-    args.external_openai = external == "yes"
-    if args.external_openai:
-        args.external_model = input(f"OpenAI modeli [{args.external_model}]: ").strip() or args.external_model
-        args.external_effort = input(f"OpenAI düşünme düzeyi [{args.external_effort}]: ").strip() or args.external_effort
-        if not os.environ.get("OPENAI_API_KEY"):
-            print("Bilgi: OPENAI_API_KEY şu anda ayarlı değil; anahtar dosyaya kaydedilmeyecek.")
+    args.external_provider = external
+    if external != "none":
+        spec = EXTERNAL_PROVIDERS[external]
+        default_model = args.external_model or str(spec["default_model"])
+        default_effort = args.external_effort or str(spec["default_effort"])
+        args.external_model = input(f"{spec['label']} model [{default_model}]: ").strip() or default_model
+        args.external_effort = input(f"Reasoning effort / Dusunme duzeyi [{default_effort}]: ").strip() or default_effort
+        validate_model_token(args.external_model, "external model")
+        validate_effort(args.external_effort, "external effort", spec["efforts"])
+        key = str(spec["key"])
+        if not os.environ.get(key):
+            print(f"  Note: {key} is not set. The key will never be saved to project files.")
+    print("\n[3/3] CONFIGURATION REVIEW")
+    print(f"  Native profile : {args.preset}")
+    print("  Native models  : Anthropic Claude only")
+    if external == "none":
+        print("  External API   : none")
+    else:
+        print(f"  External API   : {EXTERNAL_PROVIDERS[external]['label']} (proposal-only)")
+        print(f"  External model : {args.external_model}")
+        print(f"  External effort: {args.external_effort}")
+    print("  API key storage: environment only")
+    print("--------------------------------------------------------------------")
 
 
 def routing_for(args: argparse.Namespace) -> dict[str, tuple[str, str]]:
@@ -375,6 +453,7 @@ def routing_for(args: argparse.Namespace) -> dict[str, tuple[str, str]]:
     for role in ROLES:
         model, effort = routing[role]
         routing[role] = (models.get(role, model), efforts.get(role, effort))
+        validate_claude_model(routing[role][0], f"{role} model")
     return routing
 
 
@@ -402,42 +481,89 @@ def settings_content(routing: dict[str, tuple[str, str]]) -> str:
     ) + "\n"
 
 
-def mcp_server(target: Path, model: str, effort: str) -> dict[str, Any]:
+def mcp_server(target: Path, provider: str, model: str, effort: str) -> dict[str, Any]:
+    spec = EXTERNAL_PROVIDERS[provider]
+    env_prefix = "OPENAI" if provider == "openai" else "DEEPSEEK"
     return {
         "type": "stdio",
         "command": sys.executable,
-        "args": [str(target / OPENAI_BRIDGE_RELATIVE)],
-        "env": {"OPENAI_MODEL": model, "OPENAI_REASONING_EFFORT": effort},
+        "args": [str(target / spec["bridge"])],
+        "env": {f"{env_prefix}_MODEL": model, f"{env_prefix}_REASONING_EFFORT": effort},
     }
 
 
-def write_mcp_example(target: Path, manifest: dict[str, Any], desired: dict[str, Any], dry_run: bool, output: list[str]) -> None:
-    content = json.dumps({"mcpServers": {MCP_SERVER_NAME: desired}}, indent=2) + "\n"
-    path = target / MCP_EXAMPLE_RELATIVE
+def write_mcp_example(
+    target: Path,
+    manifest: dict[str, Any],
+    provider: str,
+    desired: dict[str, Any],
+    dry_run: bool,
+    output: list[str],
+) -> None:
+    spec = EXTERNAL_PROVIDERS[provider]
+    relative = Path(spec["example"])
+    server_name = str(spec["server"])
+    content = json.dumps({"mcpServers": {server_name: desired}}, indent=2) + "\n"
+    path = target / relative
     if path.is_symlink():
-        output.append(f"SKIP {MCP_EXAMPLE_RELATIVE}: destination is a symlink")
+        output.append(f"SKIP {relative}: destination is a symlink")
         return
     if path.exists() and not same_text(path, content):
-        output.append(f"SKIP {MCP_EXAMPLE_RELATIVE}: existing example differs")
+        output.append(f"SKIP {relative}: existing example differs")
         return
-    output.append(f"INSTALL {MCP_EXAMPLE_RELATIVE} (merge manually)")
+    output.append(f"INSTALL {relative} (merge manually)")
     atomic_text(path, content, dry_run)
     if not dry_run:
-        remember(manifest, MCP_EXAMPLE_RELATIVE, path, True)
+        remember(manifest, relative, path, True)
 
 
-def install_mcp(target: Path, manifest: dict[str, Any], model: str, effort: str, dry_run: bool, output: list[str]) -> bool:
-    desired = mcp_server(target, model, effort)
+def manifest_mcp_entry(manifest: dict[str, Any], provider: str) -> dict[str, Any] | None:
+    if provider == "openai" and isinstance(manifest.get("mcp_entry"), dict):
+        return manifest["mcp_entry"]
+    entries = manifest.get("mcp_entries")
+    if isinstance(entries, dict) and isinstance(entries.get(provider), dict):
+        return entries[provider]
+    return None
+
+
+def set_manifest_mcp_entry(manifest: dict[str, Any], provider: str, entry: dict[str, Any]) -> None:
+    manifest.setdefault("mcp_entries", {})[provider] = entry
+    if provider == "openai":
+        manifest["mcp_entry"] = entry  # v0.3 compatibility
+
+
+def clear_manifest_mcp_entry(manifest: dict[str, Any], provider: str) -> None:
+    entries = manifest.get("mcp_entries")
+    if isinstance(entries, dict):
+        entries.pop(provider, None)
+        if not entries:
+            manifest.pop("mcp_entries", None)
+    if provider == "openai":
+        manifest.pop("mcp_entry", None)
+
+
+def install_mcp(
+    target: Path,
+    manifest: dict[str, Any],
+    provider: str,
+    model: str,
+    effort: str,
+    dry_run: bool,
+    output: list[str],
+) -> bool:
+    spec = EXTERNAL_PROVIDERS[provider]
+    server_name = str(spec["server"])
+    desired = mcp_server(target, provider, model, effort)
     path = target / MCP_RELATIVE
     if path.is_symlink():
         output.append(f"PRESERVE {MCP_RELATIVE}: destination is a symlink")
-        write_mcp_example(target, manifest, desired, dry_run, output)
+        write_mcp_example(target, manifest, provider, desired, dry_run, output)
         return False
     if not path.exists():
         output.append(f"INSTALL {MCP_RELATIVE}")
-        atomic_text(path, json.dumps({"mcpServers": {MCP_SERVER_NAME: desired}}, indent=2) + "\n", dry_run)
+        atomic_text(path, json.dumps({"mcpServers": {server_name: desired}}, indent=2) + "\n", dry_run)
         if not dry_run:
-            manifest["mcp_entry"] = {"owned_file": True, "server": desired}
+            set_manifest_mcp_entry(manifest, provider, {"owned_file": True, "server": desired})
         return True
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -448,26 +574,43 @@ def install_mcp(target: Path, manifest: dict[str, Any], model: str, effort: str,
             raise ValueError("mcpServers must be an object")
     except (OSError, json.JSONDecodeError, ValueError):
         output.append(f"PRESERVE {MCP_RELATIVE}: invalid or unsupported structure")
-        write_mcp_example(target, manifest, desired, dry_run, output)
+        write_mcp_example(target, manifest, provider, desired, dry_run, output)
         return False
-    existing = servers.get(MCP_SERVER_NAME)
+    existing = servers.get(server_name)
     if existing is not None and existing != desired:
-        output.append(f"PRESERVE {MCP_RELATIVE}: {MCP_SERVER_NAME} already differs")
-        write_mcp_example(target, manifest, desired, dry_run, output)
+        previous = manifest_mcp_entry(manifest, provider)
+        if isinstance(previous, dict) and existing == previous.get("server"):
+            output.append(f"UPDATE {MCP_RELATIVE}: change {server_name} model/effort")
+            data["mcpServers"][server_name] = desired
+            atomic_text(path, json.dumps(data, indent=2) + "\n", dry_run)
+            if not dry_run:
+                set_manifest_mcp_entry(
+                    manifest,
+                    provider,
+                    {"owned_file": bool(previous.get("owned_file")), "server": desired},
+                )
+            return True
+        output.append(f"PRESERVE {MCP_RELATIVE}: {server_name} already differs")
+        write_mcp_example(target, manifest, provider, desired, dry_run, output)
         return False
     if existing == desired:
         output.append(f"UNCHANGED {MCP_RELATIVE} entry")
         return True
-    output.append(f"UPDATE {MCP_RELATIVE}: add {MCP_SERVER_NAME}")
-    data["mcpServers"][MCP_SERVER_NAME] = desired
+    output.append(f"UPDATE {MCP_RELATIVE}: add {server_name}")
+    data["mcpServers"][server_name] = desired
     atomic_text(path, json.dumps(data, indent=2) + "\n", dry_run)
     if not dry_run:
-        manifest["mcp_entry"] = {"owned_file": False, "server": desired}
+        set_manifest_mcp_entry(manifest, provider, {"owned_file": False, "server": desired})
     return True
 
 
-def disable_mcp(target: Path, manifest: dict[str, Any], dry_run: bool, output: list[str]) -> tuple[bool, bool]:
-    entry = manifest.get("mcp_entry")
+def disable_mcp(
+    target: Path, manifest: dict[str, Any], provider: str, dry_run: bool, output: list[str]
+) -> tuple[bool, bool]:
+    spec = EXTERNAL_PROVIDERS[provider]
+    server_name = str(spec["server"])
+    label = str(spec["label"])
+    entry = manifest_mcp_entry(manifest, provider)
     path = safe_uninstall_path(target, MCP_RELATIVE)
     if not isinstance(entry, dict):
         if not path.exists():
@@ -477,35 +620,35 @@ def disable_mcp(target: Path, manifest: dict[str, Any], dry_run: bool, output: l
         except (OSError, json.JSONDecodeError):
             return True, False
         servers = data.get("mcpServers") if isinstance(data, dict) else None
-        if isinstance(servers, dict) and MCP_SERVER_NAME in servers:
-            output.append(f"KEEP {MCP_RELATIVE}: {MCP_SERVER_NAME} is not installer-owned")
+        if isinstance(servers, dict) and server_name in servers:
+            output.append(f"KEEP {MCP_RELATIVE}: {server_name} is not installer-owned")
             return True, True
         return True, False
     if not path.exists():
         if not dry_run:
-            manifest.pop("mcp_entry", None)
+            clear_manifest_mcp_entry(manifest, provider)
         return True, False
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        output.append(f"KEEP {MCP_RELATIVE}: modified after installation; OpenAI remains configured")
+        output.append(f"KEEP {MCP_RELATIVE}: modified after installation; {label} remains configured")
         return False, True
     servers = data.get("mcpServers") if isinstance(data, dict) else None
-    if not isinstance(servers, dict) or servers.get(MCP_SERVER_NAME) != entry.get("server"):
-        output.append(f"KEEP {MCP_RELATIVE}: {MCP_SERVER_NAME} changed after installation; OpenAI remains configured")
+    if not isinstance(servers, dict) or servers.get(server_name) != entry.get("server"):
+        output.append(f"KEEP {MCP_RELATIVE}: {server_name} changed after installation; {label} remains configured")
         return False, True
     output.append(
         f"REMOVE {MCP_RELATIVE}"
         if entry.get("owned_file") and len(servers) == 1 and set(data) == {"mcpServers"}
-        else f"UPDATE {MCP_RELATIVE}: remove {MCP_SERVER_NAME}"
+        else f"UPDATE {MCP_RELATIVE}: remove {server_name}"
     )
     if not dry_run:
-        del servers[MCP_SERVER_NAME]
+        del servers[server_name]
         if entry.get("owned_file") and not servers and set(data) == {"mcpServers"}:
             path.unlink()
         else:
             atomic_text(path, json.dumps(data, indent=2) + "\n", False)
-        manifest.pop("mcp_entry", None)
+        clear_manifest_mcp_entry(manifest, provider)
     return True, False
 
 
@@ -527,40 +670,66 @@ def remove_optional_file(target: Path, manifest: dict[str, Any], relative: Path,
         manifest["files"].pop(relative.as_posix(), None)
 
 
-def disable_external_openai(target: Path, manifest: dict[str, Any], dry_run: bool, output: list[str]) -> bool:
-    disabled, preserve_bridge = disable_mcp(target, manifest, dry_run, output)
+def disable_external_provider(
+    target: Path, manifest: dict[str, Any], provider: str, dry_run: bool, output: list[str]
+) -> bool:
+    spec = EXTERNAL_PROVIDERS[provider]
+    bridge = Path(spec["bridge"])
+    example = Path(spec["example"])
+    disabled, preserve_bridge = disable_mcp(target, manifest, provider, dry_run, output)
     if not disabled:
         return False
     if preserve_bridge:
-        output.append(f"KEEP {OPENAI_BRIDGE_RELATIVE}: an unowned MCP entry may still use it")
+        output.append(f"KEEP {bridge}: an unowned MCP entry may still use it")
     else:
-        remove_optional_file(target, manifest, OPENAI_BRIDGE_RELATIVE, dry_run, output)
-    remove_optional_file(target, manifest, MCP_EXAMPLE_RELATIVE, dry_run, output)
+        remove_optional_file(target, manifest, bridge, dry_run, output)
+    remove_optional_file(target, manifest, example, dry_run, output)
     return True
 
 
-def uninstall_mcp(target: Path, manifest: dict[str, Any], dry_run: bool, output: list[str]) -> None:
-    entry = manifest.get("mcp_entry")
+def disable_external_openai(target: Path, manifest: dict[str, Any], dry_run: bool, output: list[str]) -> bool:
+    """Backward-compatible helper retained for v0.3 callers and tests."""
+    return disable_external_provider(target, manifest, "openai", dry_run, output)
+
+
+def uninstall_mcp_provider(
+    target: Path, manifest: dict[str, Any], provider: str, dry_run: bool, output: list[str]
+) -> Path | None:
+    spec = EXTERNAL_PROVIDERS[provider]
+    server_name = str(spec["server"])
+    entry = manifest_mcp_entry(manifest, provider)
     if not isinstance(entry, dict):
-        return
+        return None
     path = safe_uninstall_path(target, MCP_RELATIVE)
+    if not path.exists():
+        return None
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         output.append(f"KEEP {MCP_RELATIVE}: modified after installation")
-        return
+        return Path(spec["bridge"])
     servers = data.get("mcpServers") if isinstance(data, dict) else None
-    if not isinstance(servers, dict) or servers.get(MCP_SERVER_NAME) != entry.get("server"):
+    if not isinstance(servers, dict) or servers.get(server_name) != entry.get("server"):
         output.append(f"KEEP {MCP_RELATIVE}: modified after installation")
-        return
-    output.append(f"REMOVE {MCP_RELATIVE}" if entry.get("owned_file") and len(servers) == 1 else f"UPDATE {MCP_RELATIVE}: remove {MCP_SERVER_NAME}")
+        return Path(spec["bridge"])
+    output.append(f"REMOVE {MCP_RELATIVE}" if entry.get("owned_file") and len(servers) == 1 else f"UPDATE {MCP_RELATIVE}: remove {server_name}")
     if dry_run:
-        return
-    del servers[MCP_SERVER_NAME]
+        return None
+    del servers[server_name]
     if entry.get("owned_file") and not servers and set(data) == {"mcpServers"}:
         path.unlink()
     else:
         atomic_text(path, json.dumps(data, indent=2) + "\n", False)
+    return None
+
+
+def uninstall_mcp(target: Path, manifest: dict[str, Any], dry_run: bool, output: list[str]) -> set[str]:
+    retained_bridges: set[str] = set()
+    for provider in EXTERNAL_PROVIDERS:
+        bridge = uninstall_mcp_provider(target, manifest, provider, dry_run, output)
+        if bridge is not None:
+            retained_bridges.add(bridge.as_posix())
+    return retained_bridges
 
 
 def remove_managed_block(text: str) -> tuple[str, bool]:
@@ -633,11 +802,14 @@ def uninstall(target: Path, manifest: dict[str, Any], dry_run: bool, output: lis
     manifest_path = safe_uninstall_path(target, MANIFEST_RELATIVE)
     claude = safe_uninstall_path(target, Path("CLAUDE.md"))
 
-    uninstall_mcp(target, manifest, dry_run, output)
+    retained_bridges = uninstall_mcp(target, manifest, dry_run, output)
 
     for name, entry in sorted(entries.items(), reverse=True):
         path = safe_paths[name]
         if not entry.get("owned") or not path.exists():
+            continue
+        if name in retained_bridges:
+            output.append(f"KEEP {name}: retained MCP entry may still use it")
             continue
         if Path(name) == RUNTIME_IGNORE_RELATIVE:
             output.append(f"KEEP {name}: protects retained private runtime data")
@@ -679,13 +851,77 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--role-model", action="append", default=[], metavar="ROLE=MODEL", help="override one role model; repeatable")
     parser.add_argument("--role-effort", action="append", default=[], metavar="ROLE=EFFORT", help="override one role effort; repeatable")
-    external = parser.add_mutually_exclusive_group()
-    external.add_argument("--external-openai", dest="external_openai", action="store_true", help="configure the proposal-only OpenAI MCP role")
-    external.add_argument("--no-external-openai", dest="external_openai", action="store_false", help="remove an unchanged installer-owned OpenAI MCP role")
-    parser.set_defaults(external_openai=None)
-    parser.add_argument("--external-model", default="gpt-5.6-sol", help="OpenAI Responses API model")
-    parser.add_argument("--external-effort", default="high", help="OpenAI reasoning effort")
+    parser.add_argument(
+        "--external-provider",
+        choices=("none", "openai", "deepseek"),
+        default=None,
+        help="proposal-only external API provider; omitted preserves an existing provider",
+    )
+    openai = parser.add_mutually_exclusive_group()
+    openai.add_argument("--external-openai", dest="external_openai", action="store_true", help="compatibility alias for --external-provider openai")
+    openai.add_argument("--no-external-openai", dest="external_openai", action="store_false", help="remove an unchanged installer-owned OpenAI proposal role")
+    deepseek = parser.add_mutually_exclusive_group()
+    deepseek.add_argument("--external-deepseek", dest="external_deepseek", action="store_true", help="compatibility alias for --external-provider deepseek")
+    deepseek.add_argument("--no-external-deepseek", dest="external_deepseek", action="store_false", help="remove an unchanged installer-owned DeepSeek proposal role")
+    parser.set_defaults(external_openai=None, external_deepseek=None)
+    parser.add_argument("--external-model", default=None, help="external provider model ID")
+    parser.add_argument("--external-effort", default=None, help="external provider reasoning effort")
     return parser.parse_args(argv)
+
+
+def normalize_external_options(args: argparse.Namespace) -> tuple[str | None, set[str]]:
+    requested = args.external_provider
+    explicit_disable: set[str] = set()
+    aliases = (("openai", args.external_openai), ("deepseek", args.external_deepseek))
+    for provider, state in aliases:
+        if state is True:
+            if requested not in (None, provider):
+                raise InstallError("choose only one external proposal provider")
+            requested = provider
+        elif state is False:
+            explicit_disable.add(provider)
+    if requested in explicit_disable:
+        raise InstallError(f"cannot enable and disable {requested} together")
+    if requested is not None and requested != "none":
+        spec = EXTERNAL_PROVIDERS[requested]
+        args.external_model = args.external_model or str(spec["default_model"])
+        args.external_effort = args.external_effort or str(spec["default_effort"])
+    elif args.external_model is not None or args.external_effort is not None:
+        raise InstallError("--external-model/--external-effort require an external provider")
+    return requested, explicit_disable
+
+
+def print_install_summary(
+    target: Path,
+    args: argparse.Namespace,
+    provider: str | None,
+    output: list[str],
+) -> None:
+    if not args.interactive:
+        print("\n".join(output))
+        return
+    print("\n+------------------------------------------------------------------+")
+    print("| INSTALL RESULT                                                   |")
+    print("+------------------------------------------------------------------+")
+    print(f"  Status          : {'preview complete' if args.dry_run else 'installation complete'}")
+    print(f"  Target          : {target}")
+    print(f"  Native profile  : {args.preset} (Anthropic Claude only)")
+    print(f"  External API    : {provider or 'none'}")
+    print("\n  File actions")
+    if output:
+        for line in output:
+            print(f"    - {line}")
+    else:
+        print("    - no changes")
+    print("\n  Next steps")
+    print("    1. Restart Claude Code in the target project.")
+    if provider:
+        key = EXTERNAL_PROVIDERS[provider]["key"]
+        print(f"    2. Set {key} in the shell that launches Claude Code.")
+        print("    3. Share only reviewed, necessary context with the proposal tool.")
+    else:
+        print("    2. Give Claude a normal task; native routing is ready.")
+    print("--------------------------------------------------------------------")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -695,6 +931,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.interactive and not args.uninstall:
             interactive_options(args)
+        requested_provider, explicit_disable = normalize_external_options(args)
         target = args.target.expanduser().resolve()
         if not target.is_dir():
             raise InstallError(f"target must be an existing directory: {target}")
@@ -709,9 +946,11 @@ def main(argv: list[str] | None = None) -> int:
             uninstall(target, manifest, args.dry_run, output)
         else:
             routing = routing_for(args)
-            if args.external_openai is True:
+            if requested_provider not in (None, "none"):
+                spec = EXTERNAL_PROVIDERS[requested_provider]
+                assert args.external_model is not None and args.external_effort is not None
                 validate_model_token(args.external_model, "--external-model")
-                validate_effort(args.external_effort, "--external-effort", OPENAI_EFFORTS)
+                validate_effort(args.external_effort, "--external-effort", spec["efforts"])
             for relative in BASE_MANAGED_FILES:
                 content = None
                 if relative.parent == Path(".claude/agents"):
@@ -727,21 +966,59 @@ def main(argv: list[str] | None = None) -> int:
                 output,
                 settings_content(routing),
             )
-            external_effective = bool(manifest.get("external_openai", False))
-            if args.external_openai is True:
-                install_one(root, target, OPENAI_BRIDGE_RELATIVE, manifest, args.force, args.dry_run, output)
-                external_effective = install_mcp(
-                    target, manifest, args.external_model, args.external_effort, args.dry_run, output
+            effective = {
+                "openai": bool(manifest.get("external_openai", False)),
+                "deepseek": bool(manifest.get("external_deepseek", False)),
+            }
+            providers_to_disable = set(explicit_disable)
+            if requested_provider == "none":
+                providers_to_disable.update(EXTERNAL_PROVIDERS)
+            elif requested_provider in EXTERNAL_PROVIDERS:
+                providers_to_disable.update(set(EXTERNAL_PROVIDERS) - {requested_provider})
+            for provider in sorted(providers_to_disable):
+                disabled = disable_external_provider(
+                    target, manifest, provider, args.dry_run, output
                 )
-            elif args.external_openai is False:
-                external_effective = not disable_external_openai(target, manifest, args.dry_run, output)
+                effective[provider] = not disabled
+                if (
+                    not disabled
+                    and requested_provider in EXTERNAL_PROVIDERS
+                    and provider != requested_provider
+                ):
+                    raise InstallError(
+                        f"cannot safely switch to {requested_provider}: the existing {provider} MCP entry was modified"
+                    )
+            if requested_provider in EXTERNAL_PROVIDERS:
+                spec = EXTERNAL_PROVIDERS[requested_provider]
+                bridge = Path(spec["bridge"])
+                install_one(root, target, bridge, manifest, args.force, args.dry_run, output)
+                effective[requested_provider] = install_mcp(
+                    target,
+                    manifest,
+                    requested_provider,
+                    args.external_model,
+                    args.external_effort,
+                    args.dry_run,
+                    output,
+                )
             install_claude_block(root, target, manifest, args.dry_run, output)
             if not args.dry_run:
                 manifest["preset"] = args.preset
                 manifest["routing"] = {role: {"model": model, "effort": effort} for role, (model, effort) in routing.items()}
-                manifest["external_openai"] = external_effective
+                manifest["external_openai"] = effective["openai"]
+                manifest["external_deepseek"] = effective["deepseek"]
+                enabled = [provider for provider, state in effective.items() if state]
+                manifest["external_provider"] = enabled[0] if len(enabled) == 1 else None
             save_manifest(target, manifest, root, args.dry_run)
-        print("\n".join(output))
+        active_provider = None
+        if not args.uninstall:
+            if not args.dry_run and manifest.get("external_provider"):
+                active_provider = manifest.get("external_provider")
+            elif requested_provider in EXTERNAL_PROVIDERS:
+                active_provider = requested_provider
+            elif requested_provider is None:
+                active_provider = manifest.get("external_provider")
+        print_install_summary(target, args, active_provider, output)
         return 0
     except InstallError as exc:
         print(f"error: {exc}", file=sys.stderr)

@@ -20,7 +20,7 @@ The installer preserves `.claude/settings.json` by default because replacing it 
 
 Yes. Claude Code environment variables and per-session or per-invocation options can take precedence over project settings. Agent frontmatter supplies the intended role-level routing where supported, while environment effort configuration can still override it. Confirm the active model and effort in your current client when exact routing matters.
 
-The installer also supports `--preset balanced|quality|economy|custom`, plus repeatable `--role-model ROLE=MODEL` and `--role-effort ROLE=EFFORT` overrides. The one-click launchers show the same choices in Turkish.
+The installer also supports `--preset balanced|quality|economy|custom`, plus repeatable `--role-model ROLE=MODEL` and `--role-effort ROLE=EFFORT` overrides. Native role models must be `opus`, `sonnet`, `haiku`, or a full `claude-*` ID. GPT, DeepSeek, and other provider IDs are rejected with guidance to use an external proposal provider. The one-click launchers show the same choices.
 
 The main session settings accept efforts through `xhigh`; `max` is available only for child-agent frontmatter. Invalid combinations are rejected before installation writes any files.
 
@@ -30,11 +30,19 @@ Yes, through the optional local MCP bridge and OpenAI Responses API. This is an 
 
 The GPT role returns a proposal and cannot inspect or write the workspace. The native Claude implementer remains the only writer and reviews any proposed patch before applying it. If the MCP server name already has a different configuration, the installer preserves it and writes an example for manual review.
 
-An omitted provider option preserves an earlier installation. Choose “Hayır” during interactive setup or pass `--no-external-openai` to remove an unchanged installer-owned integration. Modified entries remain configured and produce a warning so user changes are not lost.
+An omitted provider option preserves an earlier non-interactive installation. Select **None** during guided setup, pass `--external-provider none`, or use `--no-external-openai` to remove an unchanged installer-owned integration. Modified entries remain configured and produce a warning so user changes are not lost.
+
+## Can Claude use DeepSeek in this workflow?
+
+Yes, as an optional proposal-only external API. Select DeepSeek in guided setup or pass `--external-provider deepseek`, then define `DEEPSEEK_API_KEY` in the environment that launches Claude Code. The default model alias is `deepseek-flash`, which DeepSeek currently documents for V4.1 Flash; account and regional availability still apply.
+
+DeepSeek receives only reviewed context explicitly passed to the tool, has a bounded request size, and has no workspace functions. The native Claude implementer remains the only writer. Use `--external-provider none` or `--no-external-deepseek` to remove an unchanged installer-owned integration.
 
 ## Why does the OpenAI tool report that the key is missing?
 
 Claude Code did not inherit `OPENAI_API_KEY`. Define the variable in the same terminal or operating-system environment used to start Claude Code, restart the client, and try again. Never place the key in `CLAUDE.md`, `.mcp.json`, prompts, or the task ledger.
+
+The same rule applies to DeepSeek and `DEEPSEEK_API_KEY`.
 
 ## Why was an agent or skill skipped?
 

@@ -7,24 +7,26 @@ Install a current [Claude Code client](https://code.claude.com/docs/en/getting-s
 .\scripts\install.ps1 -Target C:\path\to\project
 ```
 
-Or double-click `setup.cmd` and pass a target path from a terminal. Existing settings and conflicting files are preserved by default. Review `.claude\bounded-orchestrator.settings.example.json` if the target already had settings.
+Or double-click `setup.cmd`. It asks for the target folder, install/preview/uninstall action, native profile, and optional external proposal provider. Existing settings and conflicting files are preserved by default. Review `.claude\bounded-orchestrator.settings.example.json` if the target already had settings.
 
-`setup.ps1` and `setup.cmd` open a Turkish selection screen for balanced, quality, economy, or per-role custom model/effort settings. The lower-level installer remains non-interactive:
+The guided screen explains balanced, quality, economy, or per-role custom settings, then shows a final configuration review and next steps. Every native/custom role must use an Anthropic Claude alias or full `claude-*` ID. The lower-level installer remains non-interactive:
 
 ```powershell
 .\scripts\install.ps1 -Target C:\path\to\project -Preset quality
 ```
 
-To add the proposal-only OpenAI role, select it in guided setup or define `OPENAI_API_KEY` in the environment that launches Claude Code:
+External APIs default to none. To explicitly add a proposal-only provider, define its key in the environment that launches Claude Code:
 
 ```powershell
 $env:OPENAI_API_KEY = "your key"
 .\scripts\install.ps1 -Target C:\path\to\project -ExternalOpenAI -ExternalModel gpt-5.6-sol -ExternalEffort high
+$env:DEEPSEEK_API_KEY = "your key"
+.\scripts\install.ps1 -Target C:\path\to\project -ExternalProvider deepseek -ExternalModel deepseek-flash -ExternalEffort high
 ```
 
-The API key is inherited at runtime and is never written to project files.
+API keys are inherited at runtime and are never written to project files. External providers are proposal-only; native Claude remains the sole writer.
 
-Later runs preserve the existing provider choice when neither provider switch is supplied. Use `-NoExternalOpenAI` to remove only an unchanged installer-owned MCP entry and bridge. Modified entries are kept with a warning.
+Later non-interactive runs preserve the existing provider choice when no provider switch is supplied. Use `-ExternalProvider none`, `-NoExternalOpenAI`, or `-NoExternalDeepSeek` to remove only an unchanged installer-owned MCP entry and bridge. Modified entries are kept with a warning.
 
 To remove unchanged installed files:
 

@@ -7,19 +7,22 @@ python3 scripts/install.py /path/to/project --dry-run
 python3 scripts/install.py /path/to/project
 ```
 
-You may also run `./setup.command /path/to/project` after making it executable. Existing settings and conflicting files are preserved by default. Review `.claude/bounded-orchestrator.settings.example.json` if the target already had settings.
+You may also run `./setup.command` after making it executable. It asks for the target folder, install/preview/uninstall action, native profile, and optional external proposal provider. Existing settings and conflicting files are preserved by default. Review `.claude/bounded-orchestrator.settings.example.json` if the target already had settings.
 
-`setup.command` opens a Turkish selection screen for balanced, quality, economy, or per-role custom model/effort settings. The Python command remains non-interactive; use `--preset quality`, `--preset economy`, or repeat `--role-model ROLE=MODEL` and `--role-effort ROLE=EFFORT` as needed.
+The guided screen explains balanced, quality, economy, and per-role custom settings, then shows a final configuration review and next steps. Every native/custom role must use an Anthropic Claude alias or full `claude-*` ID. The Python command remains non-interactive.
 
-To add the proposal-only OpenAI role, select it in the guided setup or set `OPENAI_API_KEY` in the shell that launches Claude Code and run:
+External APIs default to none. To explicitly add a proposal-only provider, set its key in the shell that launches Claude Code and run one of:
 
 ```bash
+export OPENAI_API_KEY="your key"
 python3 scripts/install.py /path/to/project --external-openai --external-model gpt-5.6-sol --external-effort high
+export DEEPSEEK_API_KEY="your key"
+python3 scripts/install.py /path/to/project --external-provider deepseek --external-model deepseek-flash --external-effort high
 ```
 
-The API key is inherited at runtime and is never written to project files.
+API keys are inherited at runtime and are never written to project files. The external provider is proposal-only; native Claude remains the sole writer.
 
-Later runs preserve the existing provider choice when neither provider flag is supplied. Use `--no-external-openai` to remove only an unchanged installer-owned MCP entry and bridge. Modified entries are kept with a warning.
+Later non-interactive runs preserve the existing provider choice when no provider flag is supplied. Use `--external-provider none`, `--no-external-openai`, or `--no-external-deepseek` to remove only an unchanged installer-owned MCP entry and bridge. Modified entries are kept with a warning.
 
 To remove unchanged installed files:
 

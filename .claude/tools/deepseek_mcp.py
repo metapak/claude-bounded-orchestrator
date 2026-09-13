@@ -1,28 +1,32 @@
 #!/usr/bin/env python3
-"""Dependency-free MCP bridge for bounded OpenAI implementation proposals."""
+"""Dependency-free MCP bridge for bounded DeepSeek implementation proposals."""
 
 from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.request
 from typing import Any
 
-SERVER_NAME = "openai-bounded-implementer"
+SERVER_NAME = "deepseek-bounded-proposal"
 SERVER_VERSION = "0.4.0"
-DEFAULT_ENDPOINT = "https://api.openai.com/v1/responses"
-DEFAULT_MODEL = "gpt-5.6-sol"
+DEFAULT_ENDPOINT = "https://api.deepseek.com/responses"
+DEFAULT_MODEL = "deepseek-flash"
 DEFAULT_EFFORT = "high"
-MAX_TEXT_CHARS = 250_000
+ALLOWED_EFFORTS = frozenset({"low", "high", "max"})
+MAX_FIELD_CHARS = 250_000
+MAX_REQUEST_CHARS = 300_000
+MODEL_TOKEN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}\Z")
 
 SYSTEM_PROMPT = """You are an external, proposal-only implementation assistant.
 Return a bounded implementation proposal, preferably as a unified diff. You cannot
-read or write the workspace. Use only the context supplied in this request. Change
-only explicitly allowed paths, preserve unrelated behavior, do not include secrets,
-and state any missing evidence instead of guessing. A separate native implementer
-will review and apply any accepted change."""
+read or write the workspace. Use only the reviewed context supplied in this request.
+Change only explicitly allowed paths, preserve unrelated behavior, never include
+secrets, and state missing evidence instead of guessing. A native Claude implementer
+is the only writer and will review any proposal before applying it."""
 
 
 class BridgeError(RuntimeError):
@@ -36,7 +40,7 @@ def _text(value: Any, name: str, *, required: bool = False) -> str:
         raise BridgeError(f"{name} must be a string")
     if required and not value.strip():
         raise BridgeError(f"{name} is required")
-    if len(value) > MAX_TEXT_CHARS:
+    if len(value) > MAX_FIELD_CHARS:
         raise BridgeError(f"{name} is too large")
     return value
 
@@ -44,9 +48,13 @@ def _text(value: Any, name: str, *, required: bool = False) -> str:
 def _paths(value: Any) -> list[str]:
     if not isinstance(value, list) or not value:
         raise BridgeError("allowed_paths must be a non-empty string array")
+    if len(value) > 128:
+        raise BridgeError("allowed_paths has too many entries")
     result: list[str] = []
     for item in value:
         path = _text(item, "allowed_paths item", required=True)
+        if len(path) > 512:
+            raise BridgeError("allowed_paths item is too large")
         if path.startswith(("/", "\\")) or ".." in path.replace("\\", "/").split("/"):
             raise BridgeError(f"unsafe allowed path: {path}")
         result.append(path)
@@ -58,12 +66,28 @@ def build_prompt(arguments: dict[str, Any]) -> str:
     context = _text(arguments.get("context"), "context", required=True)
     constraints = _text(arguments.get("constraints"), "constraints")
     allowed_paths = _paths(arguments.get("allowed_paths"))
-    return (
+    prompt = (
         f"TASK\n{task}\n\nALLOWED PATHS\n"
         + "\n".join(f"- {path}" for path in allowed_paths)
         + f"\n\nCONSTRAINTS\n{constraints or 'None supplied.'}"
-        + f"\n\nWORKSPACE CONTEXT PROVIDED BY THE OWNER\n{context}\n"
+        + f"\n\nREVIEWED CONTEXT PROVIDED BY THE OWNER\n{context}\n"
     )
+    if len(prompt) > MAX_REQUEST_CHARS:
+        raise BridgeError("combined request context is too large")
+    return prompt
+
+
+def validate_runtime() -> tuple[str, str, str]:
+    api_key = os.environ.get("DEEPSEEK_API_KEY", "")
+    if not api_key:
+        raise BridgeError("DEEPSEEK_API_KEY is not set in the Claude Code environment")
+    model = os.environ.get("DEEPSEEK_MODEL", DEFAULT_MODEL)
+    if not MODEL_TOKEN.fullmatch(model):
+        raise BridgeError("DEEPSEEK_MODEL is invalid")
+    effort = os.environ.get("DEEPSEEK_REASONING_EFFORT", DEFAULT_EFFORT)
+    if effort not in ALLOWED_EFFORTS:
+        raise BridgeError("DEEPSEEK_REASONING_EFFORT must be low, high, or max")
+    return api_key, model, effort
 
 
 def extract_output_text(response: dict[str, Any]) -> str:
@@ -78,50 +102,41 @@ def extract_output_text(response: dict[str, Any]) -> str:
                     parts.append(text)
     result = "\n".join(parts).strip()
     if not result:
-        raise BridgeError("OpenAI response did not contain output text")
+        raise BridgeError("DeepSeek response did not contain output text")
     return result
 
 
-def call_openai(prompt: str, *, endpoint: str | None = None) -> str:
-    api_key = os.environ.get("OPENAI_API_KEY", "")
-    if not api_key:
-        raise BridgeError("OPENAI_API_KEY is not set in the Claude Code environment")
-    model = os.environ.get("OPENAI_MODEL", DEFAULT_MODEL)
-    effort = os.environ.get("OPENAI_REASONING_EFFORT", DEFAULT_EFFORT)
+def call_deepseek(prompt: str, *, endpoint: str | None = None) -> str:
+    api_key, model, effort = validate_runtime()
     body = json.dumps(
         {
             "model": model,
             "reasoning": {"effort": effort},
-            "input": [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": prompt},
-            ],
+            "instructions": SYSTEM_PROMPT,
+            "input": prompt,
         }
     ).encode("utf-8")
     request = urllib.request.Request(
         endpoint or DEFAULT_ENDPOINT,
         data=body,
         method="POST",
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        },
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
     )
     try:
         with urllib.request.urlopen(request, timeout=120) as response:
             payload = json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")[:1000]
-        raise BridgeError(f"OpenAI API returned HTTP {exc.code}: {detail}") from exc
+        raise BridgeError(f"DeepSeek API returned HTTP {exc.code}: {detail}") from exc
     except (OSError, json.JSONDecodeError) as exc:
-        raise BridgeError(f"OpenAI API request failed: {exc}") from exc
+        raise BridgeError(f"DeepSeek API request failed: {exc}") from exc
     return extract_output_text(payload)
 
 
 TOOL = {
-    "name": "openai_bounded_implementation",
+    "name": "deepseek_bounded_proposal",
     "description": (
-        "Ask OpenAI for a proposal-only bounded implementation. The tool cannot "
+        "Ask DeepSeek for a proposal-only bounded implementation. The tool cannot "
         "read or write the workspace; pass only reviewed context and allowed paths."
     ),
     "inputSchema": {
@@ -134,7 +149,7 @@ TOOL = {
                 "minItems": 1,
                 "description": "Repository-relative paths the proposal may change",
             },
-            "context": {"type": "string", "description": "Relevant file contents and evidence"},
+            "context": {"type": "string", "description": "Reviewed relevant file contents and evidence"},
             "constraints": {"type": "string", "description": "Invariants and acceptance criteria"},
         },
         "required": ["task", "allowed_paths", "context"],
@@ -164,7 +179,7 @@ def dispatch(message: dict[str, Any]) -> dict[str, Any] | None:
         arguments = params.get("arguments")
         if not isinstance(arguments, dict):
             raise BridgeError("tool arguments must be an object")
-        proposal = call_openai(build_prompt(arguments))
+        proposal = call_deepseek(build_prompt(arguments))
         result = {"content": [{"type": "text", "text": proposal}], "isError": False}
     else:
         return {

@@ -201,6 +201,23 @@ class InstallerTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 2)
                 self.assertEqual(list(target.iterdir()), [])
 
+    def test_native_role_models_are_claude_only(self) -> None:
+        for model in ("gpt-5.6-sol", "deepseek-flash", "gemini-pro"):
+            with self.subTest(model=model):
+                target = Path(self.temp.name) / model
+                target.mkdir()
+                result = subprocess.run(
+                    [sys.executable, str(INSTALLER), str(target), "--role-model", f"implementer={model}"],
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("Anthropic Claude", result.stderr)
+                self.assertEqual(list(target.iterdir()), [])
+        accepted = self.installer("--role-model", "implementer=claude-sonnet-4-6")
+        self.assertEqual(accepted.returncode, 0, accepted.stderr)
+
     def test_interactive_invalid_model_is_rejected_before_rendering(self) -> None:
         answers = ["4", "sonnet:name", "low"] + [""] * 16 + ["1"]
         result = self.installer("--interactive", input_text="\n".join(answers) + "\n")
@@ -212,6 +229,7 @@ class InstallerTests(unittest.TestCase):
         cases = (
             ("model", ["--external-openai", "--external-model", "gpt:injected"]),
             ("effort", ["--external-openai", "--external-effort", "ultra"]),
+            ("deepseek-effort", ["--external-provider", "deepseek", "--external-effort", "medium"]),
         )
         for name, arguments in cases:
             with self.subTest(name=name):
@@ -359,6 +377,28 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(self.installer("--uninstall").returncode, 0)
         remaining = json.loads(mcp.read_text())
         self.assertEqual(remaining, {"mcpServers": {"existing": {"command": "keep"}}})
+        self.assertFalse((self.target / ".claude/tools/openai_mcp.py").exists())
+
+    def test_uninstall_keeps_bridge_required_by_modified_deepseek_entry(self) -> None:
+        mcp = self.target / ".mcp.json"
+        mcp.write_text(json.dumps({"mcpServers": {"existing": {"command": "keep"}}}) + "\n")
+        self.assertEqual(self.installer("--external-provider", "deepseek").returncode, 0)
+        config = json.loads(mcp.read_text())
+        config["mcpServers"]["deepseek-bounded-proposal"]["env"]["DEEPSEEK_MODEL"] = "deepseek-custom"
+        mcp.write_text(json.dumps(config, indent=2) + "\n")
+
+        result = self.installer("--uninstall")
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("retained MCP entry may still use it", result.stdout)
+        remaining = json.loads(mcp.read_text())
+        self.assertEqual(remaining["mcpServers"]["existing"], {"command": "keep"})
+        self.assertEqual(
+            remaining["mcpServers"]["deepseek-bounded-proposal"]["env"]["DEEPSEEK_MODEL"],
+            "deepseek-custom",
+        )
+        self.assertTrue((self.target / ".claude/tools/deepseek_mcp.py").is_file())
+        self.assertFalse((self.target / ".claude/agents/implementer.md").exists())
 
     def test_external_openai_preserves_conflicting_mcp_entry(self) -> None:
         original = {"mcpServers": {"openai-bounded-implementer": {"command": "custom"}}}
@@ -369,6 +409,82 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(json.loads(mcp.read_text()), original)
         example = json.loads((self.target / ".claude/bounded-orchestrator.mcp.example.json").read_text())
         self.assertIn("openai-bounded-implementer", example["mcpServers"])
+
+    def test_deepseek_lifecycle_is_proposal_only_and_secret_free(self) -> None:
+        secret = "deepseek-secret-that-must-not-be-written"
+        environment = dict(os.environ)
+        environment["DEEPSEEK_API_KEY"] = secret
+        result = self.installer("--external-provider", "deepseek", env=environment)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        config = json.loads((self.target / ".mcp.json").read_text())
+        server = config["mcpServers"]["deepseek-bounded-proposal"]
+        self.assertEqual(server["env"]["DEEPSEEK_MODEL"], "deepseek-flash")
+        self.assertEqual(server["env"]["DEEPSEEK_REASONING_EFFORT"], "high")
+        self.assertNotIn("DEEPSEEK_API_KEY", json.dumps(config))
+        bridge = self.target / ".claude/tools/deepseek_mcp.py"
+        self.assertTrue(bridge.is_file())
+        self.assertIn("proposal-only", bridge.read_text())
+        for path in self.target.rglob("*"):
+            if path.is_file():
+                self.assertNotIn(secret, path.read_text(encoding="utf-8", errors="ignore"))
+        manifest = json.loads((self.target / ".claude/.bounded-orchestrator/install.json").read_text())
+        self.assertEqual(manifest["external_provider"], "deepseek")
+        self.assertTrue(manifest["external_deepseek"])
+        self.assertFalse(manifest["external_openai"])
+        self.assertEqual(self.installer("--external-provider", "none").returncode, 0)
+        self.assertFalse((self.target / ".mcp.json").exists())
+        self.assertFalse(bridge.exists())
+
+    def test_switching_external_provider_removes_owned_previous_provider(self) -> None:
+        self.assertEqual(self.installer("--external-provider", "openai").returncode, 0)
+        self.assertEqual(self.installer("--external-provider", "deepseek").returncode, 0)
+        config = json.loads((self.target / ".mcp.json").read_text())
+        self.assertNotIn("openai-bounded-implementer", config["mcpServers"])
+        self.assertIn("deepseek-bounded-proposal", config["mcpServers"])
+        self.assertFalse((self.target / ".claude/tools/openai_mcp.py").exists())
+
+    def test_explicit_provider_rerun_can_change_owned_model_and_effort(self) -> None:
+        self.assertEqual(self.installer("--external-provider", "deepseek").returncode, 0)
+        result = self.installer(
+            "--external-provider",
+            "deepseek",
+            "--external-model",
+            "deepseek-custom",
+            "--external-effort",
+            "max",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("change deepseek-bounded-proposal model/effort", result.stdout)
+        config = json.loads((self.target / ".mcp.json").read_text())
+        env = config["mcpServers"]["deepseek-bounded-proposal"]["env"]
+        self.assertEqual(env["DEEPSEEK_MODEL"], "deepseek-custom")
+        self.assertEqual(env["DEEPSEEK_REASONING_EFFORT"], "max")
+
+    def test_switch_refuses_to_add_second_provider_when_owned_entry_was_modified(self) -> None:
+        self.assertEqual(self.installer("--external-provider", "openai").returncode, 0)
+        mcp = self.target / ".mcp.json"
+        config = json.loads(mcp.read_text())
+        config["mcpServers"]["openai-bounded-implementer"]["env"]["OPENAI_MODEL"] = "gpt-local"
+        mcp.write_text(json.dumps(config, indent=2) + "\n")
+        result = self.installer("--external-provider", "deepseek")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("cannot safely switch", result.stderr)
+        current = json.loads(mcp.read_text())
+        self.assertIn("openai-bounded-implementer", current["mcpServers"])
+        self.assertNotIn("deepseek-bounded-proposal", current["mcpServers"])
+
+    def test_guided_ui_states_native_brand_default_and_review(self) -> None:
+        result = self.installer("--interactive", input_text="1\n1\n")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for phrase in (
+            "Anthropic Claude only",
+            "disabled by default",
+            "CONFIGURATION REVIEW",
+            "INSTALL RESULT",
+            "Next steps",
+        ):
+            self.assertIn(phrase, result.stdout)
+        self.assertFalse((self.target / ".mcp.json").exists())
 
     def test_uninstall_rejects_absolute_and_traversal_manifest_entries(self) -> None:
         self.assertEqual(self.installer().returncode, 0)

@@ -13,5 +13,7 @@ For workflows with three or more dependent steps, use `.claude/tools/task_ledger
 
 External effects require the user's exact authority. Optional `/ui-design` and `/secure-change` skills add guidance only when explicitly invoked; they do not grant tools or permissions.
 
-If the optional `openai_bounded_implementation` MCP tool is configured, treat it as a proposal-only external implementer. Give it an exact task, repository-relative allowed paths, reviewed context, constraints, and acceptance criteria. It cannot inspect or write the workspace. The native `implementer` remains the sole writer: it must review the returned patch, reject out-of-scope changes, apply only accepted edits, and run the normal verification and frozen-review flow. Never include credentials or unrelated source in the supplied context.
+Native owner and child-agent routing uses only Anthropic Claude model aliases or full `claude-*` IDs. OpenAI, DeepSeek, and other brands are external API providers, never native agents.
+
+If the optional `openai_bounded_implementation` or `deepseek_bounded_proposal` MCP tool is configured, treat it as a proposal-only external source. Give it an exact task, repository-relative allowed paths, reviewed context, constraints, and acceptance criteria. It cannot inspect or write the workspace. The native `implementer` remains the sole writer: it must review the returned patch, reject out-of-scope changes, apply only accepted edits, and run the normal verification and frozen-review flow. Never include credentials or unrelated source in the supplied context.
 <!-- claude-bounded-orchestrator:end -->
