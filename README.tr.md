@@ -1,5 +1,9 @@
 [English](README.md) · [Türkçe](README.tr.md)
 
+<p align="center">
+  <img src="docs/assets/claude-bounded-orchestrator-cover-tr.svg" alt="Claude Bounded Orchestrator Türkçe kapak" width="100%">
+</p>
+
 # Claude Bounded Orchestrator
 
 [![Lisans: Apache-2.0](https://img.shields.io/badge/lisans-Apache--2.0-blue.svg)](LICENSE)
