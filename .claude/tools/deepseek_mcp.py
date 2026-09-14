@@ -12,7 +12,7 @@ import urllib.request
 from typing import Any
 
 SERVER_NAME = "deepseek-bounded-proposal"
-SERVER_VERSION = "0.4.0"
+SERVER_VERSION = "0.5.0"
 DEFAULT_ENDPOINT = "https://api.deepseek.com/responses"
 DEFAULT_MODEL = "deepseek-flash"
 DEFAULT_EFFORT = "high"

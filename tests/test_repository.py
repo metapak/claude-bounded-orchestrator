@@ -25,7 +25,7 @@ class RepositoryTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as temp:
                 result = subprocess.run([sys.executable, "scripts/build_release.py", "--output-dir", temp], cwd=ROOT, text=True, capture_output=True)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                paths = [Path(temp) / f"claude-bounded-orchestrator-v0.4.0-{kind}.zip" for kind in ("source", "macos-linux", "windows")]
+                paths = [Path(temp) / f"claude-bounded-orchestrator-v0.5.0-{kind}.zip" for kind in ("source", "macos-linux", "windows")]
                 self.assertTrue(all(path.is_file() for path in paths))
                 runtime_prefix = "claude-bounded-orchestrator/.claude/.bounded-orchestrator/"
                 for path in paths:

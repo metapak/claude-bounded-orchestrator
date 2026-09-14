@@ -39,7 +39,7 @@ See the official Claude Code documentation for [model and effort configuration](
 
 The aliases intentionally follow the current Claude family instead of pinning dated model IDs. The main session uses Opus at `xhigh`; broad exploration and production work use Sonnet at bounded effort; difficult causal analysis and independent review use Opus. Account access and active-client support still determine what can run. Environment variables and launch-time overrides can take precedence over project settings, and environment effort overrides can take precedence over agent frontmatter.
 
-Installation profiles change only model and effort routing. `balanced` matches the repository defaults, `quality` routes every role to Opus, and `economy` uses Sonnet at lower effort. `custom` accepts per-role Claude choices. Native validation accepts only `opus`, `sonnet`, `haiku`, or full `claude-*` IDs. Provider IDs such as GPT or DeepSeek cannot be placed in native role frontmatter. Every profile keeps the same tool allowlists, depth cap, one-writer rule, verification separation, and finite repair budgets.
+Installation profiles change only model and effort routing. `balanced` matches the repository defaults, `quality` routes every role to Opus, and `economy` uses Sonnet at lower effort, and `quota-saver` keeps low/medium Sonnet routing with an independent reviewer. `custom` accepts per-role Claude choices. Native validation accepts only `opus`, `sonnet`, `haiku`, or full `claude-*` IDs. Provider IDs such as GPT or DeepSeek cannot be placed in native role frontmatter. Every profile keeps the same tool allowlists, depth cap, one-writer rule, verification separation, and finite repair budgets.
 
 ## Optional external API proposals
 
@@ -69,3 +69,7 @@ Allowed data is deliberately narrow: task ID, short summary, role, status, depen
 ## Finite stopping rule
 
 The workflow permits one focused repair for a proven verification defect and one focused repair for accepted review findings. A second failure of the same contract requires new evidence, a narrower scope, an owner decision, or a stop. This keeps the process understandable and prevents unbounded agent loops.
+
+## Retry-aware task state
+
+Ledger schema 2 preserves the existing run/task identity while adding stable attempt and append-only event IDs, interruption and repair states, derived human status, and route-back ownership. Old schema-1 data is migrated without deleting tasks. An explicitly selected local evaluation can gate completion; it remains off by default.

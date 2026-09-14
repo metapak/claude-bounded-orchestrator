@@ -9,7 +9,7 @@ Install a current [Claude Code client](https://code.claude.com/docs/en/getting-s
 
 Or double-click `setup.cmd`. It asks for the target folder, install/preview/uninstall action, native profile, and optional external proposal provider. Existing settings and conflicting files are preserved by default. Review `.claude\bounded-orchestrator.settings.example.json` if the target already had settings.
 
-The guided screen explains balanced, quality, economy, or per-role custom settings, then shows a final configuration review and next steps. Every native/custom role must use an Anthropic Claude alias or full `claude-*` ID. The lower-level installer remains non-interactive:
+The guided screen explains balanced, quality, economy, quota saver, or per-role custom settings, then shows a final configuration review and next steps. Every native/custom role must use an Anthropic Claude alias or full `claude-*` ID. The lower-level installer remains non-interactive:
 
 ```powershell
 .\scripts\install.ps1 -Target C:\path\to\project -Preset quality

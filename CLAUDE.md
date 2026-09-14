@@ -47,3 +47,6 @@ When `openai_bounded_implementation` or `deepseek_bounded_proposal` is configure
 ## Completion gate
 
 Before finishing, confirm that required agents stopped, the final candidate matches the reviewed candidate, accepted material findings are resolved or disclosed, the highest-value checks passed, the task ledger is complete when used, and no external action occurred without authority.
+
+Record interrupted work, user waits, and verification repairs in the ledger. A repair returns to the task's named owner and may be retried once with new short evidence. Local evaluation remains off unless the user explicitly invokes `.claude/tools/local_eval.py` with a reviewed JSON `argv` manifest; when selected with `require-eval`, its pass summary is required by `check`. Never run repository-controlled evaluation commands automatically.
+Resume `waiting_user` tasks with `resume TASK --evidence "answer received"`. A task that waited before it started returns to pending; a task that was active continues its existing attempt.

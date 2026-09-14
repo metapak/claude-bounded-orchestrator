@@ -38,6 +38,8 @@ flowchart LR
 - **Bounded delegation:** project agents cannot create more agents; native spawn depth is capped at `1`.
 - **Finite repair loops:** failed verification or review can trigger a focused repair, not an endless loop.
 - **Completion gating:** dependencies and unfinished work remain visible in a lightweight local ledger.
+- **Usage visibility:** summarize explicitly supplied OpenTelemetry token/model metrics; otherwise report unavailable and use `/usage`.
+- **Optional local evaluation:** run an explicit shell-free project check and require its pass result only when selected.
 - **Optional expertise:** UI design and security guidance are available only when explicitly invoked and grant no tools.
 - **Safe installation:** existing Claude settings and conflicting managed files are preserved by default.
 - **Claude-only native routing:** every prepared and custom role accepts only Claude aliases or full `claude-*` IDs.
@@ -64,6 +66,7 @@ The direct installer stays non-interactive and uses `balanced` unless you choose
 
 ```bash
 python scripts/install.py /path/to/your-project --preset economy
+python scripts/install.py /path/to/your-project --preset quota-saver
 python scripts/install.py /path/to/your-project --preset custom \
   --role-model implementer=opus --role-effort implementer=xhigh
 ```
@@ -175,6 +178,8 @@ This project does not turn model instructions into a security boundary. The nati
 - [Roadmap](docs/roadmap.md)
 - [Runtime smoke test](docs/runtime-smoke-test.md)
 - [v0.4.0 release notes](docs/release-v0.4.0.md)
+- [Usage reporting and optional local evaluation](docs/usage-and-local-eval.md)
+- [v0.5.0 release notes](docs/release-v0.5.0.md)
 - [v0.3.1 release notes](docs/release-v0.3.1.md)
 - [v0.3.0 release notes](docs/release-v0.3.0.md)
 - [v0.2.0 release notes](docs/release-v0.2.0.md)

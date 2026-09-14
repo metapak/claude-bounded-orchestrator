@@ -9,7 +9,7 @@ python3 scripts/install.py /path/to/project
 
 You may also run `./setup.command` after making it executable. It asks for the target folder, install/preview/uninstall action, native profile, and optional external proposal provider. Existing settings and conflicting files are preserved by default. Review `.claude/bounded-orchestrator.settings.example.json` if the target already had settings.
 
-The guided screen explains balanced, quality, economy, and per-role custom settings, then shows a final configuration review and next steps. Every native/custom role must use an Anthropic Claude alias or full `claude-*` ID. The Python command remains non-interactive.
+The guided screen explains balanced, quality, economy, quota saver, and per-role custom settings, then shows a final configuration review and next steps. Every native/custom role must use an Anthropic Claude alias or full `claude-*` ID. The Python command remains non-interactive.
 
 External APIs default to none. To explicitly add a proposal-only provider, set its key in the shell that launches Claude Code and run one of:
 

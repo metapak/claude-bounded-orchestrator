@@ -37,7 +37,7 @@ def frontmatter(path: Path) -> dict[str, str]:
 
 def main() -> int:
     errors: list[str] = []
-    required = ["README.md", "README.tr.md", "LICENSE", "NOTICE", "CLAUDE.md", ".claude/settings.json", ".claude/tools/task_ledger.py", ".claude/tools/openai_mcp.py", ".claude/tools/deepseek_mcp.py", "scripts/install.py", "scripts/build_release.py"]
+    required = ["README.md", "README.tr.md", "LICENSE", "NOTICE", "CLAUDE.md", ".claude/settings.json", ".claude/tools/task_ledger.py", ".claude/tools/usage_report.py", ".claude/tools/local_eval.py", ".claude/bounded-orchestrator.eval.example.json", ".claude/tools/openai_mcp.py", ".claude/tools/deepseek_mcp.py", "docs/usage-and-local-eval.md", "docs/usage-and-local-eval.tr.md", "docs/release-v0.5.0.md", "docs/release-v0.5.0.tr.md", "scripts/install.py", "scripts/build_release.py"]
     for name in required:
         if not (ROOT / name).is_file():
             errors.append(f"missing {name}")
@@ -97,8 +97,8 @@ def main() -> int:
         model = frontmatter(path).get("model", "")
         if model not in {"opus", "sonnet", "haiku"} and not model.startswith("claude-"):
             errors.append(f"{path.name}: native route must use an Anthropic Claude model")
-    if (ROOT / "VERSION").read_text(encoding="utf-8").strip() != "0.4.0":
-        errors.append("VERSION must be 0.4.0")
+    if (ROOT / "VERSION").read_text(encoding="utf-8").strip() != "0.5.0":
+        errors.append("VERSION must be 0.5.0")
     if errors:
         print("Repository validation failed:", file=sys.stderr)
         for error in errors:

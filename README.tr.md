@@ -64,6 +64,7 @@ Doğrudan kurucu komutu seçim ekranı açmaz ve varsayılan olarak dengeli prof
 
 ```bash
 python scripts/install.py /projenizin/yolu --preset economy
+python scripts/install.py /projenizin/yolu --preset quota-saver
 python scripts/install.py /projenizin/yolu --preset custom \
   --role-model implementer=opus --role-effort implementer=xhigh
 ```
@@ -175,6 +176,8 @@ Talimatlar tek başına kesin bir güvenlik sınırı değildir. Yardımcı deri
 - [Yol haritası](docs/roadmap.md)
 - [Canlı deneme rehberi](docs/runtime-smoke-test.md)
 - [v0.4.0 sürüm notları](docs/release-v0.4.0.tr.md)
+- [Kullanım raporu ve isteğe bağlı yerel değerlendirme](docs/usage-and-local-eval.tr.md)
+- [v0.5.0 sürüm notları](docs/release-v0.5.0.tr.md)
 - [v0.3.1 sürüm notları](docs/release-v0.3.1.tr.md)
 - [v0.3.0 sürüm notları](docs/release-v0.3.0.tr.md)
 - [v0.2.0 sürüm notları](docs/release-v0.2.0.tr.md)

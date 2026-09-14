@@ -22,3 +22,7 @@ Roadmap items are proposals, not compatibility promises.
 - Study interoperable bounded-workflow conventions across coding agents while keeping each repository honest about its own runtime.
 
 Please open a feature request describing the problem and expected user outcome before a large implementation.
+
+## Delivered in v0.5.0
+
+Explicit OpenTelemetry import reporting, the Claude-only quota-saver profile, local-evaluation gating, and retry-aware ledger history are implemented. Future usage work remains limited to officially supported telemetry or explicitly supplied sanitized metrics.

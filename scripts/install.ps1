@@ -6,7 +6,7 @@ param(
     [switch]$ForceSettings,
     [switch]$Uninstall,
     [switch]$Interactive,
-    [ValidateSet("balanced", "quality", "economy", "custom")]
+    [ValidateSet("balanced", "quality", "economy", "quota-saver", "custom")]
     [string]$Preset = "balanced",
     [string[]]$RoleModel,
     [string[]]$RoleEffort,

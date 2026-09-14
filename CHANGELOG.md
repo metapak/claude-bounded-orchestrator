@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0
+
+- Added opt-in OpenTelemetry usage reporting, a Claude-only quota-saver profile, explicit local evaluation, and richer retry-aware task history.
+
 All notable changes are documented here.
 
 ## [0.4.0] - 2026-09-14

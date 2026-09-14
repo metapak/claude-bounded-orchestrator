@@ -112,6 +112,17 @@ PRESETS = {
         "reviewer": ("sonnet", "medium"),
         "advisor": ("sonnet", "high"),
     },
+    "quota-saver": {
+        "owner": ("sonnet", "low"),
+        "explorer": ("sonnet", "low"),
+        "researcher": ("sonnet", "low"),
+        "implementer": ("sonnet", "medium"),
+        "verifier": ("sonnet", "medium"),
+        "failure-analyst": ("sonnet", "medium"),
+        "qa-operator": ("sonnet", "medium"),
+        "reviewer": ("sonnet", "medium"),
+        "advisor": ("sonnet", "medium"),
+    },
 }
 BASE_MANAGED_FILES = (
     Path(".claude/agents/explorer.md"),
@@ -125,6 +136,9 @@ BASE_MANAGED_FILES = (
     Path(".claude/skills/ui-design/SKILL.md"),
     Path(".claude/skills/secure-change/SKILL.md"),
     Path(".claude/tools/task_ledger.py"),
+    Path(".claude/tools/usage_report.py"),
+    Path(".claude/tools/local_eval.py"),
+    Path(".claude/bounded-orchestrator.eval.example.json"),
     Path(".claude/.bounded-orchestrator/.gitignore"),
 )
 OPTIONAL_MANAGED_FILES = (
@@ -390,6 +404,7 @@ def interactive_options(args: argparse.Namespace) -> None:
             ("quality", "Quality / Yuksek kalite - strongest Claude routing"),
             ("economy", "Economy / Ekonomik - lighter Claude routing"),
             ("custom", "Custom / Ozel - choose each Claude model and effort"),
+            ("quota-saver", "Quota saver / Kota tasarrufu - lower-effort bounded routing"),
         ],
         args.preset,
     )
@@ -845,7 +860,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--interactive", action="store_true", help="show Turkish profile and provider choices")
     parser.add_argument(
         "--preset",
-        choices=("balanced", "quality", "economy", "custom"),
+        choices=("balanced", "quality", "economy", "custom", "quota-saver"),
         default="balanced",
         help="prepared model/effort profile (default: balanced)",
     )
