@@ -9,7 +9,7 @@
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB.svg)](https://www.python.org/downloads/)
 
-**A small, reviewable team structure for complex Claude Code work.**
+**A bounded operating layer for Claude Code that plans, delegates, implements, verifies, measures, and safely resumes complex repository work.**
 
 Claude Bounded Orchestrator gives the main Claude session clear ownership, separates investigation from implementation, keeps one writer per scope, and requires independent verification before completion. A private local ledger tracks short task metadata so dependent steps are less likely to be skipped.
 
@@ -17,7 +17,7 @@ You still ask for work in normal language. The project supplies the operating ru
 
 ![Claude Bounded Orchestrator role tree showing the owner and bounded responsibilities](docs/assets/claude-bounded-orchestrator-roles-tr.png)
 
-The visual overview uses short Turkish labels. Version 0.4.0 keeps every native and custom role on Anthropic Claude, adds optional proposal-only OpenAI or DeepSeek API providers, and introduces a clearer cross-platform guided installer.
+The visual overview uses short Turkish labels. Version 0.5.0 keeps every native and custom role on Anthropic Claude while adding usage visibility, quota-saving routing, candidate-bound local evaluation, and recoverable task history. OpenAI and DeepSeek remain optional proposal-only APIs.
 
 ```mermaid
 flowchart LR
@@ -29,6 +29,12 @@ flowchart LR
     R --> O
     O --> D[Finished result]
 ```
+
+## What does it do now?
+
+You describe the result in normal language. The main Claude session turns it into bounded tasks, assigns investigation, implementation, verification, and review to separate roles, and keeps one writer responsible for each scope. It records interruptions, user waits, repair routing, and one evidence-backed retry so unfinished work can resume without losing its history.
+
+The current release also offers balanced, quality, economy, quota-saver, and custom profiles; an opt-in project-specific evaluation bound to the exact reviewed files; and model/token reporting from an explicitly supplied Claude Code OpenTelemetry export. If telemetry is unavailable, the report says so and directs the user to Claude Code's `/usage` view instead of inventing a total.
 
 ## Why use it?
 
@@ -104,7 +110,10 @@ The ledger is ignored by Git and stores only short metadata. Do not place prompt
 .claude/
 ├── agents/                  # bounded project agents
 ├── skills/                  # opt-in UI and security guidance
-├── tools/task_ledger.py     # metadata-only task tracking
+├── tools/task_ledger.py     # recoverable metadata-only task tracking
+├── tools/usage_report.py    # explicit OpenTelemetry model/token summary
+├── tools/local_eval.py      # explicit candidate-bound project check
+├── bounded-orchestrator.eval.example.json
 ├── tools/openai_mcp.py      # installed only when OpenAI is selected
 ├── tools/deepseek_mcp.py    # installed only when DeepSeek is selected
 ├── settings.json            # owner model/effort and depth cap on a fresh install
@@ -189,7 +198,7 @@ This project does not turn model instructions into a security boundary. The nati
 
 ## Project status
 
-Version `0.4.0` enforces Claude-only native routing, adds optional OpenAI or DeepSeek proposal providers, and refreshes the guided terminal setup across macOS, Linux, and Windows. The project adapts [Codex Bounded Orchestrator](https://github.com/metapak/codex-bounded-orchestrator) to Claude Code's native project agents, skills, shared instructions, and settings. See [NOTICE](NOTICE) and [provenance](docs/provenance.md) for attribution.
+Version `0.5.0` adds a Claude-only quota-saver profile, explicit OpenTelemetry usage reporting, candidate-bound local evaluation, and recoverable task attempts while preserving the bounded review model and optional proposal-only providers. The project adapts [Codex Bounded Orchestrator](https://github.com/metapak/codex-bounded-orchestrator) to Claude Code's native project agents, skills, shared instructions, and settings. See [NOTICE](NOTICE) and [provenance](docs/provenance.md) for attribution.
 
 If the project helps your team, a GitHub star helps other people discover it. Issues and focused pull requests are welcome.
 

@@ -9,7 +9,7 @@
 [![Lisans: Apache-2.0](https://img.shields.io/badge/lisans-Apache--2.0-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB.svg)](https://www.python.org/downloads/)
 
-**Karmaşık Claude Code işleri için küçük, düzenli ve kontrol edilebilir bir ekip yapısı.**
+**Claude Code’un karmaşık repo işlerini planlamasını, dağıtmasını, uygulamasını, kontrol etmesini, ölçmesini ve güvenle devam ettirmesini sağlayan sınırlı bir çalışma katmanı.**
 
 Claude Bounded Orchestrator, ana Claude oturumuna işin sorumluluğunu verir. İnceleme, uygulama ve kontrol aşamalarını birbirinden ayırır; aynı alanda yalnızca bir yardımcının değişiklik yapmasını sağlar. Küçük ve yerel bir görev listesi de birbirine bağlı adımların unutulmasını azaltır.
 
@@ -17,7 +17,7 @@ Siz ne istediğinizi normal şekilde yazmaya devam edersiniz. Proje, arka planda
 
 ![Claude Bounded Orchestrator orkestra şefi ve görev dağılımı](docs/assets/claude-bounded-orchestrator-roles-tr.png)
 
-Görsel, ana Claude oturumunun işi yardımcılara nasıl dağıttığını özetler. 0.4.0 sürümünde yerel ve özel roller yalnızca Anthropic Claude modelleriyle çalışır; OpenAI veya DeepSeek ise ancak açıkça seçilen, sadece öneri üreten haricî API olarak eklenir. Kurulum ekranı bütün sistemlerde daha anlaşılırdır.
+Görsel, ana Claude oturumunun işi yardımcılara nasıl dağıttığını özetler. 0.5.0 sürümünde yerel ve özel roller yalnızca Anthropic Claude modelleriyle çalışmaya devam eder; kullanım görünürlüğü, kota tasarrufu, son dosyalara bağlı yerel değerlendirme ve devam ettirilebilir görev geçmişi eklenir. OpenAI veya DeepSeek ancak açıkça seçilen, yalnız öneri üreten haricî API olarak kullanılabilir.
 
 ```mermaid
 flowchart LR
@@ -29,6 +29,12 @@ flowchart LR
     R --> O
     O --> D[Tamamlanmış sonuç]
 ```
+
+## Artık ne yapıyor?
+
+Siz istediğiniz sonucu normal şekilde anlatırsınız. Ana Claude oturumu işi sınırlı görevlere ayırır; inceleme, uygulama, doğrulama ve son değerlendirmeyi ayrı rollere verir ve her kapsamta tek bir uygulayıcıyı sorumlu tutar. Kesintiler, kullanıcıdan yanıt bekleyen işler, onarımın kime döneceği ve kanıta dayalı tek yeniden deneme kaydedilir. Böylece yarım kalan çalışma geçmişi kaybolmadan devam ettirilebilir.
+
+Güncel sürümde dengeli, yüksek kalite, ekonomik, kota tasarrufu ve özel profiller bulunur. İstenirse tam olarak incelenen dosyalara bağlı projeye özel bir son kontrol çalıştırılır. Model ve token raporu, kullanıcının açıkça verdiği Claude Code OpenTelemetry verisini özetler; veri yoksa sayı uydurmak yerine bunu belirtir ve Claude Code içindeki `/usage` ekranına yönlendirir.
 
 ## Ne kazandırır?
 
@@ -102,7 +108,10 @@ Bu liste Git'e eklenmez ve yalnızca kısa durum bilgileri tutar. Kullanıcı is
 .claude/
 ├── agents/                  # görevleri sınırlı yardımcılar
 ├── skills/                  # isteğe bağlı tasarım ve güvenlik rehberleri
-├── tools/task_ledger.py     # kısa görev takibi
+├── tools/task_ledger.py     # devam ettirilebilir kısa görev takibi
+├── tools/usage_report.py    # açıkça verilen model/token ölçümlerinin özeti
+├── tools/local_eval.py      # son dosyalara bağlı, açıkça çalıştırılan kontrol
+├── bounded-orchestrator.eval.example.json
 ├── tools/openai_mcp.py      # yalnızca OpenAI seçilirse kurulur
 ├── tools/deepseek_mcp.py    # yalnızca DeepSeek seçilirse kurulur
 ├── settings.json            # yeni kurulumda ana model, düşünme düzeyi ve derinlik sınırı
@@ -187,7 +196,7 @@ Talimatlar tek başına kesin bir güvenlik sınırı değildir. Yardımcı deri
 
 ## Projenin durumu
 
-`0.4.0`, Claude’a ait yerel görev dağılımını marka dışı model kimliklerinden korur, isteğe bağlı OpenAI veya DeepSeek öneri sağlayıcısı ekler ve macOS, Linux ile Windows kurulum ekranını yeniler. Proje, [Codex Bounded Orchestrator](https://github.com/metapak/codex-bounded-orchestrator) çalışma düzenini Claude Code'un proje yardımcılarına, becerilerine, ortak talimatlarına ve ayarlarına uyarlar. Atıflar için [NOTICE](NOTICE) ve [kaynak bilgisi](docs/provenance.md) belgelerine bakabilirsiniz.
+`0.5.0`; yalnız Claude modellerini kullanan kota tasarrufu profili, açıkça verilen telemetri için model/token raporu, son dosyalara bağlı yerel değerlendirme ve devam ettirilebilir görev denemeleri ekler. Sınırlı inceleme düzeni ve isteğe bağlı, yalnız öneri üreten haricî sağlayıcılar korunur. Proje, [Codex Bounded Orchestrator](https://github.com/metapak/codex-bounded-orchestrator) çalışma düzenini Claude Code'un proje yardımcılarına, becerilerine, ortak talimatlarına ve ayarlarına uyarlar. Atıflar için [NOTICE](NOTICE) ve [kaynak bilgisi](docs/provenance.md) belgelerine bakabilirsiniz.
 
 Proje işinize yararsa vereceğiniz bir GitHub yıldızı daha fazla kişinin projeyi bulmasına yardımcı olur. Hata bildirimleri ve odaklı katkılar memnuniyetle karşılanır.
 
