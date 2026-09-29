@@ -35,6 +35,12 @@ python3 scripts/configure.py /absolute/path/to/your-project
 
 To change the team later, open the launcher again (or repeat the Linux command) and use **Save**. It updates the project settings without uninstalling. An already-open Claude Code session may need to be reopened before it uses the changes. If setup does not open, see the [Mac/Linux](INSTALL-MACOS.md) or [Windows](INSTALL-WINDOWS.md) guide.
 
+## Watch the 8-second video
+
+<p><a href="docs/assets/bounded-orchestrator-intro-8s.mp4"><img src="docs/assets/bounded-orchestrator-intro-thumbnail.png" alt="Video thumbnail: a conductor and four helpers on a sample Codex orchestra stage" width="480"></a></p>
+
+[Open or download the video](docs/assets/bounded-orchestrator-intro-8s.mp4). This silent family illustration has Turkish titles and sample Codex UI; it is not a Claude Code screen recording or live usage.
+
 ![Current Usage screen in English showing sanitized built-in sample data and an orchestra of three illustrated actors](docs/assets/console-en.png)
 
 *Illustrative demo of the current Usage screen. It uses built-in sanitized sample data, not your project settings or usage.*
