@@ -9,9 +9,9 @@
 [![Lisans: Apache-2.0](https://img.shields.io/badge/lisans-Apache--2.0-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB.svg)](https://www.python.org/downloads/)
 
-**Claude Code’un karmaşık repo işlerini planlamasını, dağıtmasını, uygulamasını, kontrol etmesini, ölçmesini ve güvenle devam ettirmesini sağlayan sınırlı bir çalışma katmanı.**
+**Claude Code için yerel kurulum ve çalışma düzeni: ana oturum işleri proje yardımcılarına dağıtır; tarayıcı konsolu planlanan ayarları ve gözlenen kullanımı gösterir.**
 
-Claude Bounded Orchestrator, ana Claude oturumuna işin sorumluluğunu verir. İnceleme, uygulama ve kontrol aşamalarını birbirinden ayırır; aynı alanda yalnızca bir yardımcının değişiklik yapmasını sağlar. Küçük ve yerel bir görev listesi de birbirine bağlı adımların unutulmasını azaltır.
+Claude Bounded Orchestrator, ana Claude oturumuna yalnız koordinasyon görevi verir: kullanıcıyla konuşur, planlar, küçük işler dahil yürütmeyi yardımcılara devreder, kısa kanıtları okur ve sonucu bildirir. Dosya inceleme, araştırma, uygulama, test ve bağımsız değerlendirme uzmanlara aittir. Bu davranış bir talimat kuralıdır; ana oturumun araçlarına teknik kilit koymaz. Küçük ve yerel görev listesi de birbirine bağlı adımları izler.
 
 Siz ne istediğinizi normal şekilde yazmaya devam edersiniz. Proje, arka plandaki çalışma düzenini sağlar.
 
@@ -34,11 +34,11 @@ flowchart LR
 
 Siz istediğiniz sonucu normal şekilde anlatırsınız. Ana Claude oturumu işi sınırlı görevlere ayırır; inceleme, uygulama, doğrulama ve son değerlendirmeyi ayrı rollere verir ve her kapsamta tek bir uygulayıcıyı sorumlu tutar. Kesintiler, kullanıcıdan yanıt bekleyen işler, onarımın kime döneceği ve kanıta dayalı tek yeniden deneme kaydedilir. Böylece yarım kalan çalışma geçmişi kaybolmadan devam ettirilebilir.
 
-Güncel sürümde dengeli, yüksek kalite, ekonomik, kota tasarrufu ve özel profiller bulunur. İstenirse tam olarak incelenen dosyalara bağlı projeye özel bir son kontrol çalıştırılır. Model ve token raporu, kullanıcının açıkça verdiği Claude Code OpenTelemetry verisini özetler; veri yoksa sayı uydurmak yerine bunu belirtir ve Claude Code içindeki `/usage` ekranına yönlendirir.
+Tarayıcı konsolunda dengeli, yüksek kalite, ekonomik, kota tasarrufu ve özel profiller ile 1–10 gerçek yardımcı slotu bulunur. Her slotun görevi, Claude modeli, düşünme düzeyi ve isteğe bağlı kısa etiketi seçilebilir; aynı görev tekrar edebilir. Planlanan ekip, geçmiş kullanımda gözlenen yardımcı sayısı değildir. Model ve token raporu yalnız açıkça verilen Claude Code OpenTelemetry dosyasını özetler; dosya yoksa sayı uydurmaz. Hesap kullanımı için Claude Code içindeki `/usage` ekranına bakın.
 
 ## Ne kazandırır?
 
-- Ana Claude oturumu kapsamı, kararları ve sonucu sahiplenir.
+- Ana Claude oturumu kullanıcıyla konuşur, planlar, işleri devreder, kısa uzman raporlarını okur ve sonucu bildirir; yürütme işini üstlenmez. Bu kural teknik araç kilidi değil, model talimatıdır.
 - Yalnızca uygulayıcıya dosya değiştirme araçları verilir.
 - Değişikliği yapan ile kontrol eden birbirinden ayrılır.
 - Yardımcılar yeni yardımcı oluşturamaz; yerleşik derinlik sınırı `1` olur.
@@ -46,7 +46,7 @@ Güncel sürümde dengeli, yüksek kalite, ekonomik, kota tasarrufu ve özel pro
 - Hafif görev listesi bekleyen, engellenen ve tamamlanan adımları görünür tutar.
 - Tasarım ve güvenlik uzmanlığı yalnızca açıkça istendiğinde kullanılır ve yeni yetki vermez.
 - Kurulum mevcut Claude ayarlarını ve çakışan dosyaları varsayılan olarak korur.
-- Dengeli, yüksek kalite, ekonomik veya Claude rollerini tek tek ayarlayabileceğiniz özel profil seçilebilir.
+- Yerel konsolda hazır profil veya 1–10 gerçek yardımcı slotu seçilebilir; aynı görev birden çok yardımcıya verilebilir.
 - Yerel ve özel roller yalnızca Claude kısa adlarını veya tam `claude-*` kimliklerini kabul eder.
 - İstenirse OpenAI GPT veya DeepSeek yalnızca yama önerisi üretmek için haricî API olarak eklenebilir.
 
@@ -57,14 +57,16 @@ Gerekenler:
 - Güncel bir [Claude Code kurulumu](https://code.claude.com/docs/en/getting-started)
 - Python 3.11 veya daha yeni bir sürüm
 
-Bu depoyu indirdikten sonra kendi projenizde kurulumu önce önizleyin:
+Depoyu indirin veya klonlayın. macOS’te `launchers/Bounded Orchestrator.app`, Windows’ta `launchers/Launch Bounded Orchestrator.vbs` dosyasına çift tıklayın. Var olan proje klasörünü seçin, **Değişiklikleri kontrol et** önizlemesini inceleyin ve **Kur** düğmesine basın. Başlatıcılar Python 3.11+ gerektirir; sonraki ayarlar için indirilen klasörü saklayın. **Konsolu kapat** yerel sunucuyu durdurur. Arka plan hizmeti kurulmaz. macOS imzasız uygulamayı engellerse aşağıdaki komutlu yolu kullanın.
+
+Alternatif olarak terminalden önizleyin:
 
 ```bash
 python scripts/install.py /projenizin/yolu --dry-run
 python scripts/install.py /projenizin/yolu
 ```
 
-Yönlendirmeli kurulum için macOS/Linux'ta `./setup.command` çalıştırın. Windows'ta `setup.ps1` çalıştırabilir veya `setup.cmd` dosyasına çift tıklayabilirsiniz. Yeni ekran hedef klasörü ve işlemi sorar, her profil için kısa açıklama gösterir, haricî API'leri varsayılan olarak kapalı tutar, son ayar özetini ve sonraki adımları gösterir.
+Aynı tarayıcı konsolu daha sonra ekibi **Kaydet** ile değiştirebilir veya son konsol değişikliğini **Geri al** ile kaldırabilir. İlgisiz ayarları korur, sahip olunan dosyada çakışma varsa durur ve Git dışı yedek kullanır. Komutlu yönlendirme için macOS/Linux’ta `./setup.command`; Windows’ta `setup.ps1` veya çift tıklanan `setup.cmd` kullanılabilir. Haricî API’ler varsayılan olarak kapalıdır.
 
 Doğrudan kurucu komutu seçim ekranı açmaz ve varsayılan olarak dengeli profili kullanır:
 
@@ -75,7 +77,7 @@ python scripts/install.py /projenizin/yolu --preset custom \
   --role-model implementer=opus --role-effort implementer=xhigh
 ```
 
-Yerel özel model olarak yalnızca `opus`, `sonnet`, `haiku` veya tam bir `claude-*` kimliği kullanılabilir. GPT, DeepSeek ve diğer marka kimlikleri yerel roller için reddedilir; bunlar açıkça seçilen haricî öneri API’si üzerinden kullanılmalıdır. Ana Claude oturumu için düşünme düzeyi `low`, `medium`, `high` veya `xhigh` olabilir; yardımcıların ön yüz ayarlarında ayrıca `max` kullanılabilir.
+Yerel özel model olarak yalnızca `opus`, `sonnet`, `haiku`, `fable` veya tam bir `claude-*` kimliği kullanılabilir. GPT, DeepSeek ve diğer marka kimlikleri yerel roller için reddedilir; bunlar açıkça seçilen haricî öneri API’si üzerinden kullanılmalıdır. Ana Claude oturumu için düşünme düzeyi `low`, `medium`, `high` veya `xhigh` olabilir; yardımcıların ön yüz ayarlarında ayrıca `max` kullanılabilir.
 
 Windows PowerShell için:
 
@@ -106,7 +108,7 @@ Bu liste Git'e eklenmez ve yalnızca kısa durum bilgileri tutar. Kullanıcı is
 
 ```text
 .claude/
-├── agents/                  # görevleri sınırlı yardımcılar
+├── agents/                  # görevleri sınırlı yardımcılar ve seçilen orchestra-slot-XX.md dosyaları
 ├── skills/                  # isteğe bağlı tasarım ve güvenlik rehberleri
 ├── tools/task_ledger.py     # devam ettirilebilir kısa görev takibi
 ├── tools/usage_report.py    # açıkça verilen model/token ölçümlerinin özeti
@@ -159,7 +161,7 @@ Kurulumdan sonra değiştirilmiş dosyalar silinmez. Kalan görev durumu ve yede
 
 | Rol | Görevi | Model ailesi | Düşünme düzeyi | Dosya değiştirme |
 |---|---|---|---|---:|
-| Ana Claude oturumu | Kapsamı, kararları ve sonucu yönetir | `opus` | `xhigh` | Oturumun normal izinlerine bağlıdır |
+| Ana Claude oturumu | Planlar, devreder, kısa kanıtları okur ve sonucu bildirir | `opus` | `xhigh` | Talimata göre yürütme yapmaz; normal oturum izinleri teknik olarak kalır |
 | İnceleyici | Projedeki yolları ve sınırları bulur | `sonnet` | `medium` | Hayır |
 | Araştırmacı | Güncel dış bilgileri doğrular | `sonnet` | `medium` | Hayır |
 | Uygulayıcı | Kendisine verilen değişikliği yapar | `sonnet` | `high` | Evet |
@@ -175,7 +177,7 @@ Bu adlar tarihli bir model sürümünü sabitlemek yerine güncel Claude ailesin
 
 Kurulum ve paket oluşturma araçları Python 3.11 standart kütüphanesini kullanır. macOS/Linux için kabuk dosyaları, Windows için PowerShell ve cmd dosyaları bulunur. Otomatik kontroller macOS, Windows ve Ubuntu üzerinde kurulum, görev listesi ve paketleme davranışını sınayacak şekilde hazırlanmıştır.
 
-Talimatlar tek başına kesin bir güvenlik sınırı değildir. Yardımcı derinliği ve araç listeleri Claude Code'un somut kontrolleridir; rol sırası, tek uygulayıcı kuralı, son hâli sabitleme ve sınırlı tekrar kuralları ise modelin izlemesi gereken talimatlardır. `Bash`, `Edit` ve `Write` olmasa bile değişiklik yapabilir; bu nedenle kontrol rollerine yalnızca kanıt toplamak için kullanma talimatı verilir. Kendi güncel Claude Code sürümünüzle canlı deneme yapmanız gerekir.
+Talimatlar tek başına kesin bir güvenlik sınırı değildir. Yardımcı derinliği ve araç listeleri Claude Code'un somut kontrolleridir; rol sırası, tek uygulayıcı kuralı, son hâli sabitleme ve sınırlı tekrar kuralları ise modelin izlemesi gereken talimatlardır. `Bash`, `Edit` ve `Write` olmasa bile değişiklik yapabilir; bu nedenle kontrol rollerine yalnızca kanıt toplamak için kullanma talimatı verilir. Depo, kurulum, API ve tarayıcı kontrolleri canlı Claude Code oturumunun yerini tutmaz. macOS uygulaması ve Windows çift tıklama başlatıcısı her iki işletim sisteminde de yerel arayüzden açılarak doğrulanmadı.
 
 ## Belgeler
 
@@ -196,7 +198,7 @@ Talimatlar tek başına kesin bir güvenlik sınırı değildir. Yardımcı deri
 
 ## Projenin durumu
 
-`0.5.0`; yalnız Claude modellerini kullanan kota tasarrufu profili, açıkça verilen telemetri için model/token raporu, son dosyalara bağlı yerel değerlendirme ve devam ettirilebilir görev denemeleri ekler. Sınırlı inceleme düzeni ve isteğe bağlı, yalnız öneri üreten haricî sağlayıcılar korunur. Proje, [Codex Bounded Orchestrator](https://github.com/metapak/codex-bounded-orchestrator) çalışma düzenini Claude Code'un proje yardımcılarına, becerilerine, ortak talimatlarına ve ayarlarına uyarlar. Atıflar için [NOTICE](NOTICE) ve [kaynak bilgisi](docs/provenance.md) belgelerine bakabilirsiniz.
+`0.5.0`; sınırlı çalışma düzeni, gerçek yardımcı ekibi kuran yerel tarayıcı ekranı, isteğe bağlı OpenTelemetry kullanım görünümü, son dosyalara bağlı yerel değerlendirme ve devam ettirilebilir görev denemeleri sunar. Orkestradaki bilinen görevlerin karakterleri ayrıdır. Şefe tıklayınca hareket başlar, başka yere tıklayınca durur. Sahne canlı çalışma, bağlam doluluğu veya kalan kota yerine gözlenen token paylarını gösterir. Sınırlı inceleme düzeni ve isteğe bağlı, yalnız öneri üreten haricî sağlayıcılar korunur. Proje, [Codex Bounded Orchestrator](https://github.com/metapak/codex-bounded-orchestrator) çalışma düzenini Claude Code'un proje yardımcılarına, becerilerine, ortak talimatlarına ve ayarlarına uyarlar. Atıflar için [NOTICE](NOTICE) ve [kaynak bilgisi](docs/provenance.md) belgelerine bakabilirsiniz.
 
 Proje işinize yararsa vereceğiniz bir GitHub yıldızı daha fazla kişinin projeyi bulmasına yardımcı olur. Hata bildirimleri ve odaklı katkılar memnuniyetle karşılanır.
 
@@ -210,4 +212,4 @@ Apache License 2.0. Ayrıntılar için [LICENSE](LICENSE).
 python3 scripts/configure.py /path/to/project
 ```
 
-[Ayarlar, Kullanım ve Görev Ayrıntıları](docs/local-console.tr.md): npm gerektirmez; önizleme, açık Kaydet, geri alma ve isteğe bağlı OTLP analizi.
+[Tercihler, Kullanım ve Çalışmalar](docs/local-console.tr.md): npm gerektirmez; önizleme, açık Kur/Kaydet, geri alma ve isteğe bağlı yerel kullanım analizi. Planlanan ekip ile geçmişte gözlenen kullanım ayrıdır; bilinmeyen ajan kimliği veya geçmiş düşünme düzeyi uydurulmaz.

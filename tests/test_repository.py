@@ -8,10 +8,17 @@ import uuid
 import zipfile
 from pathlib import Path
 
+from scripts.validate import is_native_model
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class RepositoryTests(unittest.TestCase):
+    def test_validator_accepts_supported_claude_aliases(self) -> None:
+        self.assertTrue(is_native_model("fable"))
+        self.assertTrue(is_native_model("claude-fable-5-1"))
+        self.assertFalse(is_native_model("gpt-5.6-sol"))
+
     def test_validator(self) -> None:
         result = subprocess.run([sys.executable, "scripts/validate.py"], cwd=ROOT, text=True, capture_output=True)
         self.assertEqual(result.returncode, 0, result.stderr)

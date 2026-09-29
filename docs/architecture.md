@@ -31,7 +31,7 @@ The project uses Claude Code features for concrete limits:
 - only `implementer` includes `Edit` and `Write`;
 - every child disallows `Agent`;
 - project settings select the main owner with `model: opus` and `effortLevel: xhigh`;
-- each project agent selects an `opus` or `sonnet` alias and an explicit effort level in frontmatter;
+- each prepared project agent selects its default `opus` or `sonnet` alias and effort in frontmatter; installer and console choices can change supported Claude model and effort values;
 - `.claude/settings.json` sets `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` to the string value `"1"`;
 - optional skills use `disable-model-invocation: true` and are not preloaded into agents.
 
@@ -39,7 +39,7 @@ See the official Claude Code documentation for [model and effort configuration](
 
 The aliases intentionally follow the current Claude family instead of pinning dated model IDs. The main session uses Opus at `xhigh`; broad exploration and production work use Sonnet at bounded effort; difficult causal analysis and independent review use Opus. Account access and active-client support still determine what can run. Environment variables and launch-time overrides can take precedence over project settings, and environment effort overrides can take precedence over agent frontmatter.
 
-Installation profiles change only model and effort routing. `balanced` matches the repository defaults, `quality` routes every role to Opus, and `economy` uses Sonnet at lower effort, and `quota-saver` keeps low/medium Sonnet routing with an independent reviewer. `custom` accepts per-role Claude choices. Native validation accepts only `opus`, `sonnet`, `haiku`, or full `claude-*` IDs. Provider IDs such as GPT or DeepSeek cannot be placed in native role frontmatter. Every profile keeps the same tool allowlists, depth cap, one-writer rule, verification separation, and finite repair budgets.
+Installation profiles change only model and effort routing. `balanced` matches the repository defaults, `quality` routes every role to Opus, and `economy` uses Sonnet at lower effort, and `quota-saver` keeps low/medium Sonnet routing with an independent reviewer. `custom` accepts per-role Claude choices. Native validation accepts only `opus`, `sonnet`, `haiku`, `fable`, or full `claude-*` IDs. The browser console can also save 1–10 real helper definitions with repeatable duties; this is planned capacity, not observed use or a demand to spawn them all. Provider IDs such as GPT or DeepSeek cannot be placed in native role frontmatter. Every profile keeps the same tool allowlists, depth cap, one-writer rule, verification separation, and finite repair budgets.
 
 ## Optional external API proposals
 

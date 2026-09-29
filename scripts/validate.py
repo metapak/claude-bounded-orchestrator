@@ -21,6 +21,12 @@ EXPECTED_ROUTING = {
     "advisor": ("opus", "xhigh"),
 }
 
+CLAUDE_MODEL_ALIASES = {"opus", "sonnet", "haiku", "fable"}
+
+
+def is_native_model(model: str) -> bool:
+    return model in CLAUDE_MODEL_ALIASES or model.startswith("claude-")
+
 
 def frontmatter(path: Path) -> dict[str, str]:
     text = path.read_text(encoding="utf-8")
@@ -95,7 +101,7 @@ def main() -> int:
                 errors.append(f"broken local link in {doc.name}: {target}")
     for path in (ROOT / ".claude/agents").glob("*.md"):
         model = frontmatter(path).get("model", "")
-        if model not in {"opus", "sonnet", "haiku"} and not model.startswith("claude-"):
+        if not is_native_model(model):
             errors.append(f"{path.name}: native route must use an Anthropic Claude model")
     if (ROOT / "VERSION").read_text(encoding="utf-8").strip() != "0.5.0":
         errors.append("VERSION must be 0.5.0")

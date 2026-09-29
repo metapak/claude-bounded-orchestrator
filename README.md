@@ -9,7 +9,7 @@
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB.svg)](https://www.python.org/downloads/)
 
-**A bounded operating layer for Claude Code that plans, delegates, implements, verifies, measures, and safely resumes complex repository work.**
+**A local setup and workflow for Claude Code: one coordinator delegates bounded work to project agents, while a browser console shows planned settings and observed usage.**
 
 Claude Bounded Orchestrator makes the main Claude session a strict coordinator: it speaks with the user, plans and delegates every execution task, even a small one, then reads concise specialist evidence and reports the result. Specialists inspect, research, implement, check and review. One writer owns each scope, and independent verification precedes completion. A private local ledger tracks short task metadata so dependent steps are less likely to be skipped.
 
@@ -34,11 +34,11 @@ flowchart LR
 
 You describe the result in normal language. The main Claude session turns it into bounded tasks, assigns investigation, implementation, verification, and review to separate roles, and keeps one writer responsible for each scope. It records interruptions, user waits, repair routing, and one evidence-backed retry so unfinished work can resume without losing its history.
 
-The current release also offers balanced, quality, economy, quota-saver, and custom profiles; an opt-in project-specific evaluation bound to the exact reviewed files; and model/token reporting from an explicitly supplied Claude Code OpenTelemetry export. If telemetry is unavailable, the report says so and directs the user to Claude Code's `/usage` view instead of inventing a total.
+The browser console offers balanced, quality, economy, quota-saver, and custom profiles; 1–10 real helper slots with a duty, model, effort, and optional short label; and model/token charts from an explicitly supplied Claude Code OpenTelemetry export. Repeating a duty is allowed. Planned slots are distinct from historically observed helpers. If telemetry is unavailable, the console shows no invented usage; Claude Code's `/usage` view remains the source for account usage.
 
 ## Why use it?
 
-- **One accountable coordinator:** the main session decides scope, routing, evidence integration, and the final result. It does not perform specialist execution or take over when delegation is unavailable.
+- **One accountable coordinator:** project instructions direct the main session to speak with you, plan, delegate every execution task, read short evidence, and report the result. It does not inspect, research, implement, test, or review itself; if delegation is unavailable, it reports that limit. This is an instruction policy, not a technical lock on the main session's tools.
 - **One writer per scope:** only the implementer receives `Edit` and `Write` tools.
 - **Independent checks:** verification and review are separate from implementation.
 - **Bounded delegation:** project agents cannot create more agents; native spawn depth is capped at `1`.
@@ -49,7 +49,7 @@ The current release also offers balanced, quality, economy, quota-saver, and cus
 - **Optional expertise:** UI design and security guidance are available only when explicitly invoked and grant no tools.
 - **Safe installation:** existing Claude settings and conflicting managed files are preserved by default.
 - **Claude-only native routing:** every prepared and custom role accepts only Claude aliases or full `claude-*` IDs.
-- **Guided profiles:** choose balanced, quality, economy, or configure every Claude role during one-click setup.
+- **Guided profiles and team:** choose a profile or configure 1–10 real helper slots, including repeated duties, in the local browser console.
 - **Optional external proposals:** local MCP bridges can call OpenAI or DeepSeek without giving either provider workspace access.
 
 ## Quick start
@@ -59,14 +59,16 @@ Requirements:
 - A current [Claude Code installation](https://code.claude.com/docs/en/getting-started)
 - Python 3.11 or newer
 
-Clone or download this repository, then preview installation into your project:
+Clone or download this repository. On macOS, double-click `launchers/Bounded Orchestrator.app`; on Windows, double-click `launchers/Launch Bounded Orchestrator.vbs`. Choose an existing project folder, inspect **Check changes**, and press **Install**. These launchers need Python 3.11+ and the downloaded folder must be kept for later edits. **Close console** stops the local server. They do not install a background service. On macOS, an unnotarized downloaded app may need the command-line fallback below.
+
+Alternatively, preview installation from a terminal:
 
 ```bash
 python scripts/install.py /path/to/your-project --dry-run
 python scripts/install.py /path/to/your-project
 ```
 
-For setup without typing a terminal command, double-click `launchers/Bounded Orchestrator.app` on macOS or `launchers/Launch Bounded Orchestrator.vbs` on Windows, choose an existing project folder, then review the browser preview and choose **Install**. Python 3.11+ is needed for these launchers. The browser can also change or undo project settings later and has a **Close console** button. For guided terminal setup on macOS/Linux, run `./setup.command`; on Windows, run `setup.ps1` or double-click `setup.cmd`. The installer shows the target and action first, explains each native Claude profile, keeps external APIs off by default, reviews the final configuration, and prints next steps.
+The same browser console can later **Save** a revised team or **Restore** its preceding console-managed change. It preserves unrelated settings, stops on conflicting owned files, and uses ignored backups. For guided terminal setup on macOS/Linux, run `./setup.command`; on Windows, run `setup.ps1` or double-click `setup.cmd`. The terminal installer keeps external APIs off by default and reviews the final configuration.
 
 The direct installer stays non-interactive and uses `balanced` unless you choose another profile:
 
@@ -77,7 +79,7 @@ python scripts/install.py /path/to/your-project --preset custom \
   --role-model implementer=opus --role-effort implementer=xhigh
 ```
 
-Native custom values accept `opus`, `sonnet`, `haiku`, or a full `claude-*` model ID. GPT, DeepSeek, and other provider IDs are rejected for native roles and must use an explicit proposal-only API provider. The main Claude session accepts `low`, `medium`, `high`, or `xhigh`; child-agent frontmatter additionally accepts `max`.
+Native custom values accept `opus`, `sonnet`, `haiku`, `fable`, or a full `claude-*` model ID. GPT, DeepSeek, and other provider IDs are rejected for native roles and must use an explicit proposal-only API provider. The main Claude session accepts `low`, `medium`, `high`, or `xhigh`; child-agent frontmatter additionally accepts `max`.
 
 On Windows PowerShell:
 
@@ -108,7 +110,7 @@ The ledger is ignored by Git and stores only short metadata. Do not place prompt
 
 ```text
 .claude/
-├── agents/                  # bounded project agents
+├── agents/                  # bounded project agents and selected orchestra-slot-XX.md helpers
 ├── skills/                  # opt-in UI and security guidance
 ├── tools/task_ledger.py     # recoverable metadata-only task tracking
 ├── tools/usage_report.py    # explicit OpenTelemetry model/token summary
@@ -161,7 +163,7 @@ Files changed after installation are kept. The runtime `.gitignore` is also reta
 
 | Role | Purpose | Model alias | Effort | Edit/Write |
 |---|---|---|---|---:|
-| Main Claude session | Owns scope, decisions, integration, and outcome | `opus` | `xhigh` | Uses normal session permissions |
+| Main Claude session | Coordinates, delegates, reads brief evidence, and reports | `opus` | `xhigh` | No worker actions under the instruction policy; normal session permissions still exist |
 | Explorer | Maps code paths and constraints | `sonnet` | `medium` | No |
 | Researcher | Verifies current external facts | `sonnet` | `medium` | No |
 | Implementer | Makes one assigned change | `sonnet` | `high` | Yes |
@@ -177,7 +179,7 @@ Aliases select the current Claude family instead of pinning a dated model ID. Mo
 
 The installer and release builder use the Python 3.11 standard library. Shell launchers are provided for macOS/Linux and PowerShell/cmd launchers for Windows. Repository tests exercise installer, ledger, validation, and release packaging behavior; CI is configured for macOS, Windows, and Ubuntu.
 
-This project does not turn model instructions into a security boundary. The native depth setting and child-agent tool allowlists are concrete Claude Code controls; strict coordinator behavior, role sequence, one-writer discipline, frozen review, and retry limits remain instructions followed by the model. `Bash` can mutate state even when `Edit` and `Write` are unavailable, so verifier and QA instructions restrict it to evidence gathering. Run a live smoke test with your current Claude Code client before relying on the workflow.
+This project does not turn model instructions into a security boundary. The native depth setting and child-agent tool allowlists are concrete Claude Code controls; strict coordinator behavior, role sequence, one-writer discipline, frozen review, and retry limits remain instructions followed by the model. `Bash` can mutate state even when `Edit` and `Write` are unavailable, so verifier and QA instructions restrict it to evidence gathering. Repository, installer, API, and browser checks do not replace a live Claude Code session test. The macOS app and Windows double-click launcher have not been verified by opening them natively on both platforms.
 
 ## Documentation
 
@@ -198,7 +200,7 @@ This project does not turn model instructions into a security boundary. The nati
 
 ## Project status
 
-Version `0.5.0` adds a Claude-only quota-saver profile, explicit OpenTelemetry usage reporting, candidate-bound local evaluation, and recoverable task attempts while preserving the bounded review model and optional proposal-only providers. The project adapts [Codex Bounded Orchestrator](https://github.com/metapak/codex-bounded-orchestrator) to Claude Code's native project agents, skills, shared instructions, and settings. See [NOTICE](NOTICE) and [provenance](docs/provenance.md) for attribution.
+Version `0.5.0` provides the bounded workflow, local browser setup with a configurable real helper team, opt-in OpenTelemetry usage views, candidate-bound local evaluation, and recoverable task attempts. The orchestra uses distinct characters for known duties; click the conductor to start its animation and click elsewhere to stop. It shows observed token shares, not live activity, context-window fill, or quota remaining. The project adapts [Codex Bounded Orchestrator](https://github.com/metapak/codex-bounded-orchestrator) to Claude Code's native project agents, skills, shared instructions, and settings. See [NOTICE](NOTICE) and [provenance](docs/provenance.md) for attribution.
 
 If the project helps your team, a GitHub star helps other people discover it. Issues and focused pull requests are welcome.
 
@@ -212,4 +214,4 @@ Apache License 2.0. See [LICENSE](LICENSE).
 python3 scripts/configure.py /path/to/project
 ```
 
-[Settings, planned helper team, usage and task detail console](docs/local-console.md): no npm required; validated preview, explicit Install/Save, restore and opt-in local OTLP analysis. Pick 1–10 helper slots, including duplicate duties, with a Claude model and effort for each; slots are real project agents, while the conductor stays a coordinator.
+[Preferences, Usage, and Work console](docs/local-console.md): no npm required; validated preview, explicit Install/Save, restore, and opt-in local OTLP analysis. The planned team and observed usage are labeled separately; missing agent identity or historical effort remains unknown.

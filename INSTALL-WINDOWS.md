@@ -2,7 +2,7 @@
 
 Install a current [Claude Code client](https://code.claude.com/docs/en/getting-started) and Python 3.11 or newer. In PowerShell, from this downloaded repository:
 
-For a no-typing setup, double-click `launchers/Launch Bounded Orchestrator.vbs`, choose an existing project folder, then review and press **Install** in the local browser. **Close console** stops its local server. Keep the downloaded folder for later updates.
+For a no-typing setup, double-click `launchers/Launch Bounded Orchestrator.vbs`, choose an existing project folder, then review **Check changes** and press **Install** in the local browser. You can choose 1–10 real helper slots with duty, model, and effort; duplicate duties are allowed. This is the planned team, not a count of observed agents. **Close console** stops its local server. Keep the downloaded folder for later updates. The Windows double-click path has not been tested natively on Windows.
 
 ```powershell
 .\scripts\install.ps1 -Target C:\path\to\project -DryRun
@@ -12,6 +12,8 @@ For a no-typing setup, double-click `launchers/Launch Bounded Orchestrator.vbs`,
 Or double-click `setup.cmd`. It asks for the target folder, install/preview/uninstall action, native profile, and optional external proposal provider. Existing settings and conflicting files are preserved by default. Review `.claude\bounded-orchestrator.settings.example.json` if the target already had settings.
 
 The guided screen explains balanced, quality, economy, quota saver, or per-role custom settings, then shows a final configuration review and next steps. Every native/custom role must use an Anthropic Claude alias or full `claude-*` ID. The lower-level installer remains non-interactive:
+
+The browser's **Save** changes selected project settings only after preview; **Restore** undoes its previous console-managed change. Existing unrelated settings are preserved, conflicting managed files stop the operation, and installer backups stay outside Git. Restart Claude Code after a change. This repository's tests do not prove behavior in a live Claude Code session.
 
 ```powershell
 .\scripts\install.ps1 -Target C:\path\to\project -Preset quality
