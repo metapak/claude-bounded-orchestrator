@@ -1,12 +1,13 @@
 # Windows setup
 
-1. Download and extract the [current main ZIP](https://github.com/metapak/claude-bounded-orchestrator/archive/refs/heads/main.zip). Older versioned packages may lack the current browser launcher. Keep the extracted folder for future edits.
-2. Install a current [Claude Code client](https://code.claude.com/docs/en/getting-started) and Python 3.11 or newer. The launcher uses local Python; it does not bundle a runtime or install a background service.
-3. Double-click `launchers/Launch Bounded Orchestrator.vbs` in the extracted folder. Choose an existing local project directory in the native picker. Git is recommended for source work but is not required by the launcher.
-4. In the browser, choose a work style and 1–10 real helper slots with duty, model, and effort. Duplicate duties are allowed. Press **Check changes**, then **Install**. Conflicting managed files stop for review; unrelated settings are preserved and backups stay ignored by Git.
-5. Restart Claude Code in the project. Later, reopen the launcher to **Save** a changed team or **Restore** the preceding console-managed change. **Close console** stops the local server.
+Have [Claude Code](https://code.claude.com/docs/en/getting-started) and [Python 3.11 or newer](https://www.python.org/downloads/) installed. Python is not included.
 
-Native Windows double-click behavior has not been verified on Windows, and repository tests do not prove a live Claude Code session.
+1. **Download:** [Get the current ZIP](https://github.com/metapak/claude-bounded-orchestrator/archive/refs/heads/main.zip) and open the extracted folder.
+2. **Open:** Open `launchers` and double-click **Launch Bounded Orchestrator.vbs**.
+3. **Choose a project:** Pick the folder where you use Claude Code.
+4. **Install:** In the browser, keep the suggested team or change it. Click **Check changes**, then **Install**. Restart Claude Code in that project.
+
+For later changes, reopen the launcher and click **Save**; no uninstall is needed. An already-open Claude Code session may need to be reopened before it uses the changes. Double-click behavior has not been tested on every Windows setup.
 
 <details>
 <summary>Optional PowerShell, external-provider, and uninstall steps</summary>

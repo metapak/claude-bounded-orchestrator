@@ -9,29 +9,37 @@
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB.svg)](https://www.python.org/downloads/)
 
-**A local setup and workflow for Claude Code: one coordinator delegates bounded work to project agents, while a browser console shows planned settings and observed usage.**
+**Set up a specialist team for Claude Code from a local browser page.**
 
-Claude Bounded Orchestrator makes the main Claude session a strict coordinator: it speaks with the user, plans and delegates every execution task, even a small one, then reads concise specialist evidence and reports the result. Specialists inspect, research, implement, check and review. One writer owns each scope, and independent verification precedes completion. A private local ledger tracks short task metadata so dependent steps are less likely to be skipped.
+You still describe the work normally. The main Claude session coordinates and speaks with you; helpers do the assigned work. The browser also shows settings and past usage.
 
-You still ask for work in normal language. The project supplies the operating rules behind the scenes.
+## Install in four steps
 
-## Quick start: use the local setup window
+Have [Claude Code](https://code.claude.com/docs/en/getting-started) and [Python 3.11 or newer](https://www.python.org/downloads/) installed first. Python is **not included** in this download.
 
-**1. Download and extract the [current main ZIP](https://github.com/metapak/claude-bounded-orchestrator/archive/refs/heads/main.zip).** Use this current source archive for the browser setup; older versioned release packages may not include the GUI launcher. Keep the extracted folder for future settings changes.
+1. **Download:** [Get the current ZIP](https://github.com/metapak/claude-bounded-orchestrator/archive/refs/heads/main.zip) and open the extracted folder.
+2. **Open:** On Mac, open `launchers` and double-click **Bounded Orchestrator.app**. On Windows, double-click **Launch Bounded Orchestrator.vbs** in the same folder. On Linux, use the short command below.
+3. **Choose a project:** On Mac or Windows, pick the folder where you use Claude Code. On Linux, the command includes that folder instead.
+4. **Install:** In the browser, keep the suggested team or change it. Click **Check changes**, then **Install**. Restart Claude Code in that project.
 
-**2. Check the prerequisites.** Install a current [Claude Code client](https://code.claude.com/docs/en/getting-started) and Python 3.11 or newer. The launcher uses your local Python installation; it does not install Python or run a permanent background service.
+<details>
+<summary>Linux: open the same setup page</summary>
 
-**3. Open the setup window.** On macOS, double-click `launchers/Bounded Orchestrator.app` in the extracted folder. On Windows, double-click `launchers/Launch Bounded Orchestrator.vbs`. Choose an existing local project folder in the native folder picker; a Git checkout is recommended for source work but is not required by the launcher. If macOS blocks an unnotarized app, see the fallback in the macOS/Linux guide.
+Linux has no double-click launcher or folder picker in this package. Open a terminal in the extracted folder, then run this with your project's path:
 
-**4. Choose and review.** In the browser, select a work style and 1–10 helpers. Give each helper a duty, Claude model and effort; repeated duties are allowed. Press **Check changes** to review what will be written to that project, then press **Install**. The console preserves unrelated settings and uses ignored backups; conflicts require your review. Restart Claude Code in that project, then describe the work normally.
+```bash
+python3 scripts/configure.py /absolute/path/to/your-project
+```
 
-**5. Return when needed.** Open the same launcher to **Save** changed preferences or **Restore** the previous console-managed change. **Close console** stops its local server. Planned helpers are settings, while the Usage page shows only usage observed in an export you explicitly provide.
+</details>
+
+To change the team later, open the launcher again (or repeat the Linux command) and use **Save**. It updates the project settings without uninstalling. An already-open Claude Code session may need to be reopened before it uses the changes. If setup does not open, see the [Mac/Linux](INSTALL-MACOS.md) or [Windows](INSTALL-WINDOWS.md) guide.
 
 ![Current Usage screen in English showing sanitized built-in sample data and an orchestra of three illustrated actors](docs/assets/console-en.png)
 
 *Illustrative demo of the current Usage screen. It uses built-in sanitized sample data, not your project settings or usage.*
 
-Linux currently uses the optional command-line setup in the macOS/Linux guide; no double-click GUI launcher is provided for Linux. See the [macOS/Linux guide](INSTALL-MACOS.md) and [Windows guide](INSTALL-WINDOWS.md). A live Claude Code session and native double-click launch on both operating systems have not been verified by repository tests.
+Linux uses the short command above for the same browser page; it has no double-click launcher here. The [macOS/Linux guide](INSTALL-MACOS.md) and [Windows guide](INSTALL-WINDOWS.md) cover opening problems and manual setup. Native double-click launch and a live Claude Code session have not been verified by repository tests.
 
 <details>
 <summary>Optional terminal and manual setup</summary>

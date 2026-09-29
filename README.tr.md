@@ -9,29 +9,37 @@
 [![Lisans: Apache-2.0](https://img.shields.io/badge/lisans-Apache--2.0-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB.svg)](https://www.python.org/downloads/)
 
-**Claude Code için yerel kurulum ve çalışma düzeni: ana oturum işleri proje yardımcılarına dağıtır; tarayıcı konsolu planlanan ayarları ve gözlenen kullanımı gösterir.**
+**Claude Code için uzman ekibini yerel tarayıcı sayfasından kurun.**
 
-Claude Bounded Orchestrator, ana Claude oturumuna yalnız koordinasyon görevi verir: kullanıcıyla konuşur, planlar, küçük işler dahil yürütmeyi yardımcılara devreder, kısa kanıtları okur ve sonucu bildirir. Dosya inceleme, araştırma, uygulama, test ve bağımsız değerlendirme uzmanlara aittir. Bu davranış bir talimat kuralıdır; ana oturumun araçlarına teknik kilit koymaz. Küçük ve yerel görev listesi de birbirine bağlı adımları izler.
+İsteğinizi yine normal şekilde anlatırsınız. Ana Claude oturumu sizinle konuşur ve işleri düzenler; verilen işleri yardımcılar yapar. Tarayıcıda ayarları ve geçmiş kullanımı da görürsünüz.
 
-Siz ne istediğinizi normal şekilde yazmaya devam edersiniz. Proje, arka plandaki çalışma düzenini sağlar.
+## Dört adımda kurulum
 
-## Hızlı başlangıç: yerel kurulum ekranını açın
+Önce [Claude Code](https://code.claude.com/docs/en/getting-started) ve [Python 3.11 veya yenisi](https://www.python.org/downloads/) kurulu olsun. Python bu indirmeye **dahil değildir**.
 
-**1. [Güncel main ZIP dosyasını](https://github.com/metapak/claude-bounded-orchestrator/archive/refs/heads/main.zip) indirip çıkarın.** Tarayıcıdan kurulum için bu güncel kaynak arşivini kullanın; eski sürüm paketlerinde grafik başlatıcı bulunmayabilir. Sonraki ayar değişiklikleri için çıkarılan klasörü saklayın.
+1. **İndirin:** [Güncel ZIP dosyasını alın](https://github.com/metapak/claude-bounded-orchestrator/archive/refs/heads/main.zip) ve açılan klasöre girin.
+2. **Açın:** Mac'te `launchers` klasöründeki **Bounded Orchestrator.app** dosyasına çift tıklayın. Windows'ta aynı klasördeki **Launch Bounded Orchestrator.vbs** dosyasına çift tıklayın. Linux'ta aşağıdaki kısa komutu kullanın.
+3. **Proje seçin:** Mac veya Windows'ta Claude Code kullandığınız klasörü seçin. Linux'ta bu klasörü komutta belirtirsiniz.
+4. **Kurun:** Tarayıcıda önerilen ekibi bırakabilir veya değiştirebilirsiniz. **Değişiklikleri kontrol et**, ardından **Kur** düğmesine basın. Claude Code'u bu projede yeniden başlatın.
 
-**2. Gerekenleri kontrol edin.** Güncel [Claude Code](https://code.claude.com/docs/en/getting-started) ve Python 3.11 veya yenisini kurun. Başlatıcı bilgisayarınızdaki Python'u kullanır; Python veya kalıcı arka plan hizmeti kurmaz.
+<details>
+<summary>Linux: aynı kurulum ekranını açın</summary>
 
-**3. Kurulum ekranını açın.** macOS’te çıkarılan klasördeki `launchers/Bounded Orchestrator.app` dosyasına, Windows’ta `launchers/Launch Bounded Orchestrator.vbs` dosyasına çift tıklayın. Açılan klasör seçicisinden mevcut yerel proje klasörünü seçin; kaynak kodu çalışmaları için Git önerilir, ancak başlatıcı bunu zorunlu tutmaz. macOS imzasız uygulamayı engellerse macOS/Linux rehberindeki alternatif yolu izleyin.
+Bu pakette Linux için çift tıklamalı başlatıcı veya klasör seçici yoktur. Açtığınız klasörde terminal açın ve projenizin yoluyla şu komutu çalıştırın:
 
-**4. Ekibi seçip değişiklikleri inceleyin.** Tarayıcıda çalışma biçimini ve 1–10 yardımcıyı seçin. Her yardımcı için görev, Claude modeli ve düşünme düzeyi belirleyin; aynı görev birden çok kez seçilebilir. **Değişiklikleri kontrol et** ile yalnız seçili projeye yazılacakları görün, ardından **Kur** düğmesine basın. İlgisiz ayarlar korunur ve yedekler Git dışında tutulur; çakışmalar inceleme gerektirir. Claude Code'u bu projede yeniden başlatıp isteğinizi normal şekilde anlatın.
+```bash
+python3 scripts/configure.py /projenizin/tam/yolu
+```
 
-**5. Sonra tekrar açın.** Aynı başlatıcıdan tercihleri **Kaydet** ile değiştirin veya önceki konsol değişikliğini **Geri al** ile kaldırın. **Konsolu kapat** yerel sunucuyu durdurur. Planlanan yardımcılar ayardır; Kullanım ekranı yalnız açıkça verdiğiniz dışa aktarımda gözlenen kullanımı gösterir.
+</details>
+
+Ekibi daha sonra değiştirmek için başlatıcıyı yeniden açıp (Linux'ta komutu yineleyip) **Kaydet** düğmesini kullanın. Ayarlar projeye hemen yazılır; silip yeniden kurmanız gerekmez. Açık Claude Code oturumunun yeni ayarları kullanması için oturumu yeniden açmanız gerekebilir. Kurulum açılmazsa [Mac/Linux](INSTALL-MACOS.md) veya [Windows](INSTALL-WINDOWS.md) rehberine bakın.
 
 ![Yerel konsolun Türkçe Kullanım ekranında temizlenmiş yerleşik örnek veriler ve üç çizim karakteri](docs/assets/console-tr.png)
 
 *Güncel Kullanım ekranının temsili örneği. Yerleşik temizlenmiş örnek veriler kullanılır; değerler sizin proje ayarlarınız veya kullanımınız değildir.*
 
-Linux için çift tıklamalı grafik başlatıcı yoktur; isteğe bağlı komutlu kurulum macOS/Linux rehberindedir. Ayrıntılar: [macOS/Linux rehberi](INSTALL-MACOS.md) ve [Windows rehberi](INSTALL-WINDOWS.md). Depo testleri canlı Claude Code oturumunu ve iki işletim sistemindeki yerel çift tıklama akışını doğrulamaz.
+Linux'ta aynı tarayıcı sayfası yukarıdaki kısa komutla açılır; bu pakette çift tıklamalı Linux başlatıcısı yoktur. Açılış sorunları ve elle kurulum için [macOS/Linux rehberine](INSTALL-MACOS.md) veya [Windows rehberine](INSTALL-WINDOWS.md) bakın. Depo testleri çift tıklamayla açılışı ve canlı Claude Code oturumunu doğrulamaz.
 
 <details>
 <summary>İsteğe bağlı terminal ve elle kurulum</summary>
