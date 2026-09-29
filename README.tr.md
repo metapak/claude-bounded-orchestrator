@@ -203,3 +203,11 @@ Proje işinize yararsa vereceğiniz bir GitHub yıldızı daha fazla kişinin pr
 ## Lisans
 
 Apache License 2.0. Ayrıntılar için [LICENSE](LICENSE).
+
+## Yerel tarayıcı konsolu
+
+```sh
+python3 scripts/configure.py /path/to/project
+```
+
+[Ayarlar, Kullanım ve Görev Ayrıntıları](docs/local-console.tr.md): npm gerektirmez; önizleme, açık Kaydet, geri alma ve isteğe bağlı OTLP analizi.

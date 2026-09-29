@@ -37,7 +37,7 @@ def frontmatter(path: Path) -> dict[str, str]:
 
 def main() -> int:
     errors: list[str] = []
-    required = ["README.md", "README.tr.md", "LICENSE", "NOTICE", "CLAUDE.md", ".claude/settings.json", ".claude/tools/task_ledger.py", ".claude/tools/usage_report.py", ".claude/tools/local_eval.py", ".claude/bounded-orchestrator.eval.example.json", ".claude/tools/openai_mcp.py", ".claude/tools/deepseek_mcp.py", "docs/usage-and-local-eval.md", "docs/usage-and-local-eval.tr.md", "docs/release-v0.5.0.md", "docs/release-v0.5.0.tr.md", "scripts/install.py", "scripts/build_release.py"]
+    required = ["README.md", "README.tr.md", "LICENSE", "NOTICE", "CLAUDE.md", ".claude/settings.json", ".claude/tools/task_ledger.py", ".claude/tools/usage_report.py", ".claude/tools/local_eval.py", ".claude/bounded-orchestrator.eval.example.json", ".claude/tools/openai_mcp.py", ".claude/tools/deepseek_mcp.py", "docs/usage-and-local-eval.md", "docs/usage-and-local-eval.tr.md", "docs/release-v0.5.0.md", "docs/release-v0.5.0.tr.md", "scripts/install.py", "scripts/build_release.py", "scripts/configure.py", ".claude/tools/console_settings.py", ".claude/tools/console/index.html", ".claude/tools/console/app.js", ".claude/tools/console/style.css"]
     for name in required:
         if not (ROOT / name).is_file():
             errors.append(f"missing {name}")

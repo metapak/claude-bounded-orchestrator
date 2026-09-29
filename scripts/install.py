@@ -137,6 +137,10 @@ BASE_MANAGED_FILES = (
     Path(".claude/skills/secure-change/SKILL.md"),
     Path(".claude/tools/task_ledger.py"),
     Path(".claude/tools/usage_report.py"),
+    Path(".claude/tools/console_settings.py"),
+    Path(".claude/tools/console/index.html"),
+    Path(".claude/tools/console/app.js"),
+    Path(".claude/tools/console/style.css"),
     Path(".claude/tools/local_eval.py"),
     Path(".claude/bounded-orchestrator.eval.example.json"),
     Path(".claude/.bounded-orchestrator/.gitignore"),
@@ -253,6 +257,8 @@ def backup(target: Path, destination: Path, dry_run: bool) -> Path:
     while candidate.exists():
         candidate = candidate.with_name(f"{destination.name}.{index}")
         index += 1
+    if candidate.is_symlink() or not candidate.resolve().is_relative_to(target):
+        raise InstallError("backup path escapes target")
     if not dry_run:
         candidate.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(destination, candidate)

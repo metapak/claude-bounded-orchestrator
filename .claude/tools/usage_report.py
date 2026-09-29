@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
+from datetime import datetime, timezone
 from collections import defaultdict
 from pathlib import Path
 
@@ -61,72 +63,103 @@ def temporality(metric: dict) -> tuple[str, list[dict]]:
     return mode, [point for point in body.get("dataPoints", []) if isinstance(point, dict)]
 
 
-def report(path: Path | None) -> dict:
+def timestamp(point):
+    try:
+        return datetime.fromtimestamp(int(point.get("timeUnixNano")) / 1e9, timezone.utc).isoformat()
+    except (ValueError, TypeError, OverflowError, OSError):
+        return None
+
+
+def report(path: Path | None, start: str | None = None, end: str | None = None) -> dict:
+    for date in (start, end):
+        if date:
+            datetime.strptime(date, "%Y-%m-%d")
+    base = {"platform": "claude", "source": "explicit-otlp-file" if path else "none",
+            "status": "unavailable", "groups": [], "totals": {}, "cost_totals": {}, "events": [],
+            "dimensions": {"model": False, "date": False, "thread": False, "agent": False},
+            "limitations": "Explicit OTLP Sum metrics only. No transcripts, telemetry activation, pricing estimates or subscription quota conversion. Date ranges exclude undated points; cumulative increments are attributed to observation dates and can span a range boundary. Runtime settings may override project settings."}
     if path is None:
-        return {"status": "unavailable", "source": "none",
-                "message": "No sanitized OpenTelemetry metric export was supplied. Use Claude Code /usage for the official interactive view, or configure OpenTelemetry yourself and pass an exported OTLP JSON/JSONL file.",
-                "groups": [], "totals": {}}
-    totals, groups, rows = defaultdict(float), defaultdict(float), 0
-    previous: dict[tuple, tuple[float, str | None]] = {}
-    delta_points = cumulative_points = resets = unknown_metrics = 0
-    text = path.read_text(encoding="utf-8", errors="replace")
-    documents = []
+        base["message"] = "No sanitized OTLP JSON/JSONL file supplied. Claude Code /usage provides the official interactive view."
+        return base
+    if path.stat().st_size > 32 * 1024 * 1024:
+        raise ValueError("OTLP file exceeds 32 MiB")
+    text = path.read_text(encoding="utf-8")
     try:
         documents = [json.loads(text)]
     except json.JSONDecodeError:
-        for line in text.splitlines():
-            try:
-                documents.append(json.loads(line))
-            except json.JSONDecodeError:
-                continue
+        documents = [json.loads(line) for line in text.splitlines() if line.strip()]
+    entries, seen_documents = [], set()
+    unknown = duplicates = 0
     for document in documents:
+        identity = json.dumps(document, sort_keys=True, separators=(",", ":"))
+        if identity in seen_documents:
+            duplicates += 1
+            continue
+        seen_documents.add(identity)
         for metric, resource_identity in walk_metrics(document):
-            name = metric.get("name", "unknown")
-            mode, metric_points = temporality(metric)
+            mode, points = temporality(metric)
             if mode == "unknown":
-                unknown_metrics += 1
+                unknown += 1
                 continue
-            for point in metric_points:
-                raw = point.get("asInt", point.get("asDouble", point.get("value")))
-                try:
-                    value = float(raw)
-                except (TypeError, ValueError):
-                    continue
-                attrs = attributes(point.get("attributes"))
-                model = attrs.get("model", attrs.get("model_name", "unknown"))
-                token_type = attrs.get("type", attrs.get("token_type", name))
-                stream = (name, resource_identity, tuple(sorted(attrs.items())))
-                if mode == "delta":
-                    increment = value
-                    delta_points += 1
-                else:
-                    start_raw = point.get("startTimeUnixNano")
-                    start_time = str(start_raw) if isinstance(start_raw, (str, int)) else None
-                    prior = previous.get(stream)
-                    if prior is None:
-                        increment = value
-                    elif start_time is not None and prior[1] is not None and start_time != prior[1]:
-                        increment = value
-                        resets += 1
-                    elif value >= prior[0]:
-                        increment = value - prior[0]
-                    else:
-                        increment = value
-                        resets += 1
-                    previous[stream] = (value, start_time)
-                    cumulative_points += 1
-                groups[(model, token_type)] += increment
-                totals[token_type] += increment
-                rows += 1
-    return {"status": "available" if rows else "unavailable", "source": str(path),
-            "metric_points_observed": rows,
-            "delta_points": delta_points,
-            "cumulative_points": cumulative_points,
-            "counter_resets_observed": resets,
-            "unknown_temporality_metrics_skipped": unknown_metrics,
-            "groups": [{"model": m, "type": t, "value": v} for (m, t), v in sorted(groups.items())],
-            "totals": dict(sorted(totals.items())),
-            "limitations": "Only supplied OTLP Sum metrics with explicit delta or cumulative temporality are reported. Cumulative streams are differenced independently and counter resets start a new sequence. This does not enable telemetry, read transcripts, or convert usage to quota percentages or cost."}
+            for point in points:
+                entries.append((metric["name"], resource_identity, mode, point))
+    # Stable timestamp order avoids differencing backwards in concatenated exports.
+    entries.sort(key=lambda entry: (timestamp(entry[3]) is None, timestamp(entry[3]) or ""))
+    totals, costs, groups = defaultdict(float), defaultdict(float), defaultdict(float)
+    previous, seen_points = {}, set()
+    rows = delta = cumulative = resets = 0
+    for name, resource_identity, mode, point in entries:
+        try:
+            value = float(point.get("asInt", point.get("asDouble", point.get("value"))))
+        except (ValueError, TypeError):
+            continue
+        if not math.isfinite(value) or value < 0:
+            continue
+        attrs = attributes(point.get("attributes"))
+        resource_attrs = {}
+        for kind, pairs in resource_identity:
+            if kind == "resource":
+                resource_attrs.update(pairs)
+        stamp = timestamp(point)
+        stream = (name, resource_identity, tuple(sorted(attrs.items())))
+        if stamp:
+            signature = (stream, mode, str(point.get("startTimeUnixNano")), stamp, value)
+            if signature in seen_points:
+                duplicates += 1
+                continue
+            seen_points.add(signature)
+        if mode == "delta":
+            increment = value
+            delta += 1
+        else:
+            epoch = str(point.get("startTimeUnixNano")) if point.get("startTimeUnixNano") is not None else None
+            prior = previous.get(stream)
+            reset = prior and ((epoch is not None and prior[1] is not None and epoch != prior[1]) or value < prior[0])
+            increment = value if prior is None or reset else value - prior[0]
+            resets += int(bool(reset))
+            previous[stream] = (value, epoch)
+            cumulative += 1
+        if (start or end) and (stamp is None or (start and stamp[:10] < start) or (end and stamp[:10] > end)):
+            continue
+        model = attrs.get("model", attrs.get("model_name", "unknown"))[:128]
+        kind = attrs.get("type", attrs.get("token_type", name))[:128]
+        thread = attrs.get("session.id", resource_attrs.get("session.id"))
+        agent = attrs.get("agent.name", resource_attrs.get("agent.name"))
+        is_cost = "cost" in name.lower()
+        (costs if is_cost else totals)[kind] += increment
+        groups[(model, kind, "cost" if is_cost else "tokens")] += increment
+        base["events"].append({"date": stamp, "model": model, "thread": str(thread)[:128] if thread else None,
+                               "agent": str(agent)[:128] if agent else None, "type": kind,
+                               "unit": "cost" if is_cost else "tokens", "value": increment})
+        for dimension, available in (("model", model != "unknown"), ("date", bool(stamp)), ("thread", bool(thread)), ("agent", bool(agent))):
+            base["dimensions"][dimension] |= available
+        rows += 1
+    base.update(status="available" if rows else "unavailable", metric_points_observed=rows,
+                delta_points=delta, cumulative_points=cumulative, counter_resets_observed=resets,
+                duplicate_exports_or_points_skipped=duplicates, unknown_temporality_metrics_skipped=unknown,
+                totals=dict(sorted(totals.items())), cost_totals=dict(sorted(costs.items())),
+                groups=[{"model": m, "type": t, "unit": u, "value": v} for (m,t,u),v in sorted(groups.items())])
+    return base
 
 
 def main(argv=None) -> int:

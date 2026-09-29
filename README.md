@@ -205,3 +205,11 @@ If the project helps your team, a GitHub star helps other people discover it. Is
 ## License
 
 Apache License 2.0. See [LICENSE](LICENSE).
+
+## Local browser console
+
+```sh
+python3 scripts/configure.py /path/to/project
+```
+
+[Settings, usage and task detail console](docs/local-console.md): no npm required; validated preview, explicit Save, restore and opt-in local OTLP analysis.
