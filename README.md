@@ -35,11 +35,11 @@ python3 scripts/configure.py /absolute/path/to/your-project
 
 To change the team later, open the launcher again (or repeat the Linux command) and use **Save**. It updates the project settings without uninstalling. An already-open Claude Code session may need to be reopened before it uses the changes. If setup does not open, see the [Mac/Linux](INSTALL-MACOS.md) or [Windows](INSTALL-WINDOWS.md) guide.
 
-## Watch the 8-second video
+## Watch the 8-second preview
 
-<p><a href="docs/assets/bounded-orchestrator-intro-8s.mp4"><img src="docs/assets/bounded-orchestrator-intro-thumbnail.png" alt="Video thumbnail: a conductor and four helpers on a sample Codex orchestra stage" width="480"></a></p>
+<p><img src="docs/assets/bounded-orchestrator-intro-8s.gif" alt="Animated sample Codex orchestra with conductor and four helpers" width="480"></p>
 
-[Open or download the video](docs/assets/bounded-orchestrator-intro-8s.mp4). This silent family illustration has Turkish titles and sample Codex UI; it is not a Claude Code screen recording or live usage.
+Silent, with Turkish titles. This shared-family preview uses sample Codex UI, not a Claude Code recording or live data. [Download the original MP4](https://raw.githubusercontent.com/metapak/claude-bounded-orchestrator/main/docs/assets/bounded-orchestrator-intro-8s.mp4).
 
 ![Current Usage screen in English showing sanitized built-in sample data and an orchestra of three illustrated actors](docs/assets/console-en.png)
 

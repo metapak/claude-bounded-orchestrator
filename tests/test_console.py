@@ -28,6 +28,13 @@ class ConsoleTests(unittest.TestCase):
         read = self.settings.read()
         return {'preset': 'economy', 'routing': read['presets']['economy'], 'max_parallelism': 2}
 
+    def test_console_paths_match_installer_manifest_keys(self):
+        manifest = install.load_manifest(self.target)
+        preview = self.settings.plan(self.payload())[2]
+        agent_names = {name for name in preview['files'] if name.startswith('.claude/agents/')}
+        self.assertEqual(agent_names, {name for name in manifest['files'] if name.startswith('.claude/agents/')})
+        self.assertTrue(all('\\' not in name for name in preview['files']))
+
     def test_real_helper_slots_duplicate_roles_preview_restore_and_uninstall(self):
         roster = [
             {'id': 'slot-01', 'role': 'implementer', 'model': 'sonnet', 'effort': 'medium', 'label': 'Interface'},
@@ -38,7 +45,7 @@ class ConsoleTests(unittest.TestCase):
         first_slot = self.target / '.claude/agents/orchestra-slot-01.md'
         second_slot = self.target / '.claude/agents/orchestra-slot-02.md'
         self.assertFalse(first_slot.exists())
-        self.assertIn(str(first_slot.relative_to(self.target)), first['files'])
+        self.assertIn(first_slot.relative_to(self.target).as_posix(), first['files'])
         payload['revision'] = first['revision']
         self.settings.save(payload)
         self.assertIn('name: orchestra-slot-01', first_slot.read_text())
@@ -352,8 +359,8 @@ class ConsoleTests(unittest.TestCase):
         import shutil
         import subprocess
         script = ROOT / '.claude/tools/console/app.js'
-        html = (ROOT / '.claude/tools/console/index.html').read_text()
-        source = script.read_text()
+        html = (ROOT / '.claude/tools/console/index.html').read_text(encoding='utf-8')
+        source = script.read_text(encoding='utf-8')
         keys = set(re.findall(r'data-i18n(?:-aria|-placeholder)?="([^"]+)"', html))
         keys.update({'observedModelShort', 'observedModelFull', 'configuredEffortShort', 'configuredEffortFull',
                      'chiefClickHint', 'effortLow', 'effortMedium', 'effortHigh', 'effortXhigh', 'effortMax',

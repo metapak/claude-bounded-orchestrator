@@ -60,7 +60,7 @@ def make_server(target, port=0):
                         return self.respond(200, {'status': 'unavailable', 'tasks': [], 'message': 'Bu projede görev defteri yok.'})
                     if path.stat().st_size > 1024 * 1024:
                         raise ValueError('Task ledger exceeds 1 MiB')
-                    data = json.loads(path.read_text())
+                    data = json.loads(path.read_text(encoding='utf-8'))
                     keys = {'id', 'summary', 'role', 'status', 'depends_on', 'created_at', 'updated_at', 'attempts', 'evidence'}
                     return self.respond(200, {'status': 'available', 'tasks': [{k: v for k, v in task.items() if k in keys} for task in data.get('tasks', [])], 'message': 'Yerel görev metadata. Tokenlar ve görev maliyetleri ölçülmüyor.'})
                 assets = {'/': 'index.html', '/app.js': 'app.js', '/style.css': 'style.css', '/orchestra.svg': 'orchestra.svg'}
@@ -68,7 +68,7 @@ def make_server(target, port=0):
                     return self.respond(404, {'error': 'Not found'})
                 name = assets[self.path]
                 types = {'html': 'text/html', 'js': 'text/javascript', 'css': 'text/css', 'svg': 'image/svg+xml'}
-                self.respond(200, (ROOT / '.claude/tools/console' / name).read_text(), types[name.rsplit('.', 1)[1]])
+                self.respond(200, (ROOT / '.claude/tools/console' / name).read_text(encoding='utf-8'), types[name.rsplit('.', 1)[1]])
             except (ValueError, OSError, install.InstallError, TypeError, KeyError):
                 self.respond(400, {'error': 'Project data could not be read; inspect local files.'})
 

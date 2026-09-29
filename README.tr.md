@@ -35,11 +35,11 @@ python3 scripts/configure.py /projenizin/tam/yolu
 
 Ekibi daha sonra değiştirmek için başlatıcıyı yeniden açıp (Linux'ta komutu yineleyip) **Kaydet** düğmesini kullanın. Ayarlar projeye hemen yazılır; silip yeniden kurmanız gerekmez. Açık Claude Code oturumunun yeni ayarları kullanması için oturumu yeniden açmanız gerekebilir. Kurulum açılmazsa [Mac/Linux](INSTALL-MACOS.md) veya [Windows](INSTALL-WINDOWS.md) rehberine bakın.
 
-## 8 saniyelik videoyu izleyin
+## 8 saniyelik hareketli önizleme
 
-<p><a href="docs/assets/bounded-orchestrator-intro-8s.mp4"><img src="docs/assets/bounded-orchestrator-intro-thumbnail.png" alt="Video küçük resmi: örnek Codex orkestra sahnesinde şef ve dört yardımcı" width="480"></a></p>
+<p><img src="docs/assets/bounded-orchestrator-intro-8s.gif" alt="Şef ve dört yardımcıyla örnek Codex orkestrasının hareketli görüntüsü" width="480"></p>
 
-[Videoyu açın veya indirin](docs/assets/bounded-orchestrator-intro-8s.mp4). Bu sessiz aile tanıtımı örnek Codex ekranı gösterir; Claude Code kaydı veya canlı kullanım değildir.
+Sessizdir; Türkçe başlıklar içerir. Ortak aile tanıtımında örnek Codex ekranı vardır; Claude Code kaydı veya canlı veri değildir. [Orijinal MP4 dosyasını indirin](https://raw.githubusercontent.com/metapak/claude-bounded-orchestrator/main/docs/assets/bounded-orchestrator-intro-8s.mp4).
 
 ![Yerel konsolun Türkçe Kullanım ekranında temizlenmiş yerleşik örnek veriler ve üç çizim karakteri](docs/assets/console-tr.png)
 

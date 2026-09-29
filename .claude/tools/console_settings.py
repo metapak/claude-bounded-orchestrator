@@ -94,7 +94,7 @@ class Settings:
 
     def read(self):
         settings_path = self.path(self.i.SETTINGS_RELATIVE)
-        settings = json.loads(settings_path.read_text()) if settings_path.exists() else {}
+        settings = json.loads(settings_path.read_text(encoding='utf-8')) if settings_path.exists() else {}
         manifest = self.i.load_manifest(self.target)
         roster = self.roster(manifest)
         routing = {}
@@ -105,7 +105,7 @@ class Settings:
                 path = self.path(Path('.claude/agents') / (role + '.md'))
                 fields = {}
                 if path.exists():
-                    header = path.read_text().split('\n---\n', 1)[0]
+                    header = path.read_text(encoding='utf-8').split('\n---\n', 1)[0]
                     fields = dict(line.split(':', 1) for line in header.splitlines() if ':' in line)
                 default = self.i.PRESETS['balanced'][role]
                 routing[role] = {'model': fields.get('model', default[0]).strip(), 'effort': fields.get('effort', default[1]).strip()}
@@ -212,7 +212,8 @@ class Settings:
         for role in self.i.ROLES[1:]:
             relative = Path('.claude/agents') / (role + '.md')
             path = self.path(relative)
-            entry = manifest['files'].get(str(relative), {})
+            name = relative.as_posix()
+            entry = manifest['files'].get(name, {})
             if initial:
                 if path.exists():
                     raise ValueError('Existing agent conflict: ' + str(relative) + '; review via installer first')
@@ -221,7 +222,7 @@ class Settings:
                 if not path.is_file() or not entry.get('owned') or self.i.digest(path) != entry.get('sha256'):
                     raise ValueError('Managed agent conflict: ' + str(relative) + '; review via installer first')
                 source = path
-            changes[str(relative)] = self.i.render_agent(source, *selected[role])
+            changes[name] = self.i.render_agent(source, *selected[role])
         old_slots = {slot['id']: slot for slot in old_roster}
         new_slots = {slot['id']: slot for slot in roster}
         for slot_id in sorted(set(old_slots) | set(new_slots)):
@@ -243,14 +244,14 @@ class Settings:
                 raise ValueError('Managed CLAUDE.md block is missing')
             changes['CLAUDE.md'] = self.render_team_block(current, roster)
         path = self.path(self.i.SETTINGS_RELATIVE)
-        settings = json.loads(path.read_text()) if path.exists() else {}
+        settings = json.loads(path.read_text(encoding='utf-8')) if path.exists() else {}
         if not isinstance(settings, dict) or not isinstance(settings.get('env', {}), dict):
             raise ValueError('Settings and env must be JSON objects')
         settings['model'], settings['effortLevel'] = selected['owner']
         settings.setdefault('env', {})[CONCURRENCY] = str(count)
         if initial:
             settings['env'].setdefault('CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH', '1')
-        changes[str(self.i.SETTINGS_RELATIVE)] = json.dumps(settings, indent=2) + '\n'
+        changes[self.i.SETTINGS_RELATIVE.as_posix()] = json.dumps(settings, indent=2) + '\n'
         # Only changed fields are returned; unrelated settings and secrets never enter API responses.
         preview = {'routing': routing, 'max_parallelism': count, 'target': str(self.target),
                    'roster': roster, 'files': list(changes), 'removed_files': [name for name, content in changes.items() if content is None], 'initial_install': initial,
@@ -280,7 +281,7 @@ class Settings:
         for name, content in changes.items():
             path = self.path(Path(name))
             saved = self.i.backup(self.target, path, False) if path.exists() else None
-            records[name] = {'backup': str(saved.relative_to(self.target)) if saved else None,
+            records[name] = {'backup': saved.relative_to(self.target).as_posix() if saved else None,
                              'after': hashlib.sha256(content.encode()).hexdigest() if content is not None else None}
         state = {'files': records, 'manifest': before}
         self.i.atomic_text(state_path, json.dumps(state, indent=2) + '\n', False)
@@ -293,7 +294,7 @@ class Settings:
                 self.i.atomic_text(path, content, False)
                 if name != 'CLAUDE.md':
                     # A merged shared settings file must survive uninstall.
-                    self.i.remember(manifest, Path(name), path, name != str(self.i.SETTINGS_RELATIVE))
+                    self.i.remember(manifest, Path(name), path, name != self.i.SETTINGS_RELATIVE.as_posix())
         manifest['routing'] = payload['routing']
         manifest['preset'] = payload.get('preset', 'custom')
         manifest['roster'] = preview['roster']
@@ -305,11 +306,11 @@ class Settings:
 
     def restore(self):
         state_path = self.path(STATE)
-        state = json.loads(state_path.read_text())
+        state = json.loads(state_path.read_text(encoding='utf-8'))
         before_roster = self.roster(state['manifest'])
         manifest = self.i.load_manifest(self.target)
         after_roster = self.roster(manifest)
-        allowed = {str(self.i.SETTINGS_RELATIVE)} | {str(Path('.claude/agents') / (role + '.md')) for role in self.i.ROLES[1:]}
+        allowed = {self.i.SETTINGS_RELATIVE.as_posix()} | {(Path('.claude/agents') / (role + '.md')).as_posix() for role in self.i.ROLES[1:]}
         if before_roster or after_roster:
             allowed.add('CLAUDE.md')
             allowed.update(self.slot_path(slot['id']).as_posix() for slot in before_roster + after_roster)
@@ -332,7 +333,7 @@ class Settings:
             saved = record['backup']
             if saved and not Path(saved).is_relative_to(self.i.BACKUP_RELATIVE):
                 raise ValueError('Invalid backup path')
-            contents[name] = self.path(Path(saved)).read_text() if saved else None
+            contents[name] = self.path(Path(saved)).read_text(encoding='utf-8') if saved else None
         self.path(self.i.MANIFEST_RELATIVE)
         self.path(self.i.BACKUP_RELATIVE)
         for name, content in contents.items():
