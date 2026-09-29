@@ -356,7 +356,7 @@ class ConsoleTests(unittest.TestCase):
         source = script.read_text()
         keys = set(re.findall(r'data-i18n(?:-aria|-placeholder)?="([^"]+)"', html))
         keys.update({'observedModelShort', 'observedModelFull', 'configuredEffortShort', 'configuredEffortFull',
-                     'animateOnce', 'reducedMotionNote', 'effortLow', 'effortMedium', 'effortHigh', 'effortXhigh', 'effortMax',
+                     'chiefClickHint', 'effortLow', 'effortMedium', 'effortHigh', 'effortXhigh', 'effortMax',
                      'helperSlot', 'helperCurrent', 'helperNone', 'helperChanged', 'helperReadonly', 'teamPreview', 'install', 'installDone', 'consoleClosed'})
         if shutil.which('node'):
             program = """const fs=require('fs'),vm=require('vm');const s=fs.readFileSync(process.argv[1],'utf8');
