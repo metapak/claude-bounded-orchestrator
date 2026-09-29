@@ -1,8 +1,17 @@
-# Windows installation
+# Windows setup
 
-Install a current [Claude Code client](https://code.claude.com/docs/en/getting-started) and Python 3.11 or newer. In PowerShell, from this downloaded repository:
+1. Download and extract the [current main ZIP](https://github.com/metapak/claude-bounded-orchestrator/archive/refs/heads/main.zip). Older versioned packages may lack the current browser launcher. Keep the extracted folder for future edits.
+2. Install a current [Claude Code client](https://code.claude.com/docs/en/getting-started) and Python 3.11 or newer. The launcher uses local Python; it does not bundle a runtime or install a background service.
+3. Double-click `launchers/Launch Bounded Orchestrator.vbs` in the extracted folder. Choose an existing local project directory in the native picker. Git is recommended for source work but is not required by the launcher.
+4. In the browser, choose a work style and 1–10 real helper slots with duty, model, and effort. Duplicate duties are allowed. Press **Check changes**, then **Install**. Conflicting managed files stop for review; unrelated settings are preserved and backups stay ignored by Git.
+5. Restart Claude Code in the project. Later, reopen the launcher to **Save** a changed team or **Restore** the preceding console-managed change. **Close console** stops the local server.
 
-For a no-typing setup, double-click `launchers/Launch Bounded Orchestrator.vbs`, choose an existing project folder, then review **Check changes** and press **Install** in the local browser. You can choose 1–10 real helper slots with duty, model, and effort; duplicate duties are allowed. This is the planned team, not a count of observed agents. **Close console** stops its local server. Keep the downloaded folder for later updates. The Windows double-click path has not been tested natively on Windows.
+Native Windows double-click behavior has not been verified on Windows, and repository tests do not prove a live Claude Code session.
+
+<details>
+<summary>Optional PowerShell, external-provider, and uninstall steps</summary>
+
+Run the PowerShell installer from the extracted folder:
 
 ```powershell
 .\scripts\install.ps1 -Target C:\path\to\project -DryRun
@@ -12,8 +21,6 @@ For a no-typing setup, double-click `launchers/Launch Bounded Orchestrator.vbs`,
 Or double-click `setup.cmd`. It asks for the target folder, install/preview/uninstall action, native profile, and optional external proposal provider. Existing settings and conflicting files are preserved by default. Review `.claude\bounded-orchestrator.settings.example.json` if the target already had settings.
 
 The guided screen explains balanced, quality, economy, quota saver, or per-role custom settings, then shows a final configuration review and next steps. Every native/custom role must use an Anthropic Claude alias or full `claude-*` ID. The lower-level installer remains non-interactive:
-
-The browser's **Save** changes selected project settings only after preview; **Restore** undoes its previous console-managed change. Existing unrelated settings are preserved, conflicting managed files stop the operation, and installer backups stay outside Git. Restart Claude Code after a change. This repository's tests do not prove behavior in a live Claude Code session.
 
 ```powershell
 .\scripts\install.ps1 -Target C:\path\to\project -Preset quality
@@ -40,3 +47,5 @@ To remove unchanged installed files:
 ```
 
 The runtime `.gitignore` remains in place to keep any retained ledger state and backups out of Git.
+
+</details>

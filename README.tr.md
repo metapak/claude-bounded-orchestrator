@@ -1,7 +1,7 @@
 [English](README.md) · [Türkçe](README.tr.md)
 
 <p align="center">
-  <img src="docs/assets/claude-bounded-orchestrator-cover-tr.svg" alt="Claude Bounded Orchestrator Türkçe kapak" width="100%">
+  <img src="docs/assets/cover-tr.svg" alt="Claude Bounded Orchestrator için sıcak renkli orkestra sahnesinde şef ve farklı yardımcı karakterleri" width="100%">
 </p>
 
 # Claude Bounded Orchestrator
@@ -15,20 +15,53 @@ Claude Bounded Orchestrator, ana Claude oturumuna yalnız koordinasyon görevi v
 
 Siz ne istediğinizi normal şekilde yazmaya devam edersiniz. Proje, arka plandaki çalışma düzenini sağlar.
 
-![Claude Bounded Orchestrator orkestra şefi ve görev dağılımı](docs/assets/claude-bounded-orchestrator-roles-tr.png)
+## Hızlı başlangıç: yerel kurulum ekranını açın
 
-Görsel, ana Claude oturumunun işi yardımcılara nasıl dağıttığını özetler. 0.5.0 sürümünde yerel ve özel roller yalnızca Anthropic Claude modelleriyle çalışmaya devam eder; kullanım görünürlüğü, kota tasarrufu, son dosyalara bağlı yerel değerlendirme ve devam ettirilebilir görev geçmişi eklenir. OpenAI veya DeepSeek ancak açıkça seçilen, yalnız öneri üreten haricî API olarak kullanılabilir.
+**1. [Güncel main ZIP dosyasını](https://github.com/metapak/claude-bounded-orchestrator/archive/refs/heads/main.zip) indirip çıkarın.** Tarayıcıdan kurulum için bu güncel kaynak arşivini kullanın; eski sürüm paketlerinde grafik başlatıcı bulunmayabilir. Sonraki ayar değişiklikleri için çıkarılan klasörü saklayın.
 
-```mermaid
-flowchart LR
-    U[İstediğiniz sonucu anlatırsınız] --> O[Ana Claude oturumu işi yönetir]
-    O --> E[İnceleme veya araştırma]
-    E --> I[Tek uygulayıcı değişiklik yapar]
-    I --> V[Kontrolcü kanıtları sınar]
-    V --> R[İnceleyici son hâli değerlendirir]
-    R --> O
-    O --> D[Tamamlanmış sonuç]
+**2. Gerekenleri kontrol edin.** Güncel [Claude Code](https://code.claude.com/docs/en/getting-started) ve Python 3.11 veya yenisini kurun. Başlatıcı bilgisayarınızdaki Python'u kullanır; Python veya kalıcı arka plan hizmeti kurmaz.
+
+**3. Kurulum ekranını açın.** macOS’te çıkarılan klasördeki `launchers/Bounded Orchestrator.app` dosyasına, Windows’ta `launchers/Launch Bounded Orchestrator.vbs` dosyasına çift tıklayın. Açılan klasör seçicisinden mevcut yerel proje klasörünü seçin; kaynak kodu çalışmaları için Git önerilir, ancak başlatıcı bunu zorunlu tutmaz. macOS imzasız uygulamayı engellerse macOS/Linux rehberindeki alternatif yolu izleyin.
+
+**4. Ekibi seçip değişiklikleri inceleyin.** Tarayıcıda çalışma biçimini ve 1–10 yardımcıyı seçin. Her yardımcı için görev, Claude modeli ve düşünme düzeyi belirleyin; aynı görev birden çok kez seçilebilir. **Değişiklikleri kontrol et** ile yalnız seçili projeye yazılacakları görün, ardından **Kur** düğmesine basın. İlgisiz ayarlar korunur ve yedekler Git dışında tutulur; çakışmalar inceleme gerektirir. Claude Code'u bu projede yeniden başlatıp isteğinizi normal şekilde anlatın.
+
+**5. Sonra tekrar açın.** Aynı başlatıcıdan tercihleri **Kaydet** ile değiştirin veya önceki konsol değişikliğini **Geri al** ile kaldırın. **Konsolu kapat** yerel sunucuyu durdurur. Planlanan yardımcılar ayardır; Kullanım ekranı yalnız açıkça verdiğiniz dışa aktarımda gözlenen kullanımı gösterir.
+
+![Yerel konsolun Türkçe Kullanım ekranında temizlenmiş yerleşik örnek veriler ve üç çizim karakteri](docs/assets/console-tr.png)
+
+*Güncel Kullanım ekranının temsili örneği. Yerleşik temizlenmiş örnek veriler kullanılır; değerler sizin proje ayarlarınız veya kullanımınız değildir.*
+
+Linux için çift tıklamalı grafik başlatıcı yoktur; isteğe bağlı komutlu kurulum macOS/Linux rehberindedir. Ayrıntılar: [macOS/Linux rehberi](INSTALL-MACOS.md) ve [Windows rehberi](INSTALL-WINDOWS.md). Depo testleri canlı Claude Code oturumunu ve iki işletim sistemindeki yerel çift tıklama akışını doğrulamaz.
+
+<details>
+<summary>İsteğe bağlı terminal ve elle kurulum</summary>
+
+Çıkarılan depo klasöründen önizleyip kurabilirsiniz:
+
+```bash
+python3 scripts/install.py /projenizin/yolu --dry-run
+python3 scripts/install.py /projenizin/yolu
 ```
+
+Varsayılan profil `balanced` olur. Diğer örnekler:
+
+```bash
+python3 scripts/install.py /projenizin/yolu --preset economy
+python3 scripts/install.py /projenizin/yolu --preset quota-saver
+python3 scripts/install.py /projenizin/yolu --preset custom \
+  --role-model implementer=opus --role-effort implementer=xhigh
+```
+
+Yerel modeller `opus`, `sonnet`, `haiku`, `fable` veya tam `claude-*` kimliğidir. Ana oturumda `low`, `medium`, `high`, `xhigh`; yardımcı dosyalarında ayrıca `max` düşünme düzeyi kullanılabilir. Komutlu yönlendirme için macOS/Linux’ta `./setup.command`, Windows’ta `setup.ps1` veya `setup.cmd` vardır. Windows PowerShell seçeneği:
+
+```powershell
+.\scripts\install.ps1 -Target C:\projenizin\yolu -DryRun
+.\scripts\install.ps1 -Target C:\projenizin\yolu
+```
+
+İsteğe bağlı, yalnız kısa bilgiler tutan görev listesi [örneklerde](docs/examples.md) anlatılır. Bu listeye istem, kaynak, günlük, anahtar veya kişisel bilgi koymayın.
+
+</details>
 
 ## Artık ne yapıyor?
 
@@ -49,60 +82,6 @@ Tarayıcı konsolunda dengeli, yüksek kalite, ekonomik, kota tasarrufu ve özel
 - Yerel konsolda hazır profil veya 1–10 gerçek yardımcı slotu seçilebilir; aynı görev birden çok yardımcıya verilebilir.
 - Yerel ve özel roller yalnızca Claude kısa adlarını veya tam `claude-*` kimliklerini kabul eder.
 - İstenirse OpenAI GPT veya DeepSeek yalnızca yama önerisi üretmek için haricî API olarak eklenebilir.
-
-## Hızlı başlangıç
-
-Gerekenler:
-
-- Güncel bir [Claude Code kurulumu](https://code.claude.com/docs/en/getting-started)
-- Python 3.11 veya daha yeni bir sürüm
-
-Depoyu indirin veya klonlayın. macOS’te `launchers/Bounded Orchestrator.app`, Windows’ta `launchers/Launch Bounded Orchestrator.vbs` dosyasına çift tıklayın. Var olan proje klasörünü seçin, **Değişiklikleri kontrol et** önizlemesini inceleyin ve **Kur** düğmesine basın. Başlatıcılar Python 3.11+ gerektirir; sonraki ayarlar için indirilen klasörü saklayın. **Konsolu kapat** yerel sunucuyu durdurur. Arka plan hizmeti kurulmaz. macOS imzasız uygulamayı engellerse aşağıdaki komutlu yolu kullanın.
-
-Alternatif olarak terminalden önizleyin:
-
-```bash
-python scripts/install.py /projenizin/yolu --dry-run
-python scripts/install.py /projenizin/yolu
-```
-
-Aynı tarayıcı konsolu daha sonra ekibi **Kaydet** ile değiştirebilir veya son konsol değişikliğini **Geri al** ile kaldırabilir. İlgisiz ayarları korur, sahip olunan dosyada çakışma varsa durur ve Git dışı yedek kullanır. Komutlu yönlendirme için macOS/Linux’ta `./setup.command`; Windows’ta `setup.ps1` veya çift tıklanan `setup.cmd` kullanılabilir. Haricî API’ler varsayılan olarak kapalıdır.
-
-Doğrudan kurucu komutu seçim ekranı açmaz ve varsayılan olarak dengeli profili kullanır:
-
-```bash
-python scripts/install.py /projenizin/yolu --preset economy
-python scripts/install.py /projenizin/yolu --preset quota-saver
-python scripts/install.py /projenizin/yolu --preset custom \
-  --role-model implementer=opus --role-effort implementer=xhigh
-```
-
-Yerel özel model olarak yalnızca `opus`, `sonnet`, `haiku`, `fable` veya tam bir `claude-*` kimliği kullanılabilir. GPT, DeepSeek ve diğer marka kimlikleri yerel roller için reddedilir; bunlar açıkça seçilen haricî öneri API’si üzerinden kullanılmalıdır. Ana Claude oturumu için düşünme düzeyi `low`, `medium`, `high` veya `xhigh` olabilir; yardımcıların ön yüz ayarlarında ayrıca `max` kullanılabilir.
-
-Windows PowerShell için:
-
-```powershell
-.\scripts\install.ps1 -Target C:\projenizin\yolu -DryRun
-.\scripts\install.ps1 -Target C:\projenizin\yolu
-```
-
-Hedef projeyi Claude Code ile açın ve isteğinizi normal şekilde yazın:
-
-```text
-Ödeme sırasında bazen neden iki sipariş oluştuğunu bul, sorunu düzelt,
-sonucu kontrol et ve tamamlamadan önce son hâli ayrıca incelet.
-```
-
-Uzun işlerde yerel görev listesi kullanılabilir:
-
-```bash
-python .claude/tools/task_ledger.py init
-python .claude/tools/task_ledger.py add INCELE --summary "Ödeme akışını incele" --role explorer
-python .claude/tools/task_ledger.py add DUZELT --summary "Onaylanan düzeltmeyi uygula" --role implementer --depends-on INCELE
-python .claude/tools/task_ledger.py show
-```
-
-Bu liste Git'e eklenmez ve yalnızca kısa durum bilgileri tutar. Kullanıcı istemleri, kaynak kodu, günlükler, komut çıktıları, şifreler, kişisel bilgiler veya gizli anahtarlar bu listeye yazılmamalıdır.
 
 ## Kurulan yapı
 

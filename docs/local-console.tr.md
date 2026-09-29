@@ -1,6 +1,9 @@
 # Yerel tarayıcı konsolu
 
-macOS’te `launchers/Bounded Orchestrator.app`, Windows’ta `launchers/Launch Bounded Orchestrator.vbs` dosyasına çift tıklayın. Var olan proje klasörünü seçin, tarayıcıda **Değişiklikleri kontrol et** önizlemesini inceleyin ve ilk kurulum için **Kur** düğmesine basın. Grafik arayüz başlatıcıları Python 3.11+ gerektirir. Tarayıcıdaki **Konsolu kapat** düğmesi yerel sunucuyu durdurur. Sonraki güncellemeler için kurulum klasörünü saklayın; kullanıcı geneline kurulum yapılmaz.
+[Güncel main ZIP dosyasını](https://github.com/metapak/claude-bounded-orchestrator/archive/refs/heads/main.zip) indirip çıkarın ve sonraki güncellemeler için klasörü saklayın. macOS’te `launchers/Bounded Orchestrator.app`, Windows’ta `launchers/Launch Bounded Orchestrator.vbs` dosyasına çift tıklayın. Var olan proje klasörünü seçin, tarayıcıda **Değişiklikleri kontrol et** önizlemesini inceleyin ve ilk kurulum için **Kur** düğmesine basın. Grafik arayüz başlatıcıları Python 3.11+ gerektirir. Tarayıcıdaki **Konsolu kapat** düğmesi yerel sunucuyu durdurur. Sonraki güncellemeler için kurulum klasörünü saklayın; kullanıcı geneline kurulum yapılmaz.
+
+<details>
+<summary>İsteğe bağlı terminalden açma</summary>
 
 Alternatif olarak indirilen/klonlanan kurulum deposundan çalıştırın:
 
@@ -10,6 +13,8 @@ python3 scripts/configure.py /proje/yolu --no-browser --port 8765
 ```
 
 Belgelenen kurulum için Python 3.11+ gerekir; npm gerekmez. Tarayıcı varsayılan olarak açılır. Terminaldeki özel token içeren URL'yi kullanın; Ctrl+C ile durdurun. Başlatıcı bu kurulum deposundadır: daha sonra ayar değiştirmek için depoyu saklayın. Hedef, var olan bir proje klasörüdür; kullanıcı geneline kurulum desteklenmez.
+
+</details>
 
 **Tercihler** seçilen projenin rol modeli/efor değerlerini, hazır profilleri, planlanan yardımcı ekibi ve eşzamanlılık sınırını gösterir. Şef ayrıdır. 1–10 kalıcı yardımcı slotu seçebilirsiniz; her slotun görevi, Claude modeli, düşünme düzeyi ve isteğe bağlı kısa etiketi vardır. Aynı görev birden çok kez seçilebilir. Kaydet, görevin mevcut araç sınırlarını koruyan gerçek `.claude/agents/orchestra-slot-XX.md` dosyalarını üretir ve adlarını kurulumun yönettiği `CLAUDE.md` bloğuna ekler. Sayı ekip kapasitesidir; her işte hepsinin çalışması gerekmez. Eşzamanlılık ayarı ve Kullanım sayfasındaki geçmişte görülen yardımcı sayısı ayrıdır. Hazır profil ancak açıkça seçilince slot modellerini/eforlarını değiştirir. Önceden kaydedilmiş 10’dan büyük ekip okunur ama otomatik küçültülmez. Önizleme dosya yazmaz. **Kur/Kaydet** ilk kez kullanıldığında mevcut kurulum aracıyla araç takımını kurar, ardından seçilen ayarları uygular; bu durum önizlemede belirtilir. Çakışan ajan dosyaları varsa işlem durur. İlgisiz JSON alanları, izinler ve ortam değişkenleri korunur; tam ayar dosyası veya anahtarlar API'ye aktarılmaz. Kurulum aracının sahiplik ve yedek kuralları kullanılır. Önceki konsol güncellemesi geri alınabilir; Kaydet sonrası dışarıdan değişen dosyada geri alma reddedilir. İlk kurulum sonrası geri alma araç takımını kurulu bırakır; kaldırma için mevcut uninstall komutunu kullanın. Birleştirilen ortak settings.json kaldırma işleminde korunur. Claude Code'u yeniden başlatın.
 

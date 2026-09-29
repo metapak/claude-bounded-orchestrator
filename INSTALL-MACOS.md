@@ -1,8 +1,17 @@
-# macOS and Linux installation
+# macOS setup (Linux: optional manual setup)
 
-Install a current [Claude Code client](https://code.claude.com/docs/en/getting-started) and Python 3.11 or newer. From this downloaded repository:
+1. Download and extract the [current main ZIP](https://github.com/metapak/claude-bounded-orchestrator/archive/refs/heads/main.zip). Older versioned packages may lack the current browser launcher. Keep the extracted folder for future edits.
+2. Install a current [Claude Code client](https://code.claude.com/docs/en/getting-started) and Python 3.11 or newer. The launcher uses local Python; it does not bundle a runtime or install a background service.
+3. On macOS, double-click `launchers/Bounded Orchestrator.app` in the extracted folder. Choose an existing local project directory in the native picker. Git is recommended for source work but is not required by the launcher.
+4. In the browser, choose a work style and 1–10 real helper slots with duty, model, and effort. Duplicate duties are allowed. Press **Check changes**, then **Install**. Conflicting managed files stop for review; unrelated settings are preserved and backups stay ignored by Git.
+5. Restart Claude Code in the project. Later, reopen the launcher to **Save** a changed team or **Restore** the preceding console-managed change. **Close console** stops the local server.
 
-For a no-typing setup on macOS, double-click `launchers/Bounded Orchestrator.app`, choose the existing project folder, then review **Check changes** and press **Install** in the local browser. You can choose 1–10 real helper slots with duty, model, and effort; duplicate duties are allowed. This is the planned team, not a count of observed agents. **Close console** stops its local server. Keep the downloaded folder for later updates. If macOS blocks an unnotarized downloaded app, use the command below or the guided `setup.command` instead. The Finder double-click path has not been tested natively in every macOS environment.
+Linux has no double-click GUI launcher; use the optional manual steps below. If macOS blocks the unnotarized app, use those steps too. Native Finder double-click behavior has not been verified in every environment, and repository tests do not prove a live Claude Code session.
+
+<details>
+<summary>Optional terminal, Linux, external-provider, and uninstall steps</summary>
+
+Run the direct installer from the extracted folder:
 
 ```bash
 python3 scripts/install.py /path/to/project --dry-run
@@ -12,8 +21,6 @@ python3 scripts/install.py /path/to/project
 You may also run `./setup.command` after making it executable. It asks for the target folder, install/preview/uninstall action, native profile, and optional external proposal provider. Existing settings and conflicting files are preserved by default. Review `.claude/bounded-orchestrator.settings.example.json` if the target already had settings.
 
 The guided screen explains balanced, quality, economy, quota saver, and per-role custom settings, then shows a final configuration review and next steps. Every native/custom role must use an Anthropic Claude alias or full `claude-*` ID. The Python command remains non-interactive.
-
-The browser's **Save** changes selected project settings only after preview; **Restore** undoes its previous console-managed change. Existing unrelated settings are preserved, conflicting managed files stop the operation, and installer backups stay outside Git. Restart Claude Code after a change. This repository's tests do not prove behavior in a live Claude Code session.
 
 External APIs default to none. To explicitly add a proposal-only provider, set its key in the shell that launches Claude Code and run one of:
 
@@ -36,3 +43,5 @@ python3 scripts/install.py /path/to/project --uninstall
 ```
 
 The runtime `.gitignore` remains in place to keep any retained ledger state and backups out of Git.
+
+</details>

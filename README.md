@@ -1,7 +1,7 @@
 [English](README.md) · [Türkçe](README.tr.md)
 
 <p align="center">
-  <img src="docs/assets/claude-bounded-orchestrator-cover-en.svg" alt="Claude Bounded Orchestrator cover" width="100%">
+  <img src="docs/assets/cover-en.svg" alt="Warm orchestra-stage illustration for Claude Bounded Orchestrator with a conductor and distinct helper characters" width="100%">
 </p>
 
 # Claude Bounded Orchestrator
@@ -15,20 +15,53 @@ Claude Bounded Orchestrator makes the main Claude session a strict coordinator: 
 
 You still ask for work in normal language. The project supplies the operating rules behind the scenes.
 
-![Claude Bounded Orchestrator role tree showing the owner and bounded responsibilities](docs/assets/claude-bounded-orchestrator-roles-tr.png)
+## Quick start: use the local setup window
 
-The visual overview uses short Turkish labels. Version 0.5.0 keeps every native and custom role on Anthropic Claude while adding usage visibility, quota-saving routing, candidate-bound local evaluation, and recoverable task history. OpenAI and DeepSeek remain optional proposal-only APIs.
+**1. Download and extract the [current main ZIP](https://github.com/metapak/claude-bounded-orchestrator/archive/refs/heads/main.zip).** Use this current source archive for the browser setup; older versioned release packages may not include the GUI launcher. Keep the extracted folder for future settings changes.
 
-```mermaid
-flowchart LR
-    U[You describe the outcome] --> O[Main Claude session owns the work]
-    O --> E[Explore or research]
-    E --> I[One implementer writes]
-    I --> V[Verifier checks evidence]
-    V --> R[Reviewer inspects frozen candidate]
-    R --> O
-    O --> D[Finished result]
+**2. Check the prerequisites.** Install a current [Claude Code client](https://code.claude.com/docs/en/getting-started) and Python 3.11 or newer. The launcher uses your local Python installation; it does not install Python or run a permanent background service.
+
+**3. Open the setup window.** On macOS, double-click `launchers/Bounded Orchestrator.app` in the extracted folder. On Windows, double-click `launchers/Launch Bounded Orchestrator.vbs`. Choose an existing local project folder in the native folder picker; a Git checkout is recommended for source work but is not required by the launcher. If macOS blocks an unnotarized app, see the fallback in the macOS/Linux guide.
+
+**4. Choose and review.** In the browser, select a work style and 1–10 helpers. Give each helper a duty, Claude model and effort; repeated duties are allowed. Press **Check changes** to review what will be written to that project, then press **Install**. The console preserves unrelated settings and uses ignored backups; conflicts require your review. Restart Claude Code in that project, then describe the work normally.
+
+**5. Return when needed.** Open the same launcher to **Save** changed preferences or **Restore** the previous console-managed change. **Close console** stops its local server. Planned helpers are settings, while the Usage page shows only usage observed in an export you explicitly provide.
+
+![Current Usage screen in English showing sanitized built-in sample data and an orchestra of three illustrated actors](docs/assets/console-en.png)
+
+*Illustrative demo of the current Usage screen. It uses built-in sanitized sample data, not your project settings or usage.*
+
+Linux currently uses the optional command-line setup in the macOS/Linux guide; no double-click GUI launcher is provided for Linux. See the [macOS/Linux guide](INSTALL-MACOS.md) and [Windows guide](INSTALL-WINDOWS.md). A live Claude Code session and native double-click launch on both operating systems have not been verified by repository tests.
+
+<details>
+<summary>Optional terminal and manual setup</summary>
+
+From the extracted repository, preview and install with the non-interactive installer:
+
+```bash
+python3 scripts/install.py /path/to/your-project --dry-run
+python3 scripts/install.py /path/to/your-project
 ```
+
+The default profile is `balanced`. Other examples:
+
+```bash
+python3 scripts/install.py /path/to/your-project --preset economy
+python3 scripts/install.py /path/to/your-project --preset quota-saver
+python3 scripts/install.py /path/to/your-project --preset custom \
+  --role-model implementer=opus --role-effort implementer=xhigh
+```
+
+Native custom values accept `opus`, `sonnet`, `haiku`, `fable`, or a full `claude-*` model ID. The main session accepts efforts `low`, `medium`, `high`, or `xhigh`; child agents additionally accept `max`. For a guided terminal installer, use `./setup.command` on macOS/Linux or `setup.ps1`/`setup.cmd` on Windows. Windows PowerShell can also run:
+
+```powershell
+.\scripts\install.ps1 -Target C:\path\to\your-project -DryRun
+.\scripts\install.ps1 -Target C:\path\to\your-project
+```
+
+The optional metadata-only ledger is documented in the [examples](docs/examples.md). Do not put prompts, source, logs, credentials, or personal data in it.
+
+</details>
 
 ## What does it do now?
 
@@ -51,60 +84,6 @@ The browser console offers balanced, quality, economy, quota-saver, and custom p
 - **Claude-only native routing:** every prepared and custom role accepts only Claude aliases or full `claude-*` IDs.
 - **Guided profiles and team:** choose a profile or configure 1–10 real helper slots, including repeated duties, in the local browser console.
 - **Optional external proposals:** local MCP bridges can call OpenAI or DeepSeek without giving either provider workspace access.
-
-## Quick start
-
-Requirements:
-
-- A current [Claude Code installation](https://code.claude.com/docs/en/getting-started)
-- Python 3.11 or newer
-
-Clone or download this repository. On macOS, double-click `launchers/Bounded Orchestrator.app`; on Windows, double-click `launchers/Launch Bounded Orchestrator.vbs`. Choose an existing project folder, inspect **Check changes**, and press **Install**. These launchers need Python 3.11+ and the downloaded folder must be kept for later edits. **Close console** stops the local server. They do not install a background service. On macOS, an unnotarized downloaded app may need the command-line fallback below.
-
-Alternatively, preview installation from a terminal:
-
-```bash
-python scripts/install.py /path/to/your-project --dry-run
-python scripts/install.py /path/to/your-project
-```
-
-The same browser console can later **Save** a revised team or **Restore** its preceding console-managed change. It preserves unrelated settings, stops on conflicting owned files, and uses ignored backups. For guided terminal setup on macOS/Linux, run `./setup.command`; on Windows, run `setup.ps1` or double-click `setup.cmd`. The terminal installer keeps external APIs off by default and reviews the final configuration.
-
-The direct installer stays non-interactive and uses `balanced` unless you choose another profile:
-
-```bash
-python scripts/install.py /path/to/your-project --preset economy
-python scripts/install.py /path/to/your-project --preset quota-saver
-python scripts/install.py /path/to/your-project --preset custom \
-  --role-model implementer=opus --role-effort implementer=xhigh
-```
-
-Native custom values accept `opus`, `sonnet`, `haiku`, `fable`, or a full `claude-*` model ID. GPT, DeepSeek, and other provider IDs are rejected for native roles and must use an explicit proposal-only API provider. The main Claude session accepts `low`, `medium`, `high`, or `xhigh`; child-agent frontmatter additionally accepts `max`.
-
-On Windows PowerShell:
-
-```powershell
-.\scripts\install.ps1 -Target C:\path\to\your-project -DryRun
-.\scripts\install.ps1 -Target C:\path\to\your-project
-```
-
-Open the target project in Claude Code and describe the outcome normally:
-
-```text
-Find why checkout sometimes creates duplicate orders, fix it, verify the repair,
-and review the final candidate before reporting completion.
-```
-
-For a multi-step workflow, Claude can use the local ledger:
-
-```bash
-python .claude/tools/task_ledger.py init
-python .claude/tools/task_ledger.py add MAP --summary "Map checkout flow" --role explorer
-python .claude/tools/task_ledger.py add FIX --summary "Implement approved repair" --role implementer --depends-on MAP
-python .claude/tools/task_ledger.py show
-```
-
-The ledger is ignored by Git and stores only short metadata. Do not place prompts, source code, logs, command output, credentials, personal data, or secrets in it.
 
 ## What gets installed
 

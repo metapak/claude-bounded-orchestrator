@@ -1,6 +1,9 @@
 # Local browser console
 
-On macOS, double-click `launchers/Bounded Orchestrator.app`; on Windows, double-click `launchers/Launch Bounded Orchestrator.vbs`. Choose an existing project folder in the native picker. The browser opens a loopback-only setup screen where **Check changes** shows a preview and **Install** applies the first setup. These GUI launchers require Python 3.11+ and stay open until you choose **Close console** in the browser. Keep the installer repository/release folder for later updates. There is no global installation.
+Download and extract the [current main ZIP](https://github.com/metapak/claude-bounded-orchestrator/archive/refs/heads/main.zip), then keep the extracted folder for later updates. On macOS, double-click `launchers/Bounded Orchestrator.app`; on Windows, double-click `launchers/Launch Bounded Orchestrator.vbs`. Choose an existing project folder in the native picker. The browser opens a loopback-only setup screen where **Check changes** shows a preview and **Install** applies the first setup. These GUI launchers require Python 3.11+ and stay open until you choose **Close console** in the browser. Keep the installer repository/release folder for later updates. There is no global installation.
+
+<details>
+<summary>Optional terminal launch</summary>
 
 Alternatively, from this downloaded/cloned installer repository, run:
 
@@ -11,6 +14,8 @@ python3 scripts/configure.py /path/to/project --no-browser --port 8765
 ```
 
 Python 3.11+ is required for the documented setup; no npm, server account or Claude CLI is needed to open the UI. The browser opens by default. Use the full printed URL containing the private fragment token. Stop with Ctrl+C. The launcher lives in this repository/release archive, not in an installed target; retain the installer directory to configure later. Only an existing project directory is supported; user-wide installation is not supported by this installer.
+
+</details>
 
 **Preferences** shows the selected project's model/effort files, profiles, planned helper team and the supported concurrency environment setting. The conductor remains separate. You choose 1–10 stable helper slots, each with a duty, Claude model, effort and optional short label; duplicate duties are allowed. Saving creates real `.claude/agents/orchestra-slot-XX.md` definitions using the corresponding role's tool restrictions and adds routing names to the installer-managed `CLAUDE.md` block. The count is team capacity, not a requirement to spawn all helpers on each request; it differs from the concurrency preference and the observed helper count on the Usage page. Presets update slot model/effort only when explicitly selected. A previously saved team above 10 slots is shown read-only and is never silently truncated. Preview validates every role/slot and shows the exact selected fields and affected paths. Install/Save is the only operation that changes the project. On a fresh project, its preview explicitly includes initial toolkit installation via the existing installer. Conflicting existing agent files stop the operation for manual review. Existing managed files must still match installer-owned hashes. Shared settings retain unrelated keys, permissions and environment entries; their contents and credentials never enter API responses. Console-merged settings survive uninstall. Backups use the installer backup directory. Restore refuses files changed since Save and restores the immediately preceding console-managed configuration. After a first Save, Restore leaves the initial toolkit installed; use the documented installer uninstall to remove it. Restart Claude Code after changing settings.
 
