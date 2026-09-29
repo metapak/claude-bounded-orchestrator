@@ -163,6 +163,41 @@ class ConsoleTests(unittest.TestCase):
         self.assertFalse((self.target / '.claude/tools/console/app.js').exists())
         self.assertEqual((self.target / '.claude/settings.json').read_bytes(), before)
 
+    def test_model_picker_keeps_saved_custom_and_uses_supported_ids(self):
+        import shutil
+        import subprocess
+        self.assertEqual({model for model, _ in install.PRESETS['economy'].values()}, {'sonnet'})
+        self.assertEqual({model for model, _ in install.PRESETS['quota-saver'].values()}, {'sonnet'})
+        self.assertEqual(install.PRESETS['economy']['owner'][1], 'medium')
+        self.assertEqual(install.PRESETS['quota-saver']['owner'][1], 'low')
+        self.assertEqual(install.PRESETS['economy']['advisor'][1], 'high')
+        self.assertEqual(install.PRESETS['quota-saver']['advisor'][1], 'medium')
+        if not shutil.which('node'):
+            self.skipTest('Node is unavailable; browser QA covers the picker')
+        program = """const fs=require('fs'),vm=require('vm');const source=fs.readFileSync(process.argv[1],'utf8');
+          const fragment=source.slice(source.indexOf('const MODEL_CHOICES='),source.indexOf('const sample='))+';globalThis.options=modelChoices;globalThis.catalog=MODEL_CHOICES;';
+          const context={};vm.runInNewContext(fragment,context);
+          const supported=new Set(['opus','sonnet','haiku','fable','claude-fable-5-1','claude-opus-5-5','claude-sonnet-5-5','claude-haiku-4-5']);
+          if(context.catalog.length!==supported.size||context.catalog.some(item=>!supported.has(item.value)))process.exit(1);
+          const saved=context.options('claude-private-legacy');
+          if(saved[0].value!=='claude-private-legacy'||!saved[0].saved||saved.length!==context.catalog.length+1)process.exit(2);
+          const known=context.options('sonnet');if(known.length!==context.catalog.length||known.some(item=>item.saved))process.exit(3);
+          if(!source.includes("const select=node('select');select.dataset.roleModel='';"))process.exit(4);"""
+        result = subprocess.run(['node', '-e', program, str(ROOT / '.claude/tools/console/app.js')], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_custom_saved_model_preview_save_restore(self):
+        payload = self.payload()
+        payload['preset'] = 'custom'
+        for model in ('claude-private-legacy', 'fable'):
+            payload['routing']['owner']['model'] = model
+            preview = self.settings.plan(payload)[2]
+            payload['revision'] = preview['revision']
+            self.settings.save(payload)
+            self.assertEqual(self.settings.read()['routing']['owner']['model'], model)
+            self.settings.restore()
+            self.assertEqual(self.settings.read()['routing']['owner']['model'], 'opus')
+
     def test_browser_token_survives_reload_only_in_same_tab(self):
         import shutil
         import subprocess

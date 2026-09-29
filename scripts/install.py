@@ -349,10 +349,10 @@ def validate_model_token(value: str, option: str) -> str:
 def validate_claude_model(value: str, option: str) -> str:
     """Accept only native Anthropic Claude aliases or full Claude model IDs."""
     validate_model_token(value, option)
-    if value in {"opus", "sonnet", "haiku"} or value.startswith("claude-"):
+    if value in {"opus", "sonnet", "haiku", "fable"} or value.startswith("claude-"):
         return value
     raise InstallError(
-        f"invalid native model for {option}: Anthropic Claude roles require opus, sonnet, haiku, or a claude-* ID; "
+        f"invalid native model for {option}: Anthropic Claude roles require opus, sonnet, haiku, fable, or a claude-* ID; "
         "use --external-provider openai/deepseek for proposal-only external models"
     )
 
