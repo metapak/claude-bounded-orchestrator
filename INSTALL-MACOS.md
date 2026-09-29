@@ -2,6 +2,8 @@
 
 Install a current [Claude Code client](https://code.claude.com/docs/en/getting-started) and Python 3.11 or newer. From this downloaded repository:
 
+For a no-typing setup on macOS, double-click `launchers/Bounded Orchestrator.app`, choose the existing project folder, then review and press **Install** in the local browser. **Close console** stops its local server. Keep the downloaded folder for later updates. If macOS blocks an unnotarized downloaded app, use the command below or the guided `setup.command` instead.
+
 ```bash
 python3 scripts/install.py /path/to/project --dry-run
 python3 scripts/install.py /path/to/project

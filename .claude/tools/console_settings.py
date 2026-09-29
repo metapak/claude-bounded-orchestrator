@@ -2,6 +2,7 @@
 from __future__ import annotations
 import hashlib
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -9,6 +10,8 @@ STATE = Path('.claude/.bounded-orchestrator/console-update.json')
 HISTORY = Path('.claude/.bounded-orchestrator/profile-history.json')
 HISTORY_LIMIT = 1024 * 1024
 CONCURRENCY = 'CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS'
+SLOT_ID = re.compile(r'slot-(?:0[1-9]|[1-9][0-9])\Z')
+LABEL = re.compile(r'[\w .()/-]{0,60}\Z', re.UNICODE)
 
 
 class Settings:
@@ -50,10 +53,50 @@ class Settings:
         if backups.exists() and any(path.is_symlink() for path in backups.rglob('*')):
             raise ValueError('Refusing symlink in initial install backups')
 
+    def slot_path(self, slot_id):
+        if not isinstance(slot_id, str) or not SLOT_ID.fullmatch(slot_id):
+            raise ValueError('Invalid helper slot ID')
+        return Path('.claude/agents') / ('orchestra-' + slot_id + '.md')
+
+    def roster(self, manifest):
+        raw = manifest.get('roster', [])
+        if not isinstance(raw, list) or len(raw) > 99:
+            raise ValueError('Invalid saved helper team')
+        result = []
+        for index, item in enumerate(raw, 1):
+            if not isinstance(item, dict) or set(item) != {'id', 'role', 'model', 'effort', 'label'}:
+                raise ValueError('Invalid saved helper')
+            if item['id'] != f'slot-{index:02d}' or item['role'] not in self.i.ROLES[1:]:
+                raise ValueError('Invalid saved helper role or order')
+            if not isinstance(item['label'], str) or not LABEL.fullmatch(item['label']):
+                raise ValueError('Invalid saved helper label')
+            self.i.validate_claude_model(item['model'], item['id'])
+            self.i.validate_effort(item['effort'], item['id'], self.i.CLAUDE_EFFORTS)
+            result.append(dict(item))
+        return result
+
+    def render_slot(self, slot):
+        source = self.root / '.claude/agents' / (slot['role'] + '.md')
+        content = self.i.render_agent(source, slot['model'], slot['effort'])
+        return content.replace('name: ' + slot['role'] + '\n', 'name: orchestra-' + slot['id'] + '\n', 1)
+
+    def render_team_block(self, existing, roster):
+        cleaned, _ = self.i.remove_managed_block(existing)
+        block = (self.root / 'templates/CLAUDE.block.md').read_text(encoding='utf-8').strip()
+        if roster:
+            lines = ['\n### Selected helper team',
+                     'Use these configured helper names for delegated execution; their count is capacity, not a requirement to spawn all at once. Assign one writer per scope. The main session only coordinates and reads short reports.']
+            for slot in roster:
+                label = (' — ' + json.dumps(slot['label'], ensure_ascii=False)) if slot['label'] else ''
+                lines.append(f"- `orchestra-{slot['id']}`: {slot['role']}{label}; model `{slot['model']}`, effort `{slot['effort']}`")
+            block = block.replace(self.i.END_MARKER, '\n'.join(lines) + '\n' + self.i.END_MARKER)
+        return (cleaned.rstrip() + '\n\n' + block + '\n').lstrip('\n')
+
     def read(self):
         settings_path = self.path(self.i.SETTINGS_RELATIVE)
         settings = json.loads(settings_path.read_text()) if settings_path.exists() else {}
         manifest = self.i.load_manifest(self.target)
+        roster = self.roster(manifest)
         routing = {}
         for role in self.i.ROLES:
             if role == 'owner':
@@ -68,6 +111,7 @@ class Settings:
                 routing[role] = {'model': fields.get('model', default[0]).strip(), 'effort': fields.get('effort', default[1]).strip()}
         return {'target': str(self.target), 'scope': 'project', 'preset': manifest.get('preset', 'custom'),
                 'routing': routing, 'max_parallelism': settings.get('env', {}).get(CONCURRENCY),
+                'roster': roster, 'roster_read_only': len(roster) > 10,
                 'installed': bool(manifest.get('files')), 'restore_available': self.path(STATE).exists(),
                 'presets': {key: {role: {'model': pair[0], 'effort': pair[1]} for role, pair in value.items()} for key, value in self.i.PRESETS.items()},
                 'limitations': 'Project files shown. Managed/local settings, environment and CLI/session choices may override them. Concurrency requires Claude Code 2.1.217+; ultracode and resumed agents can bypass it.'}
@@ -130,7 +174,7 @@ class Settings:
             return False
 
     def plan(self, payload):
-        if not isinstance(payload, dict) or set(payload) - {'preset', 'routing', 'max_parallelism', 'revision'}:
+        if not isinstance(payload, dict) or set(payload) - {'preset', 'routing', 'max_parallelism', 'roster', 'revision'}:
             raise ValueError('Unknown settings fields')
         routing = payload.get('routing')
         if not isinstance(routing, dict) or set(routing) != set(self.i.ROLES):
@@ -154,6 +198,13 @@ class Settings:
         self.path(self.i.MANIFEST_RELATIVE)
         self.path(HISTORY)
         manifest = self.i.load_manifest(self.target)
+        old_roster = self.roster(manifest)
+        roster = payload.get('roster', old_roster)
+        if not isinstance(roster, list) or (not 1 <= len(roster) <= 10 and roster != old_roster):
+            raise ValueError('Choose 1 to 10 helpers; an existing larger team is read-only')
+        roster = self.roster({'roster': roster})
+        if len(old_roster) > 10 and roster != old_roster:
+            raise ValueError('Existing larger helper team is read-only')
         initial = not manifest.get('files')
         if initial:
             self.preflight_initial_install()
@@ -171,6 +222,26 @@ class Settings:
                     raise ValueError('Managed agent conflict: ' + str(relative) + '; review via installer first')
                 source = path
             changes[str(relative)] = self.i.render_agent(source, *selected[role])
+        old_slots = {slot['id']: slot for slot in old_roster}
+        new_slots = {slot['id']: slot for slot in roster}
+        for slot_id in sorted(set(old_slots) | set(new_slots)):
+            relative = self.slot_path(slot_id)
+            path = self.path(relative)
+            entry = manifest['files'].get(relative.as_posix(), {})
+            if slot_id in old_slots:
+                if not path.is_file() or not entry.get('owned') or self.i.digest(path) != entry.get('sha256'):
+                    raise ValueError('Managed helper conflict: ' + relative.as_posix())
+            elif path.exists():
+                raise ValueError('Existing helper file conflict: ' + relative.as_posix())
+            changes[relative.as_posix()] = self.render_slot(new_slots[slot_id]) if slot_id in new_slots else None
+        if roster or old_roster:
+            claude = self.path(Path('CLAUDE.md'))
+            if claude.exists() and not claude.is_file():
+                raise ValueError('CLAUDE.md is not a file')
+            current = claude.read_text(encoding='utf-8') if claude.exists() else ''
+            if not initial and (self.i.START_MARKER not in current or self.i.END_MARKER not in current):
+                raise ValueError('Managed CLAUDE.md block is missing')
+            changes['CLAUDE.md'] = self.render_team_block(current, roster)
         path = self.path(self.i.SETTINGS_RELATIVE)
         settings = json.loads(path.read_text()) if path.exists() else {}
         if not isinstance(settings, dict) or not isinstance(settings.get('env', {}), dict):
@@ -182,11 +253,11 @@ class Settings:
         changes[str(self.i.SETTINGS_RELATIVE)] = json.dumps(settings, indent=2) + '\n'
         # Only changed fields are returned; unrelated settings and secrets never enter API responses.
         preview = {'routing': routing, 'max_parallelism': count, 'target': str(self.target),
-                   'files': list(changes), 'initial_install': initial,
+                   'roster': roster, 'files': list(changes), 'removed_files': [name for name, content in changes.items() if content is None], 'initial_install': initial,
                    'installation': 'First Save installs the managed toolkit with existing installer conflict/backups rules; restore keeps this initial installation.' if initial else 'Existing installation',
                    'preserved': 'All unrelated settings keys, env and agent bodies'}
         identity = {name: self.i.digest(self.path(Path(name))) if self.path(Path(name)).exists() else None for name in changes}
-        revision = hashlib.sha256(json.dumps([identity, routing, count, preset], sort_keys=True).encode()).hexdigest()
+        revision = hashlib.sha256(json.dumps([identity, routing, count, preset, roster], sort_keys=True).encode()).hexdigest()
         preview['revision'] = revision
         return changes, manifest, preview
 
@@ -210,16 +281,22 @@ class Settings:
             path = self.path(Path(name))
             saved = self.i.backup(self.target, path, False) if path.exists() else None
             records[name] = {'backup': str(saved.relative_to(self.target)) if saved else None,
-                             'after': hashlib.sha256(content.encode()).hexdigest()}
+                             'after': hashlib.sha256(content.encode()).hexdigest() if content is not None else None}
         state = {'files': records, 'manifest': before}
         self.i.atomic_text(state_path, json.dumps(state, indent=2) + '\n', False)
         for name, content in changes.items():
             path = self.path(Path(name))
-            self.i.atomic_text(path, content, False)
-            # A merged shared settings file must survive uninstall.
-            self.i.remember(manifest, Path(name), path, name != str(self.i.SETTINGS_RELATIVE))
+            if content is None:
+                path.unlink()
+                manifest['files'].pop(name, None)
+            else:
+                self.i.atomic_text(path, content, False)
+                if name != 'CLAUDE.md':
+                    # A merged shared settings file must survive uninstall.
+                    self.i.remember(manifest, Path(name), path, name != str(self.i.SETTINGS_RELATIVE))
         manifest['routing'] = payload['routing']
         manifest['preset'] = payload.get('preset', 'custom')
+        manifest['roster'] = preview['roster']
         self.i.save_manifest(self.target, manifest, self.root, False)
         state['manifest_after_sha256'] = self.i.digest(self.path(self.i.MANIFEST_RELATIVE))
         self.i.atomic_text(state_path, json.dumps(state, indent=2) + '\n', False)
@@ -229,20 +306,28 @@ class Settings:
     def restore(self):
         state_path = self.path(STATE)
         state = json.loads(state_path.read_text())
+        before_roster = self.roster(state['manifest'])
+        manifest = self.i.load_manifest(self.target)
+        after_roster = self.roster(manifest)
         allowed = {str(self.i.SETTINGS_RELATIVE)} | {str(Path('.claude/agents') / (role + '.md')) for role in self.i.ROLES[1:]}
+        if before_roster or after_roster:
+            allowed.add('CLAUDE.md')
+            allowed.update(self.slot_path(slot['id']).as_posix() for slot in before_roster + after_roster)
         if set(state['files']) != allowed:
             raise ValueError('Invalid console restore paths')
         manifest_path = self.path(self.i.MANIFEST_RELATIVE)
         if not manifest_path.is_file() or self.i.digest(manifest_path) != state.get('manifest_after_sha256'):
             raise ValueError('Install manifest changed after save; restore refused')
         previous_manifest_sha256 = self.i.digest(manifest_path)
-        manifest = self.i.load_manifest(self.target)
         if manifest.get('routing') != self.read()['routing']:
             raise ValueError('Configuration changed after save; restore refused')
         contents = {}
         for name, record in state['files'].items():
             path = self.path(Path(name))
-            if not path.is_file() or self.i.digest(path) != record['after']:
+            if record['after'] is None:
+                if path.exists():
+                    raise ValueError('File appeared after save; restore refused: ' + name)
+            elif not path.is_file() or self.i.digest(path) != record['after']:
                 raise ValueError('File changed after save; restore refused: ' + name)
             saved = record['backup']
             if saved and not Path(saved).is_relative_to(self.i.BACKUP_RELATIVE):
@@ -252,7 +337,8 @@ class Settings:
         self.path(self.i.BACKUP_RELATIVE)
         for name, content in contents.items():
             path = self.path(Path(name))
-            self.i.backup(self.target, path, False)
+            if path.exists():
+                self.i.backup(self.target, path, False)
             if content is None:
                 path.unlink()
             else:

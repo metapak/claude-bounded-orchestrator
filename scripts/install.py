@@ -157,6 +157,7 @@ ALLOWED_UNINSTALL_FILES = frozenset(
     path.as_posix()
     for path in (*BASE_MANAGED_FILES, *OPTIONAL_MANAGED_FILES, SETTINGS_RELATIVE, SETTINGS_EXAMPLE_RELATIVE)
 )
+ROSTER_AGENT_PATH = re.compile(r"\.claude/agents/orchestra-slot-(?:0[1-9]|[1-9][0-9])\.md\Z")
 
 
 class InstallError(RuntimeError):
@@ -774,6 +775,24 @@ def remove_managed_block(text: str) -> tuple[str, bool]:
 def install_claude_block(root: Path, target: Path, manifest: dict[str, Any], dry_run: bool, output: list[str]) -> None:
     destination = target / "CLAUDE.md"
     block = (root / "templates/CLAUDE.block.md").read_text(encoding="utf-8").strip()
+    roster = manifest.get("roster", [])
+    if roster:
+        if not isinstance(roster, list) or len(roster) > 99:
+            raise InstallError("invalid saved helper team")
+        lines = ["\n### Selected helper team",
+                 "Use these configured helper names for delegated execution; their count is capacity, not a requirement to spawn all at once. Assign one writer per scope. The main session only coordinates and reads short reports."]
+        for index, slot in enumerate(roster, 1):
+            slot_id = f"slot-{index:02d}"
+            if (not isinstance(slot, dict) or slot.get("id") != slot_id or slot.get("role") not in ROLES[1:]
+                or not isinstance(slot.get("label"), str) or not re.fullmatch(r"[\w .()/-]{0,60}", slot["label"])):
+                raise InstallError("invalid saved helper team")
+            if not isinstance(slot.get("model"), str) or not isinstance(slot.get("effort"), str):
+                raise InstallError("invalid saved helper model or effort")
+            validate_claude_model(slot["model"], slot_id)
+            validate_effort(slot["effort"], slot_id, CLAUDE_EFFORTS)
+            label = " — " + json.dumps(slot["label"], ensure_ascii=False) if slot["label"] else ""
+            lines.append(f"- `orchestra-{slot_id}`: {slot['role']}{label}; model `{slot['model']}`, effort `{slot['effort']}`")
+        block = block.replace(END_MARKER, "\n".join(lines) + "\n" + END_MARKER)
     existing = destination.read_text(encoding="utf-8") if destination.exists() else ""
     cleaned, had_block = remove_managed_block(existing)
     content = (cleaned.rstrip() + "\n\n" + block + "\n").lstrip("\n")
@@ -816,7 +835,7 @@ def uninstall(target: Path, manifest: dict[str, Any], dry_run: bool, output: lis
     entries = manifest.get("files", {})
     safe_paths: dict[str, Path] = {}
     for name, entry in entries.items():
-        if not isinstance(name, str) or name not in ALLOWED_UNINSTALL_FILES:
+        if not isinstance(name, str) or (name not in ALLOWED_UNINSTALL_FILES and not ROSTER_AGENT_PATH.fullmatch(name)):
             raise InstallError(f"manifest contains unmanaged uninstall path: {name!r}")
         if not isinstance(entry, dict):
             raise InstallError(f"manifest contains invalid entry for: {name}")

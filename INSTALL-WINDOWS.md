@@ -2,6 +2,8 @@
 
 Install a current [Claude Code client](https://code.claude.com/docs/en/getting-started) and Python 3.11 or newer. In PowerShell, from this downloaded repository:
 
+For a no-typing setup, double-click `launchers/Launch Bounded Orchestrator.vbs`, choose an existing project folder, then review and press **Install** in the local browser. **Close console** stops its local server. Keep the downloaded folder for later updates.
+
 ```powershell
 .\scripts\install.ps1 -Target C:\path\to\project -DryRun
 .\scripts\install.ps1 -Target C:\path\to\project

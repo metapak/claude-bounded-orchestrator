@@ -66,6 +66,8 @@ class InstallerTests(unittest.TestCase):
             self.assertEqual(agent["effort"], effort)
         instructions = (self.target / "CLAUDE.md").read_text()
         self.assertEqual(instructions.count("<!-- claude-bounded-orchestrator:start -->"), 1)
+        self.assertIn("Delegate every execution task, including small ones", instructions)
+        self.assertIn("must not inspect source, research, implement, run checks", instructions)
         for phrase in (
             "objective, exact scope, write ownership or read-only status",
             "freeze the candidate",

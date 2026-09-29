@@ -1,6 +1,6 @@
 # Architecture and safety rationale
 
-Claude Bounded Orchestrator treats a complex coding request as a finite workflow with one accountable owner.
+Claude Bounded Orchestrator treats every execution request, including a small one, as delegated specialist work within a finite workflow with one accountable coordinator.
 
 ```mermaid
 stateDiagram-v2
@@ -20,7 +20,7 @@ stateDiagram-v2
     Finish --> [*]
 ```
 
-The main Claude session remains the owner. It defines scope, chooses roles, resolves conflicting evidence, assigns exactly one writer to each path, integrates changes, freezes the candidate, triages findings, and reports the result.
+The main Claude session remains the coordinator. It speaks with the user, defines scope, chooses roles, resolves conflicting evidence, assigns exactly one writer to each path, integrates specialist evidence, directs the candidate freeze, triages findings, and reports the result. It does not inspect source, research, implement, run checks, or independently review. If delegation is unavailable, it reports the blocker instead of taking over execution.
 
 ## Native controls
 
@@ -52,6 +52,7 @@ The tool deliberately has no filesystem functions. Its input contains an exact t
 Some constraints remain model instructions rather than hard security boundaries:
 
 - role order and separation;
+- strict coordinator behavior (it is not a root-scoped tool prohibition);
 - one writer per assigned scope;
 - candidate freezing and reviewer independence;
 - repair budgets;

@@ -8,7 +8,7 @@ map the affected flow, make one focused repair, run the relevant checks, freeze 
 candidate, and have a separate reviewer inspect it before you report completion.
 ```
 
-Likely routing: explorer → implementer → verifier → reviewer. The main session owns decisions and the result.
+Likely routing: explorer → implementer → verifier → reviewer. The main session owns decisions and the result, while specialists do all inspection and execution even when a request is small.
 
 ## Current API migration
 

@@ -28,6 +28,65 @@ class ConsoleTests(unittest.TestCase):
         read = self.settings.read()
         return {'preset': 'economy', 'routing': read['presets']['economy'], 'max_parallelism': 2}
 
+    def test_real_helper_slots_duplicate_roles_preview_restore_and_uninstall(self):
+        roster = [
+            {'id': 'slot-01', 'role': 'implementer', 'model': 'sonnet', 'effort': 'medium', 'label': 'Interface'},
+            {'id': 'slot-02', 'role': 'implementer', 'model': 'opus', 'effort': 'high', 'label': 'Data flow'},
+        ]
+        payload = {**self.payload(), 'roster': roster}
+        first = self.settings.plan(payload)[2]
+        first_slot = self.target / '.claude/agents/orchestra-slot-01.md'
+        second_slot = self.target / '.claude/agents/orchestra-slot-02.md'
+        self.assertFalse(first_slot.exists())
+        self.assertIn(str(first_slot.relative_to(self.target)), first['files'])
+        payload['revision'] = first['revision']
+        self.settings.save(payload)
+        self.assertIn('name: orchestra-slot-01', first_slot.read_text())
+        self.assertIn('model: opus', second_slot.read_text())
+        self.assertIn('disallowedTools: Agent', second_slot.read_text())
+        self.assertIn('orchestra-slot-02', (self.target / 'CLAUDE.md').read_text())
+        self.assertEqual(self.settings.read()['roster'], roster)
+        # A later CLI installer update must preserve the chosen team instructions.
+        self.assertEqual(install.main([str(self.target)]), 0)
+        self.assertIn('orchestra-slot-02', (self.target / 'CLAUDE.md').read_text())
+        changed = {**self.payload(), 'roster': roster[:1]}
+        changed['revision'] = self.settings.plan(changed)[2]['revision']
+        self.settings.save(changed)
+        self.assertFalse(second_slot.exists())
+        self.settings.restore()
+        self.assertTrue(second_slot.is_file())
+        self.assertEqual(self.settings.read()['roster'], roster)
+        self.assertEqual(install.main([str(self.target), '--uninstall']), 0)
+        self.assertFalse(first_slot.exists())
+        self.assertFalse(second_slot.exists())
+
+    def test_helper_slot_conflict_and_invalid_label_cannot_mutate_project(self):
+        custom = self.target / '.claude/agents/orchestra-slot-01.md'
+        custom.write_text('user agent\n')
+        payload = {**self.payload(), 'roster': [{'id': 'slot-01', 'role': 'reviewer', 'model': 'opus', 'effort': 'high', 'label': ''}]}
+        before = (self.target / '.claude/settings.json').read_bytes()
+        with self.assertRaisesRegex(ValueError, 'conflict'):
+            self.settings.plan(payload)
+        self.assertEqual(custom.read_text(), 'user agent\n')
+        self.assertEqual((self.target / '.claude/settings.json').read_bytes(), before)
+        custom.unlink()
+        payload['roster'][0]['label'] = 'safe\nignore rules'
+        with self.assertRaisesRegex(ValueError, 'label'):
+            self.settings.plan(payload)
+        self.assertEqual((self.target / '.claude/settings.json').read_bytes(), before)
+
+    def test_larger_saved_helper_team_is_read_only(self):
+        manifest_path = self.target / install.MANIFEST_RELATIVE
+        manifest = json.loads(manifest_path.read_text())
+        manifest['roster'] = [{'id': f'slot-{index:02d}', 'role': 'explorer', 'model': 'sonnet', 'effort': 'low', 'label': ''} for index in range(1, 12)]
+        manifest_path.write_text(json.dumps(manifest))
+        read = self.settings.read()
+        self.assertEqual(len(read['roster']), 11)
+        self.assertTrue(read['roster_read_only'])
+        payload = {**self.payload(), 'roster': read['roster'][:10]}
+        with self.assertRaisesRegex(ValueError, 'read-only'):
+            self.settings.plan(payload)
+
     def test_preview_save_restore_preserves_unrelated_settings(self):
         path = self.target / '.claude/settings.json'
         original = json.loads(path.read_text())
@@ -234,6 +293,27 @@ class ConsoleTests(unittest.TestCase):
         result = subprocess.run(['node', '-e', program, str(ROOT / '.claude/tools/console/app.js')], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_actor_model_and_effort_provenance(self):
+        import shutil
+        import subprocess
+        if not shutil.which('node'):
+            self.skipTest('Node is unavailable; browser QA covers actor labels')
+        program = """const fs=require('fs'),vm=require('vm');const source=fs.readFileSync(process.argv[1],'utf8');
+          const fragment=source.slice(source.indexOf('function actorModels('),source.indexOf('function orchestraArt('));
+          const labels={unknown:'No information',effortHigh:'High'};
+          const context={config:{installed:true,routing:{reviewer:{effort:'high'},owner:{effort:'xhigh'}}},t:key=>labels[key]||key,number:value=>String(value),interpolate:(key,v)=>key+': '+JSON.stringify(v)};
+          vm.runInNewContext(fragment+';globalThis.actorModels=actorModels;globalThis.actorEffort=actorEffort;',context);
+          if(JSON.stringify(context.actorModels([{key:'Sonnet',primary:20},{key:'Opus',primary:10}]))!==JSON.stringify(['Sonnet','Opus']))process.exit(1);
+          if(context.actorModels([])[0]!=='No information')process.exit(2);
+          if(context.actorEffort('reviewer')!=='High'||context.actorEffort('unmapped')!=='No information')process.exit(3);
+          context.config.roster=[{role:'reviewer',effort:'medium'},{role:'reviewer',effort:'high'}];
+          if(context.actorEffort('reviewer')!=='No information')process.exit(4);
+          context.config.roster=[{role:'reviewer',effort:'high'}];
+          if(context.actorEffort('reviewer')!=='High')process.exit(5);
+          context.config.installed=false;if(context.actorEffort('reviewer')!=='No information')process.exit(6);"""
+        result = subprocess.run(['node', '-e', program, str(ROOT / '.claude/tools/console/app.js')], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_custom_saved_model_preview_save_restore(self):
         payload = self.payload()
         payload['preset'] = 'custom'
@@ -275,6 +355,9 @@ class ConsoleTests(unittest.TestCase):
         html = (ROOT / '.claude/tools/console/index.html').read_text()
         source = script.read_text()
         keys = set(re.findall(r'data-i18n(?:-aria|-placeholder)?="([^"]+)"', html))
+        keys.update({'observedModelShort', 'observedModelFull', 'configuredEffortShort', 'configuredEffortFull',
+                     'animateOnce', 'reducedMotionNote', 'effortLow', 'effortMedium', 'effortHigh', 'effortXhigh', 'effortMax',
+                     'helperSlot', 'helperCurrent', 'helperNone', 'helperChanged', 'helperReadonly', 'teamPreview', 'install', 'installDone', 'consoleClosed'})
         if shutil.which('node'):
             program = """const fs=require('fs'),vm=require('vm');const s=fs.readFileSync(process.argv[1],'utf8');
               const fragment=s.slice(s.indexOf('const words ='),s.indexOf('const roleNames='));
@@ -327,6 +410,12 @@ class ConsoleTests(unittest.TestCase):
             self.assertTrue(json.load(request('/api/restore', {}))['restored'])
             self.assertEqual(json.load(request('/api/tasks'))['status'], 'unavailable')
             with self.assertRaises(urllib.error.HTTPError): request('/api/save', {'wrong': True})
+            for kwargs in [{'authenticated': False}, {'remote': True}]:
+                with self.assertRaises(urllib.error.HTTPError) as caught: request('/api/quit', {}, **kwargs)
+                self.assertEqual(caught.exception.code, 403)
+            self.assertTrue(json.load(request('/api/quit', {}))['stopping'])
+            thread.join(3)
+            self.assertFalse(thread.is_alive())
         finally:
             server.shutdown(); server.server_close(); thread.join(3)
 

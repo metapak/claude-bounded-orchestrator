@@ -11,7 +11,7 @@
 
 **A bounded operating layer for Claude Code that plans, delegates, implements, verifies, measures, and safely resumes complex repository work.**
 
-Claude Bounded Orchestrator gives the main Claude session clear ownership, separates investigation from implementation, keeps one writer per scope, and requires independent verification before completion. A private local ledger tracks short task metadata so dependent steps are less likely to be skipped.
+Claude Bounded Orchestrator makes the main Claude session a strict coordinator: it speaks with the user, plans and delegates every execution task, even a small one, then reads concise specialist evidence and reports the result. Specialists inspect, research, implement, check and review. One writer owns each scope, and independent verification precedes completion. A private local ledger tracks short task metadata so dependent steps are less likely to be skipped.
 
 You still ask for work in normal language. The project supplies the operating rules behind the scenes.
 
@@ -38,7 +38,7 @@ The current release also offers balanced, quality, economy, quota-saver, and cus
 
 ## Why use it?
 
-- **One accountable owner:** the main session decides scope, routing, integration, and the final result.
+- **One accountable coordinator:** the main session decides scope, routing, evidence integration, and the final result. It does not perform specialist execution or take over when delegation is unavailable.
 - **One writer per scope:** only the implementer receives `Edit` and `Write` tools.
 - **Independent checks:** verification and review are separate from implementation.
 - **Bounded delegation:** project agents cannot create more agents; native spawn depth is capped at `1`.
@@ -66,7 +66,7 @@ python scripts/install.py /path/to/your-project --dry-run
 python scripts/install.py /path/to/your-project
 ```
 
-For guided setup on macOS/Linux, run `./setup.command`; on Windows, run `setup.ps1` or double-click `setup.cmd`. The installer shows the target and action first, explains each native Claude profile, keeps external APIs off by default, reviews the final configuration, and prints next steps.
+For setup without typing a terminal command, double-click `launchers/Bounded Orchestrator.app` on macOS or `launchers/Launch Bounded Orchestrator.vbs` on Windows, choose an existing project folder, then review the browser preview and choose **Install**. Python 3.11+ is needed for these launchers. The browser can also change or undo project settings later and has a **Close console** button. For guided terminal setup on macOS/Linux, run `./setup.command`; on Windows, run `setup.ps1` or double-click `setup.cmd`. The installer shows the target and action first, explains each native Claude profile, keeps external APIs off by default, reviews the final configuration, and prints next steps.
 
 The direct installer stays non-interactive and uses `balanced` unless you choose another profile:
 
@@ -177,7 +177,7 @@ Aliases select the current Claude family instead of pinning a dated model ID. Mo
 
 The installer and release builder use the Python 3.11 standard library. Shell launchers are provided for macOS/Linux and PowerShell/cmd launchers for Windows. Repository tests exercise installer, ledger, validation, and release packaging behavior; CI is configured for macOS, Windows, and Ubuntu.
 
-This project does not turn model instructions into a security boundary. The native depth setting and tool allowlists are concrete Claude Code controls; role sequence, one-writer discipline, frozen review, and retry limits remain instructions followed by the model. `Bash` can mutate state even when `Edit` and `Write` are unavailable, so verifier and QA instructions restrict it to evidence gathering. Run a live smoke test with your current Claude Code client before relying on the workflow.
+This project does not turn model instructions into a security boundary. The native depth setting and child-agent tool allowlists are concrete Claude Code controls; strict coordinator behavior, role sequence, one-writer discipline, frozen review, and retry limits remain instructions followed by the model. `Bash` can mutate state even when `Edit` and `Write` are unavailable, so verifier and QA instructions restrict it to evidence gathering. Run a live smoke test with your current Claude Code client before relying on the workflow.
 
 ## Documentation
 
@@ -212,4 +212,4 @@ Apache License 2.0. See [LICENSE](LICENSE).
 python3 scripts/configure.py /path/to/project
 ```
 
-[Settings, usage and task detail console](docs/local-console.md): no npm required; validated preview, explicit Save, restore and opt-in local OTLP analysis.
+[Settings, planned helper team, usage and task detail console](docs/local-console.md): no npm required; validated preview, explicit Install/Save, restore and opt-in local OTLP analysis. Pick 1–10 helper slots, including duplicate duties, with a Claude model and effort for each; slots are real project agents, while the conductor stays a coordinator.

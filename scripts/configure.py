@@ -6,6 +6,7 @@ import hmac
 import json
 import secrets
 import sys
+import threading
 import webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
@@ -81,6 +82,7 @@ def make_server(target, port=0):
                 payload = json.loads(self.rfile.read(length))
                 if not isinstance(payload, dict):
                     raise ValueError('JSON object required')
+                stopping = False
                 if self.path == '/api/preview':
                     result = settings.plan(payload)[2]
                 elif self.path == '/api/save':
@@ -89,6 +91,11 @@ def make_server(target, port=0):
                     if payload:
                         raise ValueError('Restore body must be empty')
                     result = settings.restore()
+                elif self.path == '/api/quit':
+                    if payload:
+                        raise ValueError('Quit body must be empty')
+                    result = {'stopping': True}
+                    stopping = True
                 elif self.path == '/api/usage':
                     if set(payload) - {'path', 'start', 'end'}:
                         raise ValueError('Unknown usage fields')
@@ -103,6 +110,8 @@ def make_server(target, port=0):
                 else:
                     return self.respond(404, {'error': 'Not found'})
                 self.respond(200, result)
+                if stopping:
+                    threading.Thread(target=self.server.shutdown, daemon=True).start()
             except (ValueError, OSError, install.InstallError, TypeError, KeyError) as exc:
                 # No full settings content, credentials or malformed file bodies are returned.
                 self.respond(400, {'error': str(exc) if isinstance(exc, install.InstallError) or type(exc) is ValueError else 'Local operation failed; inspect selected files.'})
@@ -123,8 +132,9 @@ def main(argv=None):
         parser.error('Select an existing target project outside this installer; port must be 0..65535')
     server, token = make_server(target, args.port)
     url = f'http://127.0.0.1:{server.server_port}/#token={token}'
-    print('Local console: ' + url, flush=True)
-    print('Stop with Ctrl+C. Settings writes require explicit Save.', flush=True)
+    if sys.stdout is not None:
+        print('Local console: ' + url, flush=True)
+        print('Stop with Ctrl+C or the browser Close console button. Settings writes require explicit Save.', flush=True)
     if not args.no_browser:
         webbrowser.open(url)
     try:

@@ -4,7 +4,7 @@ Static tests cannot prove how a live model will route every request. Use this bo
 
 1. Create a disposable Git repository with a small text file and a simple test.
 2. Install this project into it.
-3. Ask the main session to add one documented, low-risk behavior using explorer → implementer → verifier → reviewer.
+3. Ask the main session for a small documented, low-risk change. Confirm it delegates file inspection, implementation, checks and independent review rather than doing any of those itself; it should use explorer → implementer → verifier → reviewer as needed.
 4. Confirm the child agent names are unique and no child creates another agent.
 5. Confirm the main owner shows Opus with `xhigh`, then inspect agent runs to confirm the documented model-family and effort routing where your account supports it.
 6. Confirm only the implementer edits the assigned source scope.
