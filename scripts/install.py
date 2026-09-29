@@ -141,6 +141,7 @@ BASE_MANAGED_FILES = (
     Path(".claude/tools/console/index.html"),
     Path(".claude/tools/console/app.js"),
     Path(".claude/tools/console/style.css"),
+    Path(".claude/tools/console/orchestra.svg"),
     Path(".claude/tools/local_eval.py"),
     Path(".claude/bounded-orchestrator.eval.example.json"),
     Path(".claude/.bounded-orchestrator/.gitignore"),

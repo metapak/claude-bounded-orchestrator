@@ -15,6 +15,131 @@ LOCAL_EVAL = ROOT / ".claude/tools/local_eval.py"
 
 
 class UsageAndEvalTests(unittest.TestCase):
+    def test_orchestra_scopes_session_and_counts_only_explicit_helper_ids(self) -> None:
+        spec = importlib.util.spec_from_file_location('usage_report', USAGE)
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        def point(day, value, **fields):
+            stamp = str(int(datetime(2026, 9, day, tzinfo=timezone.utc).timestamp() * 1e9))
+            return {'timeUnixNano': stamp, 'asInt': str(value), 'attributes':
+                    [{'key': key, 'value': {'stringValue': val}} for key, val in fields.items()]}
+        base = {'session.id': 'work-one'}
+        root = {**base, 'query_source': 'main', 'orchestra.agent.id': 'root-1', 'orchestra.root.id': 'root-1'}
+        helper = {**base, 'query_source': 'subagent', 'orchestra.agent.id': 'helper-a',
+                  'orchestra.parent.id': 'root-1', 'orchestra.root.id': 'root-1',
+                  'orchestra.agent.name': '<img src=x onerror=alert(1)>', 'orchestra.agent.role': 'researcher'}
+        missing_parent = {**base, 'query_source': 'subagent', 'orchestra.agent.id': 'helper-b',
+                          'orchestra.root.id': 'root-1'}
+        metrics = [
+            {'name': 'claude_code.token.usage', 'sum': {'aggregationTemporality': 2, 'dataPoints': [
+                point(27, 100, **root, type='input', model='Sonnet'), point(28, 150, **root, type='input', model='Sonnet')]}},
+            {'name': 'claude_code.token.usage', 'sum': {'aggregationTemporality': 1, 'dataPoints': [
+                point(27, 20, **root, type='output', model='Sonnet'),
+                point(27, 40, **helper, type='input', model='Sonnet'),
+                point(28, 10, **helper, type='output', model='Opus'),
+                point(28, 15, **helper, type='cacheRead', model='Sonnet'),
+                point(28, 30, **missing_parent, type='input', model='Sonnet'),
+                point(28, 5, **base, query_source='auxiliary', type='input', model='Sonnet'),
+                point(28, 7, **base, type='output', model='Sonnet'),
+                point(28, 50, **root, type='cacheRead', model='Sonnet'),
+                point(28, 9, **{'session.id':'work-two'}, type='input', model='Opus')]}}
+        ]
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / 'sanitized.json';path.write_text(json.dumps({'resourceMetrics':[{'scopeMetrics':[{'metrics':metrics}]}]}))
+            result = module.report(path)
+            orchestra = result['analysis']['orchestra']
+            self.assertEqual(orchestra['all']['primary'], 271)
+            first = next(item for item in orchestra['sessions'] if item['id'] == 'work-one')
+            self.assertEqual(first['counts']['primary'], 262)
+            self.assertEqual(first['conductor']['counts']['primary'], 170)
+            self.assertEqual(first['helpers']['counts']['primary'], 80)
+            self.assertEqual(first['helpers']['observed_count'], 1)
+            self.assertFalse(first['helpers']['count_complete'])
+            self.assertEqual(first['helpers']['unidentified']['primary'], 30)
+            self.assertEqual(first['unknown']['primary'], 12)
+            self.assertEqual(first['conductor']['counts']['cacheRead'], 50)
+            agent = first['helpers']['agents'][0]
+            self.assertEqual(agent['name'], '<img src=x onerror=alert(1)>')
+            self.assertEqual([(row['key'], row['primary']) for row in agent['models']], [('Sonnet', 40), ('Opus', 10)])
+            filtered = module.report(path, start='2026-09-28', end='2026-09-28')['analysis']['orchestra']
+            only = next(item for item in filtered['sessions'] if item['id'] == 'work-one')
+            self.assertEqual(only['counts']['primary'], 102)
+            self.assertEqual(only['conductor']['counts']['primary'], 50)
+            self.assertEqual(only['helpers']['observed_count'], 1)
+
+    def test_orchestra_standard_agent_name_is_not_an_instance(self) -> None:
+        spec = importlib.util.spec_from_file_location('usage_report', USAGE)
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / 'metrics.json'
+            attrs = lambda **values: [{'key': key, 'value': {'stringValue': value}} for key, value in values.items()]
+            points = [{'asInt': '20', 'attributes': attrs(**{'session.id':'one','query_source':'main','type':'input','model':'Sonnet'})},
+                      {'asInt': '30', 'attributes': attrs(**{'session.id':'one','query_source':'subagent','agent.name':'explorer','type':'input','model':'Sonnet'})},
+                      {'asInt': '10', 'attributes': attrs(**{'session.id':'one','query_source':'subagent','agent.name':'explorer','type':'output','model':'Opus'})}]
+            path.write_text(json.dumps({'resourceMetrics':[{'scopeMetrics':[{'metrics':[{'name':'claude_code.token.usage','sum':{'aggregationTemporality':1,'dataPoints':points}}]}]}]}))
+            session = module.report(path)['analysis']['orchestra']['sessions'][0]
+            self.assertEqual(session['conductor']['counts']['primary'], 20)
+            self.assertEqual(session['helpers']['counts']['primary'], 40)
+            self.assertEqual(session['helpers']['observed_count'], 0)
+            self.assertEqual(session['helpers']['agents'], [])
+            self.assertEqual(session['helpers']['unidentified']['primary'], 40)
+
+    def test_orchestra_nested_parent_chain_counts_two_helpers(self) -> None:
+        spec = importlib.util.spec_from_file_location('usage_report', USAGE)
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        def point(value, **fields):
+            return {'asInt': str(value), 'attributes': [{'key': key, 'value': {'stringValue': val}} for key, val in fields.items()]}
+        root = {'session.id':'work','query_source':'main','orchestra.agent.id':'root','orchestra.root.id':'root'}
+        a = {'session.id':'work','query_source':'subagent','orchestra.agent.id':'a','orchestra.parent.id':'root','orchestra.root.id':'root'}
+        b = {'session.id':'work','query_source':'subagent','orchestra.agent.id':'b','orchestra.parent.id':'a','orchestra.root.id':'root'}
+        doc = {'resourceMetrics':[{'scopeMetrics':[{'metrics':[{'name':'claude_code.token.usage','sum':{'aggregationTemporality':1,'dataPoints':[
+            point(10, **root, type='input', model='Sonnet'),point(10, **a, type='input', model='Sonnet'),point(10, **b, type='output', model='Opus')]}}]}]}]}
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary)/'metrics.json';path.write_text(json.dumps(doc))
+            session = module.report(path)['analysis']['orchestra']['sessions'][0]
+            self.assertEqual(session['counts']['primary'], 30)
+            self.assertEqual(session['helpers']['counts']['primary'], 20)
+            self.assertEqual(session['helpers']['observed_count'], 2)
+            self.assertEqual(session['helpers']['unidentified']['primary'], 0)
+            self.assertEqual({item['id']:item['parent_id'] for item in session['helpers']['agents']}, {'a':'root','b':'a'})
+            more = doc['resourceMetrics'][0]['scopeMetrics'][0]['metrics'][0]['sum']['dataPoints']
+            more.extend([
+                point(4, **{'session.id':'work','query_source':'subagent','orchestra.agent.id':'c','orchestra.parent.id':'d','orchestra.root.id':'root'}, type='input', model='Sonnet'),
+                point(5, **{'session.id':'work','query_source':'subagent','orchestra.agent.id':'d','orchestra.parent.id':'c','orchestra.root.id':'root'}, type='input', model='Sonnet'),
+                point(6, **{'session.id':'work','query_source':'subagent','orchestra.agent.id':'orphan','orchestra.parent.id':'missing','orchestra.root.id':'root'}, type='output', model='Opus')])
+            path.write_text(json.dumps(doc))
+            uncertain = module.report(path)['analysis']['orchestra']['sessions'][0]
+            self.assertEqual(uncertain['helpers']['observed_count'], 2)
+            self.assertEqual(uncertain['helpers']['unidentified']['primary'], 15)
+            self.assertEqual([(item['key'],item['primary']) for item in uncertain['helpers']['unidentified_models']], [('Sonnet',9),('Opus',6)])
+
+    def test_orchestra_conflicting_identity_goes_to_unknown(self) -> None:
+        spec = importlib.util.spec_from_file_location('usage_report', USAGE)
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        def point(value, **fields):
+            return {'asInt': str(value), 'attributes': [{'key': key, 'value': {'stringValue': val}} for key, val in fields.items()]}
+        root = {'session.id':'work','query_source':'main','orchestra.agent.id':'root','orchestra.root.id':'root'}
+        false_main = {'session.id':'work','query_source':'main','orchestra.agent.id':'helper','orchestra.parent.id':'root','orchestra.root.id':'root'}
+        inverse = {'session.id':'work','query_source':'subagent','orchestra.agent.id':'root','orchestra.parent.id':'root','orchestra.root.id':'root'}
+        doc = {'resourceMetrics':[{'scopeMetrics':[{'metrics':[{'name':'claude_code.token.usage','sum':{'aggregationTemporality':1,'dataPoints':[
+            point(10, **root, type='input', model='Sonnet'),point(7, **false_main, type='output', model='Sonnet'),
+            point(5, **inverse, type='input', model='Opus')]}}]}]}]}
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary)/'metrics.json'
+            first = json.loads(json.dumps(doc))
+            first['resourceMetrics'][0]['scopeMetrics'][0]['metrics'][0]['sum']['dataPoints'].pop()
+            path.write_text(json.dumps(first))
+            before = module.report(path)['analysis']['orchestra']['sessions'][0]
+            self.assertEqual(before['counts']['primary'], 17)
+            self.assertEqual(before['conductor']['counts']['primary'], 10)
+            self.assertEqual(before['unknown']['primary'], 7)
+            path.write_text(json.dumps(doc))
+            session = module.report(path)['analysis']['orchestra']['sessions'][0]
+            self.assertEqual(session['counts']['primary'], 22)
+            self.assertEqual(session['conductor']['counts']['primary'], 0)
+            self.assertEqual(session['helpers']['counts']['primary'], 0)
+            self.assertEqual(session['unknown']['primary'], 22)
+
+
     def test_model_and_style_charts_count_only_input_output_and_safe_history_joins(self) -> None:
         spec = importlib.util.spec_from_file_location('usage_report', USAGE)
         module = importlib.util.module_from_spec(spec)

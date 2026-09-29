@@ -188,8 +188,10 @@ class ConsoleTests(unittest.TestCase):
         before = (self.target / '.claude/settings.json').read_bytes()
         self.assertEqual(install.main([str(self.target), '--uninstall', '--dry-run']), 0)
         self.assertTrue((self.target / '.claude/tools/console/app.js').exists())
+        self.assertTrue((self.target / '.claude/tools/console/orchestra.svg').exists())
         self.assertEqual(install.main([str(self.target), '--uninstall']), 0)
         self.assertFalse((self.target / '.claude/tools/console/app.js').exists())
+        self.assertFalse((self.target / '.claude/tools/console/orchestra.svg').exists())
         self.assertEqual((self.target / '.claude/settings.json').read_bytes(), before)
 
     def test_model_picker_keeps_saved_custom_and_uses_supported_ids(self):
@@ -300,6 +302,7 @@ class ConsoleTests(unittest.TestCase):
         try:
             self.assertIn('Nasıl çalışsın?', request('/').read().decode())
             self.assertIn('English', request('/').read().decode())
+            self.assertIn('<symbol id="conductor"', request('/orchestra.svg').read().decode())
             self.assertEqual(json.load(request('/api/settings'))['scope'], 'project')
             empty = json.load(request('/api/usage', {}))
             self.assertEqual(empty['status'], 'unavailable')
