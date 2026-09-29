@@ -1,1 +1,62 @@
-<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Claude · Yerel Konsol</title><link rel="stylesheet" href="/style.css"><script defer src="/app.js"></script></head><body><header><div class="brand">C<span>Claude Bounded Orchestrator</span></div><span class="badge">Yalnız bu cihaz · Proje kapsamı</span></header><main><div class="intro"><p class="eyebrow">YEREL KONSOL</p><h1>Ekibiniz, görünür ve kontrollü.</h1><p>Rol ayarlarını gözden geçirin, açıkça seçtiğiniz kullanım verilerini inceleyin.</p><p id="target" class="muted"></p></div><nav aria-label="Konsol sayfaları"><button class="active" data-tab="settings" aria-current="page">Ayarlar</button><button data-tab="usage">Kullanım</button><button data-tab="tasks">Görev Ayrıntıları</button></nav><p id="status" role="status" aria-live="polite"></p><section id="settings"><div class="section-title"><div><h2>Model ve çalışma ayarları</h2><p>Değişiklikleri önce önizleyin, ardından kaydedin.</p></div><button id="restore" class="secondary">Önceki güncellemeyi geri yükle</button></div><div class="grid"><label>Hazır profil<select id="preset"><option value="custom">Özel</option><option value="balanced">Dengeli</option><option value="quality">Kalite</option><option value="economy">Ekonomik</option><option value="quota-saver">Tasarruf</option></select></label><label>Maksimum eşzamanlı alt ajan<input id="parallel" type="number" min="1" max="20" value="1"></label></div><p class="note">Concurrency: Claude Code 2.1.217+. Ultracode ve devam ettirilen ajanlar sınırı aşabilir. Effort ve kısa bağlam tercihleri kesin token bütçesi değildir.</p><div class="table-wrap"><table><thead><tr><th>Rol</th><th>Claude modeli</th><th>Effort</th></tr></thead><tbody id="roles"></tbody></table></div><p id="settings-limits" class="note"></p><button id="preview">Değişiklikleri önizle</button><div id="preview-panel" hidden><h3>Kaydedilecek değişiklikler</h3><pre id="preview-text"></pre><button id="save">Bu projeye kaydet</button></div></section><section id="usage" hidden><h2>Kullanım analizi</h2><p>Yerel, temizlenmiş OTLP JSON/JSONL dışa aktarım dosyası seçin. Telemetri kendiliğinden açılmaz.</p><div class="grid"><label>Yerel OTLP dosya yolu<input id="source" placeholder="/path/to/sanitized-metrics.jsonl" autocomplete="off"></label><label>Başlangıç (UTC)<input id="start" type="date"></label><label>Bitiş (UTC)<input id="end" type="date"></label></div><button id="load-usage">Ölçümleri oku</button><div id="usage-result"><p class="empty">Henüz dosya seçilmedi. Resmi etkileşimli görünüm için Claude Code /usage.</p></div></section><section id="tasks" hidden><h2>Görev Ayrıntıları</h2><p>Seçilen projenin yerel görev defterindeki gerçek metadata. Görev tokenları ve maliyetleri ölçülmüyor.</p><div id="task-result"></div></section></main><footer>Claude CLI dışında çalışan yerel araç · Anahtar ve konuşma gövdeleri okunmaz</footer></body></html>
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Claude · Tercihler</title>
+  <link rel="stylesheet" href="/style.css">
+  <script defer src="/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">C</span><span>Claude Bounded Orchestrator</span></div>
+    <div class="top-actions">
+      <span class="badge" data-i18n="localBadge">Bu bilgisayarda</span>
+      <div class="language" role="group" data-i18n-aria="languageChoice">
+        <button type="button" data-lang="tr" aria-pressed="true">Türkçe</button>
+        <button type="button" data-lang="en" aria-pressed="false">English</button>
+      </div>
+    </div>
+  </header>
+  <main>
+    <div class="intro">
+      <p class="eyebrow" data-i18n="eyebrow">YEREL KONSOL</p>
+      <h1 data-i18n="welcome">Çalışma biçiminizi seçin.</h1>
+      <p data-i18n="intro">Tercihlerinizi kaydedin; kullanımınızı ve kayıtlı çalışmalarınızı istediğiniz zaman görün.</p>
+      <details class="project-details"><summary data-i18n="projectDetails">Hangi proje?</summary><p id="target" class="path"></p></details>
+    </div>
+    <nav data-i18n-aria="pagesLabel" aria-label="Sayfalar">
+      <button type="button" class="active" data-tab="settings" aria-current="page" data-i18n="tabSettings">Tercihler</button>
+      <button type="button" data-tab="usage" data-i18n="tabUsage">Kullanım</button>
+      <button type="button" data-tab="tasks" data-i18n="tabTasks">Çalışmalar</button>
+    </nav>
+    <div id="activity" class="activity" role="status" aria-live="polite"></div>
+    <section id="settings" aria-labelledby="settings-heading">
+      <div class="section-title">
+        <div><h2 id="settings-heading" data-i18n="settingsHeading">Nasıl çalışsın?</h2><p data-i18n="settingsIntro">Bir yaklaşım seçin; etkisini kaydetmeden önce görebilirsiniz.</p></div>
+      </div>
+      <div class="choices" role="group" data-i18n-aria="choiceLabel">
+        <label class="choice"><input type="radio" name="approach" value="quota-saver"><span><strong data-i18n="choiceLess">Daha az kullanım</strong><small data-i18n="choiceLessHelp">Daha hafif ayarlar; sonuçlar daha kısa veya az ayrıntılı olabilir.</small></span></label>
+        <label class="choice"><input type="radio" name="approach" value="balanced"><span><strong data-i18n="choiceBalanced">Dengeli</strong><small data-i18n="choiceBalancedHelp">Günlük işler için orta yol.</small></span></label>
+        <label class="choice"><input type="radio" name="approach" value="quality"><span><strong data-i18n="choiceDetailed">Daha ayrıntılı</strong><small data-i18n="choiceDetailedHelp">Daha yoğun inceleme; daha fazla kullanım gerektirebilir.</small></span></label>
+      </div>
+      <div class="summary-grid">
+        <div class="summary-card"><span data-i18n="currently">Şu anda</span><strong id="current-choice"></strong><p id="current-note"></p></div>
+        <div class="summary-card pending"><span data-i18n="afterSaving">Kaydedince</span><strong id="pending-choice"></strong><p id="pending-note"></p></div>
+      </div>
+      <div class="actions"><button type="button" id="preview" data-i18n="checkChanges">Değişiklikleri kontrol et</button><button type="button" id="restore" class="secondary" data-i18n="restore">Son değişikliği geri al</button></div>
+      <div id="preview-panel" class="preview" hidden><h3 data-i18n="previewHeading">Kaydetmeden önce</h3><p id="preview-summary"></p><ul id="preview-changes" class="change-list"></ul><p id="preview-next" class="note"></p><details><summary data-i18n="showDetails">Ayrıntıları göster</summary><pre id="preview-text"></pre></details><button type="button" id="save" data-i18n="save">Kaydet</button></div>
+      <details id="advanced" class="advanced"><summary data-i18n="advanced">İleri ayarlar</summary><p data-i18n="advancedIntro">Modelleri, düşünme düzeyini ve aynı anda çalışacak yardımcı sayısını buradan değiştirebilirsiniz.</p><div class="advanced-grid"><label><span data-i18n="extraPreset">Başka hazır seçenek</span><select id="preset"><option value="custom" data-i18n="custom">Özel ayar</option><option value="balanced" data-i18n="balanced">Dengeli</option><option value="quality" data-i18n="quality">Ayrıntılı</option><option value="economy" data-i18n="economy">Hafif</option><option value="quota-saver" data-i18n="quotaSaver">Daha az kullanım</option></select></label><label><span data-i18n="parallel">Aynı anda çalışacak yardımcı sayısı</span><input id="parallel" type="number" min="1" max="20" value="1"></label></div><div class="table-wrap"><table><thead><tr><th data-i18n="role">Görev</th><th data-i18n="model">Model</th><th data-i18n="effort">Düşünme düzeyi</th></tr></thead><tbody id="roles"></tbody></table></div><details><summary data-i18n="technicalLimits">Teknik sınırlar</summary><p id="settings-limits"></p></details></details>
+    </section>
+    <section id="usage" aria-labelledby="usage-heading" hidden>
+      <h2 id="usage-heading" data-i18n="usageHeading">Toplam kullanım</h2>
+      <p data-i18n="usageIntro">Token, sistemin okuduğu ve yazdığı metnin ölçüsüdür. Buradaki sayılar yalnız seçtiğiniz dosyadan gelir.</p>
+      <div class="actions"><button type="button" id="show-import" class="secondary" data-i18n="chooseUsage">Kullanım dosyası seç</button><button type="button" id="sample" class="secondary" data-i18n="sampleData">Örnek veriler</button></div>
+      <div id="import-panel" class="import-panel" hidden><label><span data-i18n="fileLocation">Kullanım dosyanın konumu</span><input id="source" type="text" autocomplete="off" data-i18n-placeholder="sourcePlaceholder" placeholder="Örn. /Users/.../usage.jsonl"></label><div class="date-row"><label><span data-i18n="fromDate">Başlangıç tarihi</span><input id="start" type="date"></label><label><span data-i18n="toDate">Bitiş tarihi</span><input id="end" type="date"></label></div><button type="button" id="load-usage" data-i18n="readUsage">Kullanımı göster</button><p class="hint" data-i18n="usagePrivacy">Dosya yalnız bu bilgisayarda okunur. Veri toplama kendiliğinden açılmaz.</p><details><summary data-i18n="howUsage">Bu dosyayı nasıl alırım?</summary><p data-i18n="howUsageText">Claude Code kullanım ölçümlerini dışa aktarıyorsanız, kişisel bilgileri çıkarılmış JSON veya JSONL dosyasının konumunu yazın. Dışa aktarımınız yoksa örnek görünümü deneyebilirsiniz.</p></details></div>
+      <div id="usage-result"><p class="empty" data-i18n="usageEmpty">Henüz kullanım dosyası seçilmedi. Dosyanız varsa seçin veya örnek verileri görün.</p></div>
+    </section>
+    <section id="tasks" aria-labelledby="tasks-heading" hidden><h2 id="tasks-heading" data-i18n="tasksHeading">Kayıtlı çalışmalar</h2><p data-i18n="tasksIntro">Burada yalnız bu projede kaydedilmiş çalışmalar görünür.</p><div id="task-result"></div></section>
+  </main>
+  <footer data-i18n="footer">Bu sayfa yalnız bu bilgisayarda açılır. Konuşmalarınız burada gösterilmez.</footer>
+</body>
+</html>

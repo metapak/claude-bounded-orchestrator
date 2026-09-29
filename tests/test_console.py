@@ -163,6 +163,48 @@ class ConsoleTests(unittest.TestCase):
         self.assertFalse((self.target / '.claude/tools/console/app.js').exists())
         self.assertEqual((self.target / '.claude/settings.json').read_bytes(), before)
 
+    def test_browser_token_survives_reload_only_in_same_tab(self):
+        import shutil
+        import subprocess
+        if not shutil.which('node'):
+            self.skipTest('Node is unavailable; browser QA covers reload')
+        program = """const fs=require('fs'),vm=require('vm');
+          const source=fs.readFileSync(process.argv[1],'utf8');
+          const prefix=source.slice(0,source.indexOf('const words ='))+';globalThis.authToken=token;';
+          const values=new Map();
+          function launch(hash){let stripped=false;const context={location:{hash},URLSearchParams,
+            sessionStorage:{setItem:(key,value)=>values.set(key,value),getItem:key=>values.get(key)},
+            history:{replaceState:()=>{stripped=true;}},document:{getElementById:()=>null},
+            localStorage:{getItem:()=>{throw Error('auth must not read persistent storage')},setItem:()=>{throw Error('auth must not write persistent storage')}}};
+            vm.runInNewContext(prefix,context);return [context.authToken,stripped];}
+          if(JSON.stringify(launch('#token=first'))!==JSON.stringify(['first',true]))process.exit(1);
+          if(JSON.stringify(launch(''))!==JSON.stringify(['first',false]))process.exit(2);
+          if(JSON.stringify(launch('#token=second'))!==JSON.stringify(['second',true]))process.exit(3);
+          if(JSON.stringify(launch(''))!==JSON.stringify(['second',false]))process.exit(4);"""
+        result = subprocess.run(['node', '-e', program, str(ROOT / '.claude/tools/console/app.js')], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_ui_translation_catalogs_cover_all_static_labels(self):
+        import re
+        import shutil
+        import subprocess
+        script = ROOT / '.claude/tools/console/app.js'
+        html = (ROOT / '.claude/tools/console/index.html').read_text()
+        source = script.read_text()
+        keys = set(re.findall(r'data-i18n(?:-aria|-placeholder)?="([^"]+)"', html))
+        if shutil.which('node'):
+            program = """const fs=require('fs'),vm=require('vm');const s=fs.readFileSync(process.argv[1],'utf8');
+              const fragment=s.slice(s.indexOf('const words ='),s.indexOf('const roleNames='));
+              const labels=vm.runInNewContext(fragment+'; words');
+              if(JSON.stringify(Object.keys(labels.tr).sort())!==JSON.stringify(Object.keys(labels.en).sort())) process.exit(1);
+              for(const language of ['tr','en'])for(const key of process.argv.slice(2))if(!labels[language][key])process.exit(2);"""
+            result = subprocess.run(['node', '-e', program, str(script), *sorted(keys)], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            subprocess.run(['node', '--check', str(script)], check=True)
+        else:
+            # Runtime browser QA covers the JavaScript path on systems without Node.
+            self.assertIn('const words =', source)
+
     def test_actual_http_auth_origin_body_and_usage(self):
         server, token = configure.make_server(self.target)
         thread = threading.Thread(target=server.serve_forever, daemon=True)
@@ -175,7 +217,8 @@ class ConsoleTests(unittest.TestCase):
             req = urllib.request.Request(origin + path, headers=headers, data=json.dumps(payload).encode() if payload is not None else None)
             return urllib.request.urlopen(req, timeout=3)
         try:
-            self.assertIn('Görev Ayrıntıları', request('/').read().decode())
+            self.assertIn('Nasıl çalışsın?', request('/').read().decode())
+            self.assertIn('English', request('/').read().decode())
             self.assertEqual(json.load(request('/api/settings'))['scope'], 'project')
             self.assertEqual(json.load(request('/api/usage', {}))['status'], 'unavailable')
             for kwargs in [{'authenticated': False}, {'remote': True}]:
