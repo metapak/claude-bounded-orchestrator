@@ -48,6 +48,34 @@ class ConsoleTests(unittest.TestCase):
         self.settings.restore()
         self.assertEqual(path.read_bytes(), before)
 
+    def test_private_style_history_tracks_save_restore_and_breaks_on_manifest_drift(self):
+        import subprocess
+        payload = self.payload()
+        payload['revision'] = self.settings.plan(payload)[2]['revision']
+        self.assertTrue(self.settings.save(payload)['history_recorded'])
+        history_path = self.target / '.claude/.bounded-orchestrator/profile-history.json'
+        self.assertTrue(history_path.is_file())
+        self.assertEqual(self.settings.usage_history()[-1]['preset'], 'economy')
+        text = history_path.read_text()
+        self.assertNotIn(str(self.target), text)
+        self.assertNotIn('CLAUDE_CODE', text)
+        self.assertTrue(self.settings.restore()['history_recorded'])
+        self.assertEqual([row['preset'] for row in self.settings.usage_history()], ['economy', 'balanced'])
+        subprocess.run(['git', 'init', '-q'], cwd=self.target, check=True)
+        self.assertEqual(subprocess.run(['git', 'check-ignore', '-q', str(history_path)], cwd=self.target).returncode, 0)
+        # Separate installer changes invalidate old intervals rather than
+        # letting the next console Save bridge an unobserved configuration.
+        self.assertEqual(install.main([str(self.target), '--preset', 'quality']), 0)
+        self.assertEqual(self.settings.usage_history(), [])
+        changed = self.settings.read()
+        again = {'preset': 'economy', 'routing': changed['presets']['economy'], 'max_parallelism': 2}
+        again['revision'] = self.settings.plan(again)[2]['revision']
+        self.assertTrue(self.settings.save(again)['history_recorded'])
+        self.assertEqual(len(self.settings.usage_history()), 1)
+        self.assertEqual(install.main([str(self.target), '--uninstall']), 0)
+        self.assertTrue(history_path.exists())
+        self.assertEqual(subprocess.run(['git', 'check-ignore', '-q', str(history_path)], cwd=self.target).returncode, 0)
+
     def test_fresh_project_save_installs_and_preserves_shared_settings(self):
         with tempfile.TemporaryDirectory() as temporary:
             target = Path(temporary)
@@ -73,7 +101,8 @@ class ConsoleTests(unittest.TestCase):
                  ('.claude/.bounded-orchestrator', True),
                  ('.claude/.bounded-orchestrator/backups', True),
                  ('.claude/.bounded-orchestrator/install.json', False),
-                 ('.claude/.bounded-orchestrator/console-update.json', False)]
+                 ('.claude/.bounded-orchestrator/console-update.json', False),
+                 ('.claude/.bounded-orchestrator/profile-history.json', False)]
         def snapshot(root):
             records = {}
             for path in sorted(root.rglob('*')):
@@ -186,6 +215,23 @@ class ConsoleTests(unittest.TestCase):
         result = subprocess.run(['node', '-e', program, str(ROOT / '.claude/tools/console/app.js')], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_dated_usage_rows_match_primary_chart_total(self):
+        import shutil
+        import subprocess
+        if not shutil.which('node'):
+            self.skipTest('Node is unavailable; browser QA covers chart rows')
+        program = """const fs=require('fs'),vm=require('vm');const source=fs.readFileSync(process.argv[1],'utf8');
+          const fragment=source.slice(source.indexOf('function primaryEvent('),source.indexOf('function chart('));
+          const accept=vm.runInNewContext(fragment+'; primaryEvent');
+          const rows=[{unit:'tokens',metric:'claude_code.token.usage',type:'input',value:1200},
+            {unit:'tokens',metric:'claude_code.token.usage',type:'output',value:350},
+            {unit:'tokens',metric:'claude_code.token.usage',type:'cacheRead',value:600},
+            {unit:'tokens',metric:'other.token.usage',type:'input',value:90}];
+          if(rows.filter(accept).reduce((sum,row)=>sum+row.value,0)!==1550)process.exit(1);
+          if(!source.includes('if(!primaryEvent(event))continue;'))process.exit(2);"""
+        result = subprocess.run(['node', '-e', program, str(ROOT / '.claude/tools/console/app.js')], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_custom_saved_model_preview_save_restore(self):
         payload = self.payload()
         payload['preset'] = 'custom'
@@ -255,7 +301,19 @@ class ConsoleTests(unittest.TestCase):
             self.assertIn('Nasıl çalışsın?', request('/').read().decode())
             self.assertIn('English', request('/').read().decode())
             self.assertEqual(json.load(request('/api/settings'))['scope'], 'project')
-            self.assertEqual(json.load(request('/api/usage', {}))['status'], 'unavailable')
+            empty = json.load(request('/api/usage', {}))
+            self.assertEqual(empty['status'], 'unavailable')
+            self.assertEqual(empty['analysis']['style_attribution'], 'unavailable')
+            metrics = self.target / 'sanitized-usage.json'
+            metrics.write_text(json.dumps({'resourceMetrics': [{'scopeMetrics': [{'metrics': [{
+                'name': 'claude_code.token.usage', 'sum': {'aggregationTemporality': 1, 'dataPoints': [
+                    {'asInt': '12', 'attributes': [{'key': 'type', 'value': {'stringValue': 'input'}},
+                                                  {'key': 'model', 'value': {'stringValue': 'Sonnet'}}]}
+                ]}}]}]}]}))
+            imported = json.load(request('/api/usage', {'path': str(metrics)}))
+            self.assertEqual(imported['analysis']['models'][0]['primary'], 12)
+            self.assertEqual(imported['analysis']['styles'][0]['key'], 'unknown')
+            self.assertEqual(imported['events'][0]['metric'], 'claude_code.token.usage')
             for kwargs in [{'authenticated': False}, {'remote': True}]:
                 with self.assertRaises(urllib.error.HTTPError) as caught: request('/api/preview', self.payload(), **kwargs)
                 self.assertEqual(caught.exception.code, 403)

@@ -98,7 +98,8 @@ def make_server(target, port=0):
                     path = Path(payload['path']).expanduser().resolve() if payload.get('path') else None
                     if path and (not path.is_file() or path.suffix.lower() not in {'.json', '.jsonl'}):
                         raise ValueError('Select a local sanitized JSON/JSONL OTLP file')
-                    result = report(path, payload.get('start') or None, payload.get('end') or None)
+                    result = report(path, payload.get('start') or None, payload.get('end') or None,
+                                    settings.usage_history(), settings.project_hash())
                 else:
                     return self.respond(404, {'error': 'Not found'})
                 self.respond(200, result)

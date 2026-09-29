@@ -2,9 +2,12 @@
 from __future__ import annotations
 import hashlib
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 STATE = Path('.claude/.bounded-orchestrator/console-update.json')
+HISTORY = Path('.claude/.bounded-orchestrator/profile-history.json')
+HISTORY_LIMIT = 1024 * 1024
 CONCURRENCY = 'CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS'
 
 
@@ -35,7 +38,7 @@ class Settings:
         # including its shared settings fallback, block, manifest and backups.
         files = (*self.i.BASE_MANAGED_FILES, self.i.SETTINGS_RELATIVE,
                  self.i.SETTINGS_EXAMPLE_RELATIVE, Path('CLAUDE.md'),
-                 self.i.MANIFEST_RELATIVE, STATE)
+                 self.i.MANIFEST_RELATIVE, STATE, HISTORY)
         for relative in files:
             destination = self.path(relative)
             if destination.exists() and not destination.is_file():
@@ -69,6 +72,63 @@ class Settings:
                 'presets': {key: {role: {'model': pair[0], 'effort': pair[1]} for role, pair in value.items()} for key, value in self.i.PRESETS.items()},
                 'limitations': 'Project files shown. Managed/local settings, environment and CLI/session choices may override them. Concurrency requires Claude Code 2.1.217+; ultracode and resumed agents can bypass it.'}
 
+    def project_hash(self):
+        return hashlib.sha256(str(self.target).encode('utf-8')).hexdigest()
+
+    def usage_history(self):
+        path = self.path(HISTORY)
+        manifest_path = self.path(self.i.MANIFEST_RELATIVE)
+        if not path.exists() or not manifest_path.is_file() or path.stat().st_size > HISTORY_LIMIT:
+            return []
+        try:
+            data = json.loads(path.read_text(encoding='utf-8'))
+            entries = data['entries']
+            if data.get('schema') != 1 or not isinstance(entries, list) or len(entries) > 4096:
+                return []
+            if not entries or entries[-1].get('manifest_sha256') != self.i.digest(manifest_path):
+                return []
+            previous = ''
+            for entry in entries:
+                if (not isinstance(entry, dict) or entry.get('project_hash') != self.project_hash()
+                    or entry.get('preset') not in {*self.i.PRESETS, 'custom'}
+                    or not isinstance(entry.get('timestamp'), str)
+                    or entry['timestamp'] <= previous):
+                    return []
+                datetime.fromisoformat(entry['timestamp'].replace('Z', '+00:00'))
+                previous = entry['timestamp']
+            return entries
+        except (OSError, ValueError, KeyError, TypeError):
+            return []
+
+    def record_history(self, preset, previous_manifest_sha256=None):
+        path = self.path(HISTORY)
+        manifest = self.path(self.i.MANIFEST_RELATIVE)
+        if preset not in {*self.i.PRESETS, 'custom'}:
+            return False
+        try:
+            if path.exists() and path.stat().st_size > HISTORY_LIMIT:
+                return False
+            old = json.loads(path.read_text(encoding='utf-8')) if path.exists() else {'schema': 1, 'entries': []}
+            if old.get('schema') != 1 or not isinstance(old.get('entries'), list):
+                return False
+            # A separate installer run creates an unobserved interval. Do not
+            # bridge it with old style history after this console write.
+            if old['entries'] and old['entries'][-1].get('manifest_sha256') != previous_manifest_sha256:
+                old['entries'] = []
+            stamp = datetime.now(timezone.utc).isoformat()
+            if old['entries'] and stamp <= old['entries'][-1].get('timestamp', ''):
+                return False
+            old['entries'].append({'timestamp': stamp, 'preset': preset,
+                                   'project_hash': self.project_hash(),
+                                   'manifest_sha256': self.i.digest(manifest)})
+            content = json.dumps(old, indent=2) + '\n'
+            if len(content.encode('utf-8')) > HISTORY_LIMIT:
+                return False
+            self.i.atomic_text(path, content, False)
+            return True
+        except (OSError, ValueError, TypeError, KeyError):
+            return False
+
     def plan(self, payload):
         if not isinstance(payload, dict) or set(payload) - {'preset', 'routing', 'max_parallelism', 'revision'}:
             raise ValueError('Unknown settings fields')
@@ -92,6 +152,7 @@ class Settings:
         if preset not in {*self.i.PRESETS, 'custom'}:
             raise ValueError('Unknown preset')
         self.path(self.i.MANIFEST_RELATIVE)
+        self.path(HISTORY)
         manifest = self.i.load_manifest(self.target)
         initial = not manifest.get('files')
         if initial:
@@ -141,6 +202,7 @@ class Settings:
             if self.i.main([str(self.target)]) != 0:
                 raise ValueError('Initial installation failed; inspect installer output')
             manifest = self.i.load_manifest(self.target)
+        previous_manifest_sha256 = self.i.digest(self.path(self.i.MANIFEST_RELATIVE))
         state_path = self.path(STATE)
         before = json.loads(json.dumps(manifest))
         records = {}
@@ -161,7 +223,8 @@ class Settings:
         self.i.save_manifest(self.target, manifest, self.root, False)
         state['manifest_after_sha256'] = self.i.digest(self.path(self.i.MANIFEST_RELATIVE))
         self.i.atomic_text(state_path, json.dumps(state, indent=2) + '\n', False)
-        return {'saved': True, 'message': 'Project saved. Restart Claude Code; unrelated settings preserved.'}
+        recorded = self.record_history(manifest['preset'], previous_manifest_sha256)
+        return {'saved': True, 'history_recorded': recorded, 'message': 'Project saved. Restart Claude Code; unrelated settings preserved.'}
 
     def restore(self):
         state_path = self.path(STATE)
@@ -172,6 +235,7 @@ class Settings:
         manifest_path = self.path(self.i.MANIFEST_RELATIVE)
         if not manifest_path.is_file() or self.i.digest(manifest_path) != state.get('manifest_after_sha256'):
             raise ValueError('Install manifest changed after save; restore refused')
+        previous_manifest_sha256 = self.i.digest(manifest_path)
         manifest = self.i.load_manifest(self.target)
         if manifest.get('routing') != self.read()['routing']:
             raise ValueError('Configuration changed after save; restore refused')
@@ -195,4 +259,5 @@ class Settings:
                 self.i.atomic_text(path, content, False)
         self.i.save_manifest(self.target, state['manifest'], self.root, False)
         state_path.unlink()
-        return {'restored': True}
+        recorded = self.record_history(state['manifest'].get('preset', 'custom'), previous_manifest_sha256)
+        return {'restored': True, 'history_recorded': recorded}
