@@ -486,20 +486,30 @@ class ConsoleTests(unittest.TestCase):
           const templates=source.slice(source.indexOf('const TASK_TEMPLATES='),source.indexOf('function t(')).replace('let selectedTaskProfile=null,taskDraftBefore=null,stagePage=0;','');
           const apply=source.slice(source.indexOf('function applyTaskTemplate('),source.indexOf('function setRosterCount('));
           const context={config:{presets:JSON.parse(process.argv[2])},routingState:{},rosterState:[],rosterPresetSeeded:false,
-            selectedTeamSlot:'owner',stagePage:0,selectedTaskProfile:null,style:'balanced',
-            selectedPreset:()=>context.style,roles:value=>{context.routingState=JSON.parse(JSON.stringify(value))},
-            $:()=>context.parallel};context.parallel={value:'1'};
+            selectedTeamSlot:'owner',stagePage:0,selectedTaskProfile:null,preset:{value:'balanced'},parallel:{value:'1'},
+            selectedPreset:()=>context.preset.value,roles:value=>{context.routingState=JSON.parse(JSON.stringify(value))},
+            $:id=>id==='preset'?context.preset:context.parallel};
           vm.createContext(context);vm.runInContext(templates+apply+';globalThis.run=applyTaskTemplate;globalThis.templates=TASK_TEMPLATES;',context);
-          if(context.templates.length!==10)process.exit(1);
+          const expected={game:'quality',website:'balanced',research:'balanced',backend:'quality',mobile:'balanced',data:'balanced',bug:'economy',security:'quality'};
+          if(context.templates.length!==8||context.templates.some(x=>expected[x.id]!==x.intensity))process.exit(1);
           const signatures=new Set(context.templates.map(x=>JSON.stringify([x.roles,x.effort,x.parallel])));
-          if(signatures.size!==10)process.exit(2);
-          for(const style of ['balanced','quality','economy','quota-saver'])for(const task of context.templates){
-            context.style=style;context.selectedTaskProfile=task.id;context.run();
-            if(context.rosterState.length!==task.roles.length||Number(context.parallel.value)!==task.parallel)process.exit(3);
-            if(context.rosterState.some((slot,i)=>slot.id!=='slot-'+String(i+1).padStart(2,'0')||slot.role!==task.roles[i]))process.exit(4);
-            if(['economy','quota-saver'].includes(style)&&[context.routingState.owner.model,...context.rosterState.map(x=>x.model)].some(x=>x==='opus'||x.includes('opus')))process.exit(5);
+          if(signatures.size!==8)process.exit(2);
+          for(const task of context.templates){
+            context.preset.value='quota-saver';context.selectedTaskProfile=task.id;context.run();
+            if(context.preset.value!==task.intensity)process.exit(3);
+            if(context.rosterState.length!==task.roles.length||Number(context.parallel.value)!==task.parallel)process.exit(4);
+            if(context.rosterState.some((slot,i)=>slot.id!=='slot-'+String(i+1).padStart(2,'0')||slot.role!==task.roles[i]||slot.model!==context.config.presets[task.intensity][slot.role].model||slot.effort!==context.config.presets[task.intensity][slot.role].effort))process.exit(5);
+            if(context.routingState.owner.model!==context.config.presets[task.intensity].owner.model)process.exit(6);
+            context.parallel.value='9';context.rosterState[0].label='manual';
+            for(const style of ['economy','quota-saver']){
+              context.preset.value=style;context.run(true);
+              if(context.preset.value!==style)process.exit(7);
+              if([context.routingState.owner.model,...context.rosterState.map(x=>x.model)].some(x=>x==='opus'||x.includes('opus')))process.exit(8);
+              if(context.parallel.value!=='9'||context.rosterState[0].label!=='manual'||context.rosterState.length!==task.roles.length)process.exit(11);
+            }
           }
-          if(!source.includes('taskVisualHint:')||!source.includes('capable image tool'))process.exit(6);"""
+          if(!source.includes('rosterPresetSeeded,selectedTeamSlot,stagePage')||!source.includes('rosterPresetSeeded=old.rosterPresetSeeded'))process.exit(9);
+          if(source.includes("{id:'visual'")||source.includes("{id:'docs'"))process.exit(10);"""
         result = subprocess.run(['node', '-e', program, str(ROOT / '.claude/tools/console/app.js'), json.dumps(presets)],
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
