@@ -338,8 +338,16 @@ def report(path: Path | None, start: str | None = None, end: str | None = None,
         row["style"] = styles.get(row["thread"], "unknown")
     chart_totals = {kind: sum(row["value"] for row in filtered if row["type"] == kind) for kind in TOKEN_TYPES}
     chart_totals["primary"] = chart_totals["input"] + chart_totals["output"]
+    # These are measurement timestamps, never inferred task events or elapsed time.
+    time_buckets = defaultdict(lambda: {"input": 0, "output": 0, "cacheRead": 0, "cacheCreation": 0})
+    for row in filtered:
+        time_buckets[row["date"][:10] if row["date"] else None][row["type"]] += row["value"]
+    timeline = []
+    for observed_at, counts in sorted(time_buckets.items(), key=lambda item: (item[0] is None, item[0] or "")):
+        timeline.append({"observed_at": observed_at, **counts,
+                         "primary": counts["input"] + counts["output"]})
     base["analysis"] = {"models": _chart(filtered, "model"), "styles": _chart(filtered, "style"),
-                        "totals": chart_totals,
+                        "totals": chart_totals, "timeline": timeline,
                         "orchestra": _orchestra(chart_rows, filtered),
                         "style_attribution": "estimated_from_settings_history" if any(row["style"] != "unknown" for row in filtered) else "unavailable"}
     return base

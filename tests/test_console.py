@@ -86,6 +86,11 @@ class ConsoleTests(unittest.TestCase):
         manifest_path = self.target / install.MANIFEST_RELATIVE
         manifest = json.loads(manifest_path.read_text())
         manifest['roster'] = [{'id': f'slot-{index:02d}', 'role': 'explorer', 'model': 'sonnet', 'effort': 'low', 'label': ''} for index in range(1, 12)]
+        for slot in manifest['roster']:
+            relative = self.settings.slot_path(slot['id'])
+            path = self.target / relative
+            path.write_text(self.settings.render_slot(slot))
+            manifest['files'][relative.as_posix()] = {'owned': True, 'sha256': install.digest(path)}
         manifest_path.write_text(json.dumps(manifest))
         read = self.settings.read()
         self.assertEqual(len(read['roster']), 11)
@@ -93,6 +98,10 @@ class ConsoleTests(unittest.TestCase):
         payload = {**self.payload(), 'roster': read['roster'][:10]}
         with self.assertRaisesRegex(ValueError, 'read-only'):
             self.settings.plan(payload)
+        # An oversized legacy roster remains intact while chief routing can change.
+        payload['roster'] = read['roster']
+        payload['routing']['owner'] = {'model': 'sonnet', 'effort': 'low'}
+        self.assertEqual(self.settings.plan(payload)[2]['roster'], read['roster'])
 
     def test_preview_save_restore_preserves_unrelated_settings(self):
         path = self.target / '.claude/settings.json'
@@ -279,7 +288,8 @@ class ConsoleTests(unittest.TestCase):
           const saved=context.options('claude-private-legacy');
           if(saved[0].value!=='claude-private-legacy'||!saved[0].saved||saved.length!==context.catalog.length+1)process.exit(2);
           const known=context.options('sonnet');if(known.length!==context.catalog.length||known.some(item=>item.saved))process.exit(3);
-          if(!source.includes("const select=node('select');select.dataset.roleModel='';"))process.exit(4);"""
+          if(!source.includes("function modelCards(value,onChoose)")||!source.includes("aria-pressed',String(choice.value===current)"))process.exit(4);
+          if(source.includes("const select=node('select');select.dataset.roleModel='';"))process.exit(5);"""
         result = subprocess.run(['node', '-e', program, str(ROOT / '.claude/tools/console/app.js')], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
 

@@ -82,6 +82,8 @@ class UsageAndEvalTests(unittest.TestCase):
             self.assertEqual(session['helpers']['observed_count'], 0)
             self.assertEqual(session['helpers']['agents'], [])
             self.assertEqual(session['helpers']['unidentified']['primary'], 40)
+            self.assertEqual(module.report(path)['analysis']['timeline'], [
+                {'observed_at': None, 'input': 50, 'output': 10, 'cacheRead': 0, 'cacheCreation': 0, 'primary': 60}])
 
     def test_orchestra_nested_parent_chain_counts_two_helpers(self) -> None:
         spec = importlib.util.spec_from_file_location('usage_report', USAGE)
@@ -179,6 +181,9 @@ class UsageAndEvalTests(unittest.TestCase):
             analysis = result['analysis']
             self.assertEqual(analysis['totals']['primary'], 205)
             self.assertEqual(analysis['totals']['cacheRead'], 50)
+            self.assertEqual(sum(row['primary'] for row in analysis['timeline']), 205)
+            self.assertEqual(sum(row['cacheRead'] for row in analysis['timeline']), 50)
+            self.assertTrue(all(row['observed_at'] for row in analysis['timeline']))
             self.assertEqual([(row['key'], row['primary']) for row in analysis['styles']],
                              [('balanced', 130), ('economy', 60), ('unknown', 15)])
             self.assertEqual([(row['key'], row['primary']) for row in analysis['models']],
@@ -186,6 +191,8 @@ class UsageAndEvalTests(unittest.TestCase):
             self.assertEqual(analysis['style_attribution'], 'estimated_from_settings_history')
             day_two = module.report(path, start='2026-09-28', end='2026-09-28', history=history, project_hash=digest)
             self.assertEqual(day_two['analysis']['totals']['primary'], 75)
+            self.assertEqual(sum(row['primary'] for row in day_two['analysis']['timeline']), 75)
+            self.assertTrue(all(row['observed_at'].startswith('2026-09-28') for row in day_two['analysis']['timeline']))
             self.assertEqual(day_two['analysis']['styles'][0]['key'], 'economy')
             no_history = module.report(path)['analysis']
             self.assertEqual(no_history['styles'][0]['key'], 'unknown')
