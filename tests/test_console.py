@@ -514,6 +514,26 @@ class ConsoleTests(unittest.TestCase):
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_selected_usage_counts_follow_only_observed_actor(self):
+        import shutil
+        import subprocess
+        if not shutil.which('node'):
+            self.skipTest('Node unavailable; browser QA covers actor selection')
+        program = """const fs=require('fs'),vm=require('vm');const source=fs.readFileSync(process.argv[1],'utf8');
+          const fragment=source.slice(source.indexOf('function selectedUsageCounts('),source.indexOf('function orchestraStage('));
+          const selected=vm.runInNewContext(fragment+'; selectedUsageCounts');
+          const session={conductor:{observed:true,counts:{primary:100,input:70,output:30,cacheRead:25}},
+            helpers:{unidentified:{primary:40,input:30,output:10,cacheRead:15},agents:[
+              {id:'research-a',counts:{primary:50,input:35,output:15,cacheRead:5}},
+              {id:'review-b',counts:{primary:20,input:15,output:5,cacheRead:2}}]}};
+          if(selected(session,'conductor').primary!==100||selected(session,'agent:research-a').primary!==50||selected(session,'agent:review-b').output!==5||selected(session,'group').primary!==40)process.exit(1);
+          if(selected(null,'conductor')!==null||selected(session,'agent:missing')!==null)process.exit(2);
+          session.conductor.observed=false;if(selected(session,'conductor')!==null)process.exit(3);
+          if(selected(session,'agent:research-a').cacheRead!==5)process.exit(4);"""
+        result = subprocess.run(['node', '-e', program, str(ROOT / '.claude/tools/console/app.js')],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_dated_usage_rows_match_primary_chart_total(self):
         import shutil
         import subprocess

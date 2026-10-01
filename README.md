@@ -193,7 +193,7 @@ This project does not turn model instructions into a security boundary. The nati
 
 ## Project status
 
-Version `0.5.0` provides the bounded workflow, local browser setup with a configurable real helper team, opt-in OpenTelemetry usage views, candidate-bound local evaluation, and recoverable task attempts. The orchestra uses distinct characters for known duties; click the conductor to start its animation and click elsewhere to stop. It shows observed token shares, not live activity, context-window fill, or quota remaining. The project adapts [Codex Bounded Orchestrator](https://github.com/metapak/codex-bounded-orchestrator) to Claude Code's native project agents, skills, shared instructions, and settings. See [NOTICE](NOTICE) and [provenance](docs/provenance.md) for attribution.
+Version `0.5.0` provides the bounded workflow, local browser setup with a configurable real helper team, opt-in OpenTelemetry usage views, candidate-bound local evaluation, and recoverable task attempts. The orchestra uses distinct characters for known duties; the conductor animates decoratively unless reduced motion is preferred. It shows observed token shares, not live activity, context-window fill, or quota remaining. The project adapts [Codex Bounded Orchestrator](https://github.com/metapak/codex-bounded-orchestrator) to Claude Code's native project agents, skills, shared instructions, and settings. See [NOTICE](NOTICE) and [provenance](docs/provenance.md) for attribution.
 
 If the project helps your team, a GitHub star helps other people discover it. Issues and focused pull requests are welcome.
 
