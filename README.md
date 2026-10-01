@@ -1,7 +1,7 @@
 [English](README.md) · [Türkçe](README.tr.md)
 
 <p align="center">
-  <img src="docs/assets/cover-en.svg" alt="Warm orchestra-stage illustration for Claude Bounded Orchestrator with a conductor and distinct helper characters" width="100%">
+  <img src="docs/assets/cover-en.svg" alt="Claude Code team setup: one chief, distinct specialists, reviewed changes and opt-in OTLP usage" width="100%">
 </p>
 
 # Claude Bounded Orchestrator
@@ -12,6 +12,8 @@
 **Set up a specialist team for Claude Code from a local browser page.**
 
 You still describe the work normally. The main Claude session coordinates and speaks with you; helpers do the assigned work. The browser also shows settings and past usage.
+
+![Choose duties and Claude models for each specialist, then read opt-in past usage](docs/assets/team-guide-en.svg)
 
 ## Install in four steps
 
@@ -35,15 +37,28 @@ python3 scripts/configure.py /absolute/path/to/your-project
 
 To change the team later, open the launcher again (or repeat the Linux command) and use **Save**. It updates the project settings without uninstalling. An already-open Claude Code session may need to be reopened before it uses the changes. If setup does not open, see the [Mac/Linux](INSTALL-MACOS.md) or [Windows](INSTALL-WINDOWS.md) guide.
 
-## Watch the 8-second preview
+## Inside the local console
 
-<p><img src="docs/assets/bounded-orchestrator-intro-8s.gif" alt="Animated sample Codex orchestra with conductor and four helpers" width="480"></p>
+**Preferences — plan your team.** Choose a task draft and work intensity, then set each helper’s duty, Claude model and effort before checking changes.
+
+![Current Claude Preferences screen with task drafts and a planned specialist orchestra](docs/assets/preferences-en.png)
+
+*Captured from the running Claude console using an empty disposable project. These are unsaved setup choices.*
+
+**Usage — inspect past records.** Import your own explicitly supplied OTLP export, or use the built-in sample to explore the charts and observed orchestra.
+
+![Current Claude Usage screen showing labeled synthetic sample data](docs/assets/console-en.png)
+
+*Captured from the running Claude console. Built-in synthetic sample data; no personal usage, live agent activity, or account quota is shown.*
+
+<details>
+<summary>Watch the shared 8-second family preview</summary>
+
+<p><img src="docs/assets/bounded-orchestrator-intro-8s.gif" alt="Shared Codex sample preview with a conductor and four helpers" width="480"></p>
 
 Silent, with Turkish titles. This shared-family preview uses sample Codex UI, not a Claude Code recording or live data. [Download the original MP4](https://raw.githubusercontent.com/metapak/claude-bounded-orchestrator/main/docs/assets/bounded-orchestrator-intro-8s.mp4).
 
-![Current Usage screen in English showing sanitized built-in sample data and an orchestra of three illustrated actors](docs/assets/console-en.png)
-
-*Illustrative demo of the current Usage screen. It uses built-in sanitized sample data, not your project settings or usage.*
+</details>
 
 Linux uses the short command above for the same browser page; it has no double-click launcher here. The [macOS/Linux guide](INSTALL-MACOS.md) and [Windows guide](INSTALL-WINDOWS.md) cover opening problems and manual setup. Native double-click launch and a live Claude Code session have not been verified by repository tests.
 

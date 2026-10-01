@@ -1,7 +1,7 @@
 [English](README.md) · [Türkçe](README.tr.md)
 
 <p align="center">
-  <img src="docs/assets/cover-tr.svg" alt="Claude Bounded Orchestrator için sıcak renkli orkestra sahnesinde şef ve farklı yardımcı karakterleri" width="100%">
+  <img src="docs/assets/cover-tr.svg" alt="Claude Code ekip kurulumu: tek şef, farklı uzmanlar, değişiklik önizlemesi ve isteğe bağlı OTLP kullanımı" width="100%">
 </p>
 
 # Claude Bounded Orchestrator
@@ -12,6 +12,8 @@
 **Claude Code için uzman ekibini yerel tarayıcı sayfasından kurun.**
 
 İsteğinizi yine normal şekilde anlatırsınız. Ana Claude oturumu sizinle konuşur ve işleri düzenler; verilen işleri yardımcılar yapar. Tarayıcıda ayarları ve geçmiş kullanımı da görürsünüz.
+
+![Her uzman için görev ve Claude modeli seçin; isteğe bağlı geçmiş kullanımı okuyun](docs/assets/team-guide-tr.svg)
 
 ## Dört adımda kurulum
 
@@ -35,15 +37,28 @@ python3 scripts/configure.py /projenizin/tam/yolu
 
 Ekibi daha sonra değiştirmek için başlatıcıyı yeniden açıp (Linux'ta komutu yineleyip) **Kaydet** düğmesini kullanın. Ayarlar projeye hemen yazılır; silip yeniden kurmanız gerekmez. Açık Claude Code oturumunun yeni ayarları kullanması için oturumu yeniden açmanız gerekebilir. Kurulum açılmazsa [Mac/Linux](INSTALL-MACOS.md) veya [Windows](INSTALL-WINDOWS.md) rehberine bakın.
 
-## 8 saniyelik hareketli önizleme
+## Yerel konsolun içinde
+
+**Tercihler — ekibinizi planlayın.** Bir iş taslağı ve çalışma yoğunluğu seçin; değişiklikleri kontrol etmeden önce her yardımcının görevini, Claude modelini ve düşünme düzeyini ayarlayın.
+
+![İş taslaklarını ve planlanan uzman orkestrasını gösteren güncel Claude Tercihler ekranı](docs/assets/preferences-tr.png)
+
+*Çalışan Claude konsolundan, boş bir geçici projede alındı. Bunlar henüz kaydedilmemiş kurulum seçimleridir.*
+
+**Kullanım — geçmiş kayıtları inceleyin.** Açıkça sağladığınız OTLP dosyasını yükleyin veya grafik ve gözlemlenen orkestrayı incelemek için yerleşik örneği açın.
+
+![Sentetik örnek verileri etiketleriyle gösteren güncel Claude Kullanım ekranı](docs/assets/console-tr.png)
+
+*Çalışan Claude konsolundan alındı. Yerleşik sentetik örnek veridir; kişisel kullanım, canlı ajan etkinliği veya hesap kotası göstermez.*
+
+<details>
+<summary>Ortak ailenin 8 saniyelik önizlemesini izleyin</summary>
 
 <p><img src="docs/assets/bounded-orchestrator-intro-8s.gif" alt="Şef ve dört yardımcıyla örnek Codex orkestrasının hareketli görüntüsü" width="480"></p>
 
 Sessizdir; Türkçe başlıklar içerir. Ortak aile tanıtımında örnek Codex ekranı vardır; Claude Code kaydı veya canlı veri değildir. [Orijinal MP4 dosyasını indirin](https://raw.githubusercontent.com/metapak/claude-bounded-orchestrator/main/docs/assets/bounded-orchestrator-intro-8s.mp4).
 
-![Yerel konsolun Türkçe Kullanım ekranında temizlenmiş yerleşik örnek veriler ve üç çizim karakteri](docs/assets/console-tr.png)
-
-*Güncel Kullanım ekranının temsili örneği. Yerleşik temizlenmiş örnek veriler kullanılır; değerler sizin proje ayarlarınız veya kullanımınız değildir.*
+</details>
 
 Linux'ta aynı tarayıcı sayfası yukarıdaki kısa komutla açılır; bu pakette çift tıklamalı Linux başlatıcısı yoktur. Açılış sorunları ve elle kurulum için [macOS/Linux rehberine](INSTALL-MACOS.md) veya [Windows rehberine](INSTALL-WINDOWS.md) bakın. Depo testleri çift tıklamayla açılışı ve canlı Claude Code oturumunu doğrulamaz.
 
