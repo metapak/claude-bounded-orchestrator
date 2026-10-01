@@ -374,13 +374,18 @@ class ConsoleTests(unittest.TestCase):
         keys = set(re.findall(r'data-i18n(?:-aria|-placeholder)?="([^"]+)"', html))
         keys.update({'observedModelShort', 'observedModelFull', 'configuredEffortShort', 'configuredEffortFull',
                      'chiefClickHint', 'effortLow', 'effortMedium', 'effortHigh', 'effortXhigh', 'effortMax',
-                     'helperSlot', 'helperCurrent', 'helperNone', 'helperChanged', 'helperReadonly', 'teamPreview', 'install', 'installDone', 'consoleClosed'})
+                     'helperSlot', 'helperCurrent', 'helperNone', 'helperChanged', 'helperReadonly', 'teamPreview', 'install', 'installDone', 'consoleClosed',
+                     'chooseHelperHint', 'dutyExplorer', 'dutyResearcher', 'dutyImplementer', 'dutyVerifier',
+                     'dutyFailure', 'dutyQa', 'dutyReviewer', 'dutyAdvisor'})
         if shutil.which('node'):
             program = """const fs=require('fs'),vm=require('vm');const s=fs.readFileSync(process.argv[1],'utf8');
               const fragment=s.slice(s.indexOf('const words ='),s.indexOf('const roleNames='));
               const labels=vm.runInNewContext(fragment+'; words');
               if(JSON.stringify(Object.keys(labels.tr).sort())!==JSON.stringify(Object.keys(labels.en).sort())) process.exit(1);
-              for(const language of ['tr','en'])for(const key of process.argv.slice(2))if(!labels[language][key])process.exit(2);"""
+              for(const language of ['tr','en']){
+                for(const key of process.argv.slice(2))if(!labels[language][key])process.exit(2);
+                for(const version of ['2.1.257','2.1.280','2.1.284'])if(!labels[language].modelAccessNote.includes(version))process.exit(3);
+              }"""
             result = subprocess.run(['node', '-e', program, str(script), *sorted(keys)], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             subprocess.run(['node', '--check', str(script)], check=True)
