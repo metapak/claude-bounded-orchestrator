@@ -12,6 +12,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 INSTALLER = ROOT / "scripts/install.py"
+SECURE_UNINSTALL = (
+    isinstance(getattr(os, "O_DIRECTORY", None), int)
+    and isinstance(getattr(os, "O_NOFOLLOW", None), int)
+    and all(function in getattr(os, "supports_dir_fd", ())
+            for function in (os.open, os.rename, os.unlink, os.link, os.mkdir, os.stat))
+)
 EXPECTED_ROUTING = {
     "explorer": ("sonnet", "medium"),
     "researcher": ("sonnet", "medium"),
@@ -53,6 +59,7 @@ class InstallerTests(unittest.TestCase):
             check=False,
         )
 
+    @unittest.skipUnless(SECURE_UNINSTALL, 'secure uninstall unavailable on this platform')
     def test_fresh_idempotent_install_and_uninstall(self) -> None:
         self.assertEqual(self.installer().returncode, 0)
         self.assertEqual(self.installer().returncode, 0)
@@ -99,6 +106,7 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(example["model"], "opus")
         self.assertEqual(example["effortLevel"], "xhigh")
 
+    @unittest.skipUnless(SECURE_UNINSTALL, 'secure uninstall unavailable on this platform')
     def test_force_backs_up_and_uninstall_keeps_modified(self) -> None:
         agent = self.target / ".claude/agents/explorer.md"
         agent.parent.mkdir(parents=True)
@@ -111,6 +119,7 @@ class InstallerTests(unittest.TestCase):
         self.assertTrue(agent.exists())
         self.assertIn("modified after installation", result.stdout)
 
+    @unittest.skipUnless(SECURE_UNINSTALL, 'secure uninstall unavailable on this platform')
     def test_uninstall_preserves_user_edits_inside_claude_block(self) -> None:
         self.assertEqual(self.installer().returncode, 0)
         claude = self.target / "CLAUDE.md"
@@ -125,6 +134,7 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(self.installer("--uninstall").returncode, 0)
         self.assertEqual(claude.read_text(encoding="utf-8"), edited)
 
+    @unittest.skipUnless(SECURE_UNINSTALL, 'secure uninstall unavailable on this platform')
     def test_uninstall_keeps_legacy_block_without_recorded_digest(self) -> None:
         self.assertEqual(self.installer().returncode, 0)
         claude = self.target / "CLAUDE.md"
@@ -140,6 +150,7 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(claude.read_text(encoding="utf-8"), original)
         self.assertFalse((self.target / ".claude/agents/explorer.md").exists())
 
+    @unittest.skipUnless(SECURE_UNINSTALL, 'secure uninstall unavailable on this platform')
     def test_uninstall_preview_updates_mcp_with_unrelated_metadata(self) -> None:
         self.assertEqual(self.installer("--external-openai").returncode, 0)
         mcp = self.target / ".mcp.json"
@@ -388,6 +399,7 @@ class InstallerTests(unittest.TestCase):
                 self.assertFalse(manifest["external_openai"])
                 self.assertNotIn("mcp_entry", manifest)
 
+    @unittest.skipUnless(SECURE_UNINSTALL, 'secure uninstall unavailable on this platform')
     def test_external_openai_configuration_never_persists_api_key(self) -> None:
         secret = "test-secret-that-must-not-be-written"
         environment = dict(os.environ)
@@ -412,6 +424,7 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(self.installer("--uninstall").returncode, 0)
         self.assertFalse((self.target / ".mcp.json").exists())
 
+    @unittest.skipUnless(SECURE_UNINSTALL, 'secure uninstall unavailable on this platform')
     def test_external_openai_merges_and_surgically_uninstalls_mcp_entry(self) -> None:
         mcp = self.target / ".mcp.json"
         mcp.write_text(json.dumps({"mcpServers": {"existing": {"command": "keep"}}}) + "\n")
@@ -424,6 +437,7 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(remaining, {"mcpServers": {"existing": {"command": "keep"}}})
         self.assertFalse((self.target / ".claude/tools/openai_mcp.py").exists())
 
+    @unittest.skipUnless(SECURE_UNINSTALL, 'secure uninstall unavailable on this platform')
     def test_uninstall_keeps_bridge_required_by_modified_deepseek_entry(self) -> None:
         mcp = self.target / ".mcp.json"
         mcp.write_text(json.dumps({"mcpServers": {"existing": {"command": "keep"}}}) + "\n")
@@ -531,6 +545,7 @@ class InstallerTests(unittest.TestCase):
             self.assertIn(phrase, result.stdout)
         self.assertFalse((self.target / ".mcp.json").exists())
 
+    @unittest.skipUnless(SECURE_UNINSTALL, 'secure uninstall unavailable on this platform')
     def test_uninstall_rejects_absolute_and_traversal_manifest_entries(self) -> None:
         self.assertEqual(self.installer().returncode, 0)
         manifest_path = self.target / ".claude/.bounded-orchestrator/install.json"
@@ -567,6 +582,7 @@ class InstallerTests(unittest.TestCase):
         self.assertIn("symlinked directory", result.stderr)
         self.assertEqual(external_file.read_text(), "keep external\n")
 
+    @unittest.skipUnless(SECURE_UNINSTALL, 'secure uninstall unavailable on this platform')
     def test_uninstall_keeps_runtime_ignore_for_ledger_and_backups(self) -> None:
         settings = self.target / ".claude/settings.json"
         settings.parent.mkdir()

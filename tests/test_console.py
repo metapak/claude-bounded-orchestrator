@@ -13,6 +13,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 import configure
 import install
+SECURE_UNINSTALL = (
+    install.SECURE_UNINSTALL_DIR_FD
+    and isinstance(getattr(install.os, 'O_DIRECTORY', None), int)
+    and isinstance(getattr(install.os, 'O_NOFOLLOW', None), int)
+)
 
 
 class ConsoleTests(unittest.TestCase):
@@ -36,6 +41,7 @@ class ConsoleTests(unittest.TestCase):
         self.assertEqual(agent_names, {name for name in manifest['files'] if name.startswith('.claude/agents/')})
         self.assertTrue(all('\\' not in name for name in preview['files']))
 
+    @unittest.skipUnless(SECURE_UNINSTALL, 'secure uninstall unavailable on this platform')
     def test_real_helper_slots_duplicate_roles_preview_restore_and_uninstall(self):
         roster = [
             {'id': 'slot-01', 'role': 'implementer', 'model': 'sonnet', 'effort': 'medium', 'label': 'Interface'},
@@ -108,6 +114,7 @@ class ConsoleTests(unittest.TestCase):
         self.assertIn("card.disabled=!!config?.roster_read_only", ui)
         self.assertIn("if(!preset||config.roster_read_only)return", ui)
 
+    @unittest.skipUnless(SECURE_UNINSTALL, 'secure uninstall unavailable on this platform')
     def test_fifty_slots_save_reload_shrink_restore_and_uninstall(self):
         roster = [{'id': f'slot-{index:02d}', 'role': 'implementer' if index % 2 else 'reviewer',
                    'model': 'sonnet', 'effort': 'medium', 'label': f'Work {index}'} for index in range(1, 51)]
@@ -305,6 +312,7 @@ class ConsoleTests(unittest.TestCase):
         self.settings.restore()
         self.assertEqual(path.read_bytes(), before)
 
+    @unittest.skipUnless(SECURE_UNINSTALL, 'secure uninstall unavailable on this platform')
     def test_private_style_history_tracks_save_restore_and_breaks_on_manifest_drift(self):
         import subprocess
         payload = self.payload()
@@ -438,6 +446,7 @@ class ConsoleTests(unittest.TestCase):
         path.symlink_to(ROOT / '.claude/settings.json')
         with self.assertRaises(ValueError): self.settings.read()
 
+    @unittest.skipUnless(SECURE_UNINSTALL, 'secure uninstall unavailable on this platform')
     def test_installer_dry_run_and_safe_uninstall_assets(self):
         payload = self.payload()
         payload['revision'] = self.settings.plan(payload)[2]['revision']
@@ -708,6 +717,7 @@ class ConsoleTests(unittest.TestCase):
         finally:
             server.shutdown(); server.server_close(); thread.join(3)
 
+    @unittest.skipUnless(SECURE_UNINSTALL, 'secure uninstall unavailable on this platform')
     def test_browser_uninstall_preview_confirmation_stale_and_preservation(self):
         kept = self.target / '.claude/agents/reviewer.md'
         kept.write_text(kept.read_text(encoding='utf-8') + '\nUser edit\n', encoding='utf-8')
@@ -788,6 +798,7 @@ class ConsoleTests(unittest.TestCase):
         finally:
             outside.unlink()
 
+    @unittest.skipUnless(SECURE_UNINSTALL, 'secure uninstall unavailable on this platform')
     def test_restore_after_two_saves_keeps_installation_until_uninstall(self):
         first = self.payload()
         first['revision'] = self.settings.plan(first)[2]['revision']
@@ -818,6 +829,7 @@ class ConsoleTests(unittest.TestCase):
             agents.unlink()
             moved.rename(agents)
 
+    @unittest.skipUnless(SECURE_UNINSTALL, 'secure uninstall unavailable on this platform')
     def test_uninstall_rejects_parent_symlink_swap_after_validation(self):
         relative = Path('.claude/agents/reviewer.md')
         original = self.target / relative
@@ -850,6 +862,7 @@ class ConsoleTests(unittest.TestCase):
             external.unlink()
             outside.rmdir()
 
+    @unittest.skipUnless(SECURE_UNINSTALL, 'secure uninstall unavailable on this platform')
     def test_uninstall_preserves_edit_injected_during_staging(self):
         preview = self.settings.uninstall_preview()
         real_rename = install.os.rename
@@ -872,6 +885,7 @@ class ConsoleTests(unittest.TestCase):
         self.assertTrue(any('User edit during removal' in path.read_text(encoding='utf-8')
                             for path in (self.target / '.claude').rglob('*') if path.is_file()))
 
+    @unittest.skipUnless(SECURE_UNINSTALL, 'secure uninstall unavailable on this platform')
     def test_uninstall_rejects_new_file_after_final_preview(self):
         reviewer = self.target / '.claude/agents/reviewer.md'
         reviewer.unlink()
@@ -887,6 +901,7 @@ class ConsoleTests(unittest.TestCase):
         self.assertEqual(reviewer.read_text(encoding='utf-8'), 'New user file')
         self.assertTrue((self.target / install.MANIFEST_RELATIVE).exists())
 
+    @unittest.skipUnless(SECURE_UNINSTALL, 'secure uninstall unavailable on this platform')
     def test_uninstall_recovery_retains_edit_at_final_unlink(self):
         relative = Path('.claude/agents/reviewer.md')
         original = self.target / relative
@@ -908,6 +923,7 @@ class ConsoleTests(unittest.TestCase):
         self.assertEqual(len(backups), 1)
         self.assertIn(b'Late user edit', backups[0].read_bytes())
 
+    @unittest.skipUnless(SECURE_UNINSTALL, 'secure uninstall unavailable on this platform')
     def test_failed_replacement_keeps_edit_in_recovery(self):
         relative = Path('CLAUDE.md')
         path = self.target / relative
@@ -923,6 +939,7 @@ class ConsoleTests(unittest.TestCase):
         self.assertEqual(len(recovered), 1)
         self.assertIn(b'User edit during replacement', recovered[0].read_bytes())
 
+    @unittest.skipUnless(SECURE_UNINSTALL, 'secure uninstall unavailable on this platform')
     def test_failed_replacement_preserves_new_leaf_collision(self):
         relative = Path('CLAUDE.md')
         path = self.target / relative
@@ -941,6 +958,7 @@ class ConsoleTests(unittest.TestCase):
         self.assertEqual(len(originals), 1)
         self.assertEqual(originals[0].read_bytes(), original)
 
+    @unittest.skipUnless(SECURE_UNINSTALL, 'secure uninstall unavailable on this platform')
     def test_failed_replacement_keeps_atomic_save_after_recovery_link(self):
         path = self.target / 'CLAUDE.md'
         original = path.read_bytes()
@@ -969,6 +987,7 @@ class ConsoleTests(unittest.TestCase):
         self.assertEqual(len(backups), 1)
         self.assertEqual(backups[0].read_bytes(), original)
 
+    @unittest.skipUnless(SECURE_UNINSTALL, 'secure uninstall unavailable on this platform')
     def test_failed_replacement_keeps_atomic_save_after_collision_link(self):
         path = self.target / '.mcp.json'
         path.write_text('USER COLLISION', encoding='utf-8')
@@ -992,6 +1011,7 @@ class ConsoleTests(unittest.TestCase):
         self.assertEqual(len(stages), 1)
         self.assertEqual(stages[0].read_text(encoding='utf-8'), 'USER ATOMIC SAVE')
 
+    @unittest.skipUnless(SECURE_UNINSTALL, 'secure uninstall unavailable on this platform')
     def test_uninstall_rejects_parent_swap_during_staging(self):
         relative = Path('.claude/agents/reviewer.md')
         original = self.target / relative
@@ -1022,11 +1042,14 @@ class ConsoleTests(unittest.TestCase):
             outside.rmdir()
 
     def test_uninstall_preview_rejects_unsupported_backend(self):
-        with patch.object(install.os, 'O_NOFOLLOW', None):
+        with patch.object(install.os, 'O_NOFOLLOW', None, create=True):
+            self.assertFalse(self.settings.read()['uninstall_supported'])
+            self.assertFalse(self.settings.read()['uninstall_available'])
             with self.assertRaisesRegex(install.InstallError, 'unsupported'):
                 self.settings.uninstall_preview()
         self.assertTrue((self.target / install.MANIFEST_RELATIVE).exists())
 
+    @unittest.skipUnless(SECURE_UNINSTALL, 'secure uninstall unavailable on this platform')
     def test_uninstall_partial_failure_has_distinct_api_code(self):
         server, token = configure.make_server(self.target)
         thread = threading.Thread(target=server.serve_forever, daemon=True)

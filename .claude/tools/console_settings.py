@@ -128,10 +128,16 @@ class Settings:
                     fields = dict(line.split(':', 1) for line in header.splitlines() if ':' in line)
                 default = self.i.PRESETS['balanced'][role]
                 routing[role] = {'model': fields.get('model', default[0]).strip(), 'effort': fields.get('effort', default[1]).strip()}
+        try:
+            self.i.require_secure_uninstall_backend()
+            uninstall_supported = True
+        except self.i.InstallError:
+            uninstall_supported = False
         return {'target': str(self.target), 'scope': 'project', 'preset': manifest.get('preset', 'custom'),
                 'routing': routing, 'max_parallelism': settings.get('env', {}).get(CONCURRENCY),
                 'roster': roster, 'roster_read_only': len(roster) > 50,
-                'installed': bool(manifest.get('files')), 'uninstall_available': self.path(self.i.MANIFEST_RELATIVE).is_file(),
+                'installed': bool(manifest.get('files')), 'uninstall_supported': uninstall_supported,
+                'uninstall_available': uninstall_supported and self.path(self.i.MANIFEST_RELATIVE).is_file(),
                 'restore_available': self.path(STATE).exists(),
                 'presets': {key: {role: {'model': pair[0], 'effort': pair[1]} for role, pair in value.items()} for key, value in self.i.PRESETS.items()},
                 'limitations': 'Project files shown. Managed/local settings, environment and CLI/session choices may override them. Concurrency requires Claude Code 2.1.217+; ultracode and resumed agents can bypass it.'}
