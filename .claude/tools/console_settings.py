@@ -315,7 +315,8 @@ class Settings:
                     if content is None:
                         continue
                     staged_path = Path(stage_directory.name) / str(index)
-                    staged_path.write_text(content, encoding='utf-8')
+                    with staged_path.open('w', encoding='utf-8', newline='\n') as handle:
+                        handle.write(content)
                     staged[name] = staged_path
             except Exception:
                 stage_directory.cleanup()
@@ -460,7 +461,8 @@ class Settings:
             for index, (name, content) in enumerate(contents.items()):
                 if content is not None:
                     staged[name] = Path(directory) / str(index)
-                    staged[name].write_text(content, encoding='utf-8')
+                    with staged[name].open('w', encoding='utf-8', newline='\n') as handle:
+                        handle.write(content)
             touched = []
             manifest_written = None
             try:

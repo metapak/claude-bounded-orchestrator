@@ -50,6 +50,7 @@ class ConsoleTests(unittest.TestCase):
         payload['revision'] = first['revision']
         self.settings.save(payload)
         self.assertIn('name: orchestra-slot-01', first_slot.read_text())
+        self.assertEqual(first_slot.read_bytes(), self.settings.render_slot(roster[0]).encode('utf-8'))
         self.assertIn('model: opus', second_slot.read_text())
         self.assertIn('disallowedTools: Agent', second_slot.read_text())
         self.assertIn('orchestra-slot-02', (self.target / 'CLAUDE.md').read_text())
