@@ -6,6 +6,7 @@ import tempfile
 import threading
 import unittest
 import urllib.request
+from unittest.mock import patch
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -82,10 +83,10 @@ class ConsoleTests(unittest.TestCase):
             self.settings.plan(payload)
         self.assertEqual((self.target / '.claude/settings.json').read_bytes(), before)
 
-    def test_larger_saved_helper_team_is_read_only(self):
+    def test_larger_than_fifty_saved_helper_team_is_read_only(self):
         manifest_path = self.target / install.MANIFEST_RELATIVE
         manifest = json.loads(manifest_path.read_text())
-        manifest['roster'] = [{'id': f'slot-{index:02d}', 'role': 'explorer', 'model': 'sonnet', 'effort': 'low', 'label': ''} for index in range(1, 12)]
+        manifest['roster'] = [{'id': f'slot-{index:02d}', 'role': 'explorer', 'model': 'sonnet', 'effort': 'low', 'label': ''} for index in range(1, 52)]
         for slot in manifest['roster']:
             relative = self.settings.slot_path(slot['id'])
             path = self.target / relative
@@ -93,15 +94,195 @@ class ConsoleTests(unittest.TestCase):
             manifest['files'][relative.as_posix()] = {'owned': True, 'sha256': install.digest(path)}
         manifest_path.write_text(json.dumps(manifest))
         read = self.settings.read()
-        self.assertEqual(len(read['roster']), 11)
+        self.assertEqual(len(read['roster']), 51)
         self.assertTrue(read['roster_read_only'])
-        payload = {**self.payload(), 'roster': read['roster'][:10]}
+        payload = {**self.payload(), 'roster': read['roster'][:50]}
         with self.assertRaisesRegex(ValueError, 'read-only'):
             self.settings.plan(payload)
         # An oversized legacy roster remains intact while chief routing can change.
         payload['roster'] = read['roster']
         payload['routing']['owner'] = {'model': 'sonnet', 'effort': 'low'}
         self.assertEqual(self.settings.plan(payload)[2]['roster'], read['roster'])
+        ui = (ROOT / '.claude/tools/console/app.js').read_text(encoding='utf-8')
+        self.assertIn("card.disabled=!!config?.roster_read_only", ui)
+        self.assertIn("if(!preset||config.roster_read_only)return", ui)
+
+    def test_fifty_slots_save_reload_shrink_restore_and_uninstall(self):
+        roster = [{'id': f'slot-{index:02d}', 'role': 'implementer' if index % 2 else 'reviewer',
+                   'model': 'sonnet', 'effort': 'medium', 'label': f'Work {index}'} for index in range(1, 51)]
+        payload = {**self.payload(), 'roster': roster}
+        payload['revision'] = self.settings.plan(payload)[2]['revision']
+        self.settings.save(payload)
+        self.assertEqual(self.settings.read()['roster'], roster)
+        self.assertFalse(self.settings.read()['roster_read_only'])
+        self.assertIn('orchestra-slot-50', (self.target / 'CLAUDE.md').read_text())
+        self.assertTrue((self.target / '.claude/agents/orchestra-slot-50.md').is_file())
+        smaller = {**self.payload(), 'roster': roster[:7]}
+        smaller['revision'] = self.settings.plan(smaller)[2]['revision']
+        self.settings.save(smaller)
+        self.assertFalse((self.target / '.claude/agents/orchestra-slot-50.md').exists())
+        self.settings.restore()
+        self.assertEqual(len(self.settings.read()['roster']), 50)
+        self.assertEqual(install.main([str(self.target), '--uninstall']), 0)
+        self.assertFalse((self.target / '.claude/agents/orchestra-slot-50.md').exists())
+
+    def test_fifty_slot_conflict_or_mid_save_failure_keeps_manifest_and_files(self):
+        import os
+        roster = [{'id': f'slot-{index:02d}', 'role': 'implementer', 'model': 'sonnet',
+                   'effort': 'medium', 'label': ''} for index in range(1, 51)]
+        payload = {**self.payload(), 'roster': roster}
+        foreign = self.target / '.claude/agents/orchestra-slot-50.md'
+        foreign.write_text('user owned\n')
+        manifest_path = self.target / install.MANIFEST_RELATIVE
+        original_manifest = manifest_path.read_bytes()
+        with self.assertRaisesRegex(ValueError, 'conflict'):
+            self.settings.plan(payload)
+        self.assertEqual(foreign.read_text(), 'user owned\n')
+        self.assertEqual(manifest_path.read_bytes(), original_manifest)
+        foreign.unlink()
+        payload['revision'] = self.settings.plan(payload)[2]['revision']
+        settings_path = self.target / install.SETTINGS_RELATIVE
+        original_settings = settings_path.read_bytes()
+        original_agent = (self.target / '.claude/agents/implementer.md').read_bytes()
+        real_link = os.link
+        failed = False
+        def fail_once(source, destination):
+            nonlocal failed
+            if not failed and Path(destination).name == 'orchestra-slot-25.md':
+                failed = True
+                raise OSError('injected write failure')
+            return real_link(source, destination)
+        with patch('console_settings.os.link', side_effect=fail_once):
+            with self.assertRaisesRegex(OSError, 'injected write failure'):
+                self.settings.save(payload)
+        self.assertTrue(failed)
+        self.assertEqual(manifest_path.read_bytes(), original_manifest)
+        self.assertEqual(settings_path.read_bytes(), original_settings)
+        self.assertEqual((self.target / '.claude/agents/implementer.md').read_bytes(), original_agent)
+        self.assertFalse((self.target / '.claude/agents/orchestra-slot-01.md').exists())
+        self.assertFalse((self.target / '.claude/.bounded-orchestrator/console-update.json').exists())
+
+    def test_fresh_fifty_slot_failure_restores_initial_project_content(self):
+        import os
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory)
+            (target / '.claude').mkdir()
+            settings_path = target / '.claude/settings.json'
+            original = '{"permissions":{"deny":["Read(secret)"]}}\n'
+            settings_path.write_text(original)
+            target.joinpath('CLAUDE.md').write_text('User instructions\n')
+            settings = configure.Settings(install, ROOT, target)
+            roster = [{'id': f'slot-{index:02d}', 'role': 'implementer', 'model': 'sonnet',
+                       'effort': 'medium', 'label': ''} for index in range(1, 51)]
+            payload = {**self.payload(), 'roster': roster}
+            payload['revision'] = settings.plan(payload)[2]['revision']
+            real_link = os.link
+            failed = False
+            def fail_once(source, destination):
+                nonlocal failed
+                if not failed and Path(destination).name == 'orchestra-slot-25.md':
+                    failed = True
+                    raise OSError('injected fresh write failure')
+                return real_link(source, destination)
+            with patch('console_settings.os.link', side_effect=fail_once):
+                with self.assertRaisesRegex(OSError, 'injected fresh write failure'):
+                    settings.save(payload)
+            self.assertTrue(failed)
+            self.assertEqual(settings_path.read_text(), original)
+            self.assertEqual(target.joinpath('CLAUDE.md').read_text(), 'User instructions\n')
+            self.assertFalse((target / install.MANIFEST_RELATIVE).exists())
+            self.assertFalse((target / '.claude/agents/orchestra-slot-01.md').exists())
+            payload['revision'] = settings.plan(payload)[2]['revision']
+            settings.save(payload)
+            self.assertEqual(len(settings.read()['roster']), 50)
+            self.assertEqual(json.loads(settings_path.read_text())['permissions'], {'deny': ['Read(secret)']})
+
+    def test_new_helper_created_after_preflight_is_not_overwritten(self):
+        import os
+        roster = [{'id': f'slot-{index:02d}', 'role': 'implementer', 'model': 'sonnet',
+                   'effort': 'medium', 'label': ''} for index in range(1, 51)]
+        payload = {**self.payload(), 'roster': roster}
+        payload['revision'] = self.settings.plan(payload)[2]['revision']
+        foreign = self.target / '.claude/agents/orchestra-slot-25.md'
+        manifest_path = self.target / install.MANIFEST_RELATIVE
+        original_manifest = manifest_path.read_bytes()
+        real_link = os.link
+        def race_link(source, destination):
+            if Path(destination).name == foreign.name:
+                foreign.write_text('User created during save\n')
+            return real_link(source, destination)
+        with patch('console_settings.os.link', side_effect=race_link):
+            with self.assertRaises(FileExistsError):
+                self.settings.save(payload)
+        self.assertEqual(foreign.read_text(), 'User created during save\n')
+        self.assertFalse((self.target / '.claude/agents/orchestra-slot-01.md').exists())
+        self.assertEqual(manifest_path.read_bytes(), original_manifest)
+
+    def test_manifest_symlink_inserted_mid_save_is_preserved(self):
+        import os
+        roster = [{'id': f'slot-{index:02d}', 'role': 'implementer', 'model': 'sonnet',
+                   'effort': 'medium', 'label': ''} for index in range(1, 51)]
+        payload = {**self.payload(), 'roster': roster}
+        payload['revision'] = self.settings.plan(payload)[2]['revision']
+        manifest_path = self.target / install.MANIFEST_RELATIVE
+        outside = self.target.parent / (self.target.name + '-external-manifest')
+        outside.write_text('external owner\n')
+        real_link = os.link
+        def insert_link(source, destination):
+            if Path(destination).name == 'orchestra-slot-25.md':
+                manifest_path.unlink()
+                manifest_path.symlink_to(outside)
+            return real_link(source, destination)
+        try:
+            with patch('console_settings.os.link', side_effect=insert_link):
+                with self.assertRaisesRegex(ValueError, 'manual repair'):
+                    self.settings.save(payload)
+            self.assertTrue(manifest_path.is_symlink())
+            self.assertEqual(outside.read_text(), 'external owner\n')
+            self.assertFalse((self.target / '.claude/agents/orchestra-slot-01.md').exists())
+        finally:
+            outside.unlink(missing_ok=True)
+
+    def test_fifty_slot_restore_failure_rolls_back_and_can_retry(self):
+        roster = [{'id': f'slot-{index:02d}', 'role': 'implementer', 'model': 'sonnet',
+                   'effort': 'medium', 'label': ''} for index in range(1, 51)]
+        payload = {**self.payload(), 'roster': roster}
+        payload['revision'] = self.settings.plan(payload)[2]['revision']
+        self.settings.save(payload)
+        manifest_path = self.target / install.MANIFEST_RELATIVE
+        state_path = self.target / '.claude/.bounded-orchestrator/console-update.json'
+        explorer_path = self.target / '.claude/agents/explorer.md'
+        reviewer_path = self.target / '.claude/agents/reviewer.md'
+        before = {path: path.read_bytes() for path in (manifest_path, state_path, explorer_path, reviewer_path)}
+        real_atomic = install.atomic_text
+        failed = False
+        def fail_once(path, content, dry_run):
+            nonlocal failed
+            if not failed and Path(path).name == 'reviewer.md':
+                failed = True
+                raise OSError('injected restore failure')
+            return real_atomic(path, content, dry_run)
+        with patch.object(install, 'atomic_text', side_effect=fail_once):
+            with self.assertRaisesRegex(OSError, 'injected restore failure'):
+                self.settings.restore()
+        self.assertTrue(failed)
+        self.assertTrue(all(path.read_bytes() == content for path, content in before.items()))
+        self.assertEqual(len(self.settings.read()['roster']), 50)
+        self.assertTrue(self.settings.restore()['restored'])
+        self.assertEqual(self.settings.read()['roster'], [])
+
+    def test_cli_rejects_symlink_manifest_before_mutation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            target = base / 'project'
+            (target / '.claude/.bounded-orchestrator').mkdir(parents=True)
+            outside = base / 'external-manifest.json'
+            content = (self.target / install.MANIFEST_RELATIVE).read_text()
+            outside.write_text(content)
+            (target / install.MANIFEST_RELATIVE).symlink_to(outside)
+            self.assertEqual(install.main([str(target)]), 2)
+            self.assertEqual(outside.read_text(), content)
+            self.assertFalse((target / '.claude/agents').exists())
 
     def test_preview_save_restore_preserves_unrelated_settings(self):
         path = self.target / '.claude/settings.json'
@@ -291,6 +472,35 @@ class ConsoleTests(unittest.TestCase):
           if(!source.includes("function modelCards(value,onChoose)")||!source.includes("aria-pressed',String(choice.value===current)"))process.exit(4);
           if(source.includes("const select=node('select');select.dataset.roleModel='';"))process.exit(5);"""
         result = subprocess.run(['node', '-e', program, str(ROOT / '.claude/tools/console/app.js')], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_task_drafts_are_distinct_and_low_intensity_never_selects_opus(self):
+        import shutil
+        import subprocess
+        if not shutil.which('node'):
+            self.skipTest('Node unavailable; browser QA covers task drafts')
+        presets = {key: {role: {'model': model, 'effort': effort} for role, (model, effort) in routing.items()}
+                   for key, routing in install.PRESETS.items()}
+        program = """const fs=require('fs'),vm=require('vm');const source=fs.readFileSync(process.argv[1],'utf8');
+          const templates=source.slice(source.indexOf('const TASK_TEMPLATES='),source.indexOf('function t(')).replace('let selectedTaskProfile=null,taskDraftBefore=null,stagePage=0;','');
+          const apply=source.slice(source.indexOf('function applyTaskTemplate('),source.indexOf('function setRosterCount('));
+          const context={config:{presets:JSON.parse(process.argv[2])},routingState:{},rosterState:[],rosterPresetSeeded:false,
+            selectedTeamSlot:'owner',stagePage:0,selectedTaskProfile:null,style:'balanced',
+            selectedPreset:()=>context.style,roles:value=>{context.routingState=JSON.parse(JSON.stringify(value))},
+            $:()=>context.parallel};context.parallel={value:'1'};
+          vm.createContext(context);vm.runInContext(templates+apply+';globalThis.run=applyTaskTemplate;globalThis.templates=TASK_TEMPLATES;',context);
+          if(context.templates.length!==10)process.exit(1);
+          const signatures=new Set(context.templates.map(x=>JSON.stringify([x.roles,x.effort,x.parallel])));
+          if(signatures.size!==10)process.exit(2);
+          for(const style of ['balanced','quality','economy','quota-saver'])for(const task of context.templates){
+            context.style=style;context.selectedTaskProfile=task.id;context.run();
+            if(context.rosterState.length!==task.roles.length||Number(context.parallel.value)!==task.parallel)process.exit(3);
+            if(context.rosterState.some((slot,i)=>slot.id!=='slot-'+String(i+1).padStart(2,'0')||slot.role!==task.roles[i]))process.exit(4);
+            if(['economy','quota-saver'].includes(style)&&[context.routingState.owner.model,...context.rosterState.map(x=>x.model)].some(x=>x==='opus'||x.includes('opus')))process.exit(5);
+          }
+          if(!source.includes('taskVisualHint:')||!source.includes('capable image tool'))process.exit(6);"""
+        result = subprocess.run(['node', '-e', program, str(ROOT / '.claude/tools/console/app.js'), json.dumps(presets)],
+                                capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_dated_usage_rows_match_primary_chart_total(self):

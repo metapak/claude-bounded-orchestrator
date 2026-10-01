@@ -236,6 +236,8 @@ def atomic_text(destination: Path, content: str, dry_run: bool) -> None:
 
 def load_manifest(target: Path) -> dict[str, Any]:
     path = target / MANIFEST_RELATIVE
+    if path.is_symlink() or (path.exists() and not path.is_file()):
+        raise InstallError(f"unsafe install manifest: {path}")
     if not path.exists():
         return {"schema": SCHEMA_VERSION, "files": {}, "claude_block": False}
     try:
@@ -808,8 +810,11 @@ def install_claude_block(root: Path, target: Path, manifest: dict[str, Any], dry
 def save_manifest(target: Path, manifest: dict[str, Any], root: Path, dry_run: bool) -> None:
     if dry_run:
         return
+    path = target / MANIFEST_RELATIVE
+    if path.is_symlink() or (path.exists() and not path.is_file()):
+        raise InstallError(f"unsafe install manifest: {path}")
     manifest.update({"schema": SCHEMA_VERSION, "tool_version": version(root), "installed_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat()})
-    atomic_text(target / MANIFEST_RELATIVE, json.dumps(manifest, indent=2, sort_keys=True) + "\n", False)
+    atomic_text(path, json.dumps(manifest, indent=2, sort_keys=True) + "\n", False)
 
 
 def safe_uninstall_path(target: Path, relative: Path) -> Path:

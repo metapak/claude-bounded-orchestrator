@@ -2,7 +2,9 @@
 from __future__ import annotations
 import hashlib
 import json
+import os
 import re
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -52,6 +54,23 @@ class Settings:
         # Existing descendants may be used by timestamped backup allocation.
         if backups.exists() and any(path.is_symlink() for path in backups.rglob('*')):
             raise ValueError('Refusing symlink in initial install backups')
+
+    def initial_install_snapshot(self):
+        files = (*self.i.BASE_MANAGED_FILES, self.i.SETTINGS_RELATIVE,
+                 self.i.SETTINGS_EXAMPLE_RELATIVE, Path('CLAUDE.md'),
+                 self.i.MANIFEST_RELATIVE, STATE, HISTORY)
+        return {relative: self.path(relative).read_text(encoding='utf-8')
+                if self.path(relative).exists() else None for relative in files}
+
+    def restore_initial_install_snapshot(self, snapshot, skip=()):
+        for relative, content in snapshot.items():
+            if relative.as_posix() in skip or (self.target / relative).is_symlink():
+                continue
+            path = self.path(relative)
+            if content is None:
+                path.unlink(missing_ok=True)
+            else:
+                self.i.atomic_text(path, content, False)
 
     def slot_path(self, slot_id):
         if not isinstance(slot_id, str) or not SLOT_ID.fullmatch(slot_id):
@@ -111,7 +130,7 @@ class Settings:
                 routing[role] = {'model': fields.get('model', default[0]).strip(), 'effort': fields.get('effort', default[1]).strip()}
         return {'target': str(self.target), 'scope': 'project', 'preset': manifest.get('preset', 'custom'),
                 'routing': routing, 'max_parallelism': settings.get('env', {}).get(CONCURRENCY),
-                'roster': roster, 'roster_read_only': len(roster) > 10,
+                'roster': roster, 'roster_read_only': len(roster) > 50,
                 'installed': bool(manifest.get('files')), 'restore_available': self.path(STATE).exists(),
                 'presets': {key: {role: {'model': pair[0], 'effort': pair[1]} for role, pair in value.items()} for key, value in self.i.PRESETS.items()},
                 'limitations': 'Project files shown. Managed/local settings, environment and CLI/session choices may override them. Concurrency requires Claude Code 2.1.217+; ultracode and resumed agents can bypass it.'}
@@ -200,10 +219,10 @@ class Settings:
         manifest = self.i.load_manifest(self.target)
         old_roster = self.roster(manifest)
         roster = payload.get('roster', old_roster)
-        if not isinstance(roster, list) or (not 1 <= len(roster) <= 10 and roster != old_roster):
-            raise ValueError('Choose 1 to 10 helpers; an existing larger team is read-only')
+        if not isinstance(roster, list) or (not 1 <= len(roster) <= 50 and roster != old_roster):
+            raise ValueError('Choose 1 to 50 helpers; an existing larger team is read-only')
         roster = self.roster({'roster': roster})
-        if len(old_roster) > 10 and roster != old_roster:
+        if len(old_roster) > 50 and roster != old_roster:
             raise ValueError('Existing larger helper team is read-only')
         initial = not manifest.get('files')
         if initial:
@@ -243,6 +262,8 @@ class Settings:
             if not initial and (self.i.START_MARKER not in current or self.i.END_MARKER not in current):
                 raise ValueError('Managed CLAUDE.md block is missing')
             changes['CLAUDE.md'] = self.render_team_block(current, roster)
+        if len(changes) > 64 or sum(len(content.encode('utf-8')) for content in changes.values() if content is not None) > 1024 * 1024:
+            raise ValueError('Helper team update is too large')
         path = self.path(self.i.SETTINGS_RELATIVE)
         settings = json.loads(path.read_text(encoding='utf-8')) if path.exists() else {}
         if not isinstance(settings, dict) or not isinstance(settings.get('env', {}), dict):
@@ -268,39 +289,133 @@ class Settings:
             raise ValueError('Preview is stale; preview again before Save')
         self.path(self.i.MANIFEST_RELATIVE)
         self.path(self.i.BACKUP_RELATIVE)
+        initial_snapshot = None
         if preview['initial_install']:
             # Repeat full preflight immediately before the installer's first write.
             self.preflight_initial_install()
-            if self.i.main([str(self.target)]) != 0:
-                raise ValueError('Initial installation failed; inspect installer output')
+            initial_snapshot = self.initial_install_snapshot()
+            try:
+                if self.i.main([str(self.target)]) != 0:
+                    raise ValueError('Initial installation failed; inspect installer output')
+            except Exception:
+                self.restore_initial_install_snapshot(initial_snapshot)
+                raise
             manifest = self.i.load_manifest(self.target)
-        previous_manifest_sha256 = self.i.digest(self.path(self.i.MANIFEST_RELATIVE))
-        state_path = self.path(STATE)
-        before = json.loads(json.dumps(manifest))
-        records = {}
-        for name, content in changes.items():
-            path = self.path(Path(name))
-            saved = self.i.backup(self.target, path, False) if path.exists() else None
-            records[name] = {'backup': saved.relative_to(self.target).as_posix() if saved else None,
-                             'after': hashlib.sha256(content.encode()).hexdigest() if content is not None else None}
-        state = {'files': records, 'manifest': before}
-        self.i.atomic_text(state_path, json.dumps(state, indent=2) + '\n', False)
-        for name, content in changes.items():
-            path = self.path(Path(name))
-            if content is None:
-                path.unlink()
-                manifest['files'].pop(name, None)
+        try:
+            previous_manifest_sha256 = self.i.digest(self.path(self.i.MANIFEST_RELATIVE))
+            state_path = self.path(STATE)
+            manifest_path = self.path(self.i.MANIFEST_RELATIVE)
+            before = json.loads(json.dumps(manifest))
+            # Render every intended file before touching managed content. A private
+            # same-volume staging directory also catches disk/full-write errors.
+            staged = {}
+            stage_directory = tempfile.TemporaryDirectory(prefix='console-stage-', dir=self.path(STATE).parent)
+            try:
+                for index, (name, content) in enumerate(changes.items()):
+                    if content is None:
+                        continue
+                    staged_path = Path(stage_directory.name) / str(index)
+                    staged_path.write_text(content, encoding='utf-8')
+                    staged[name] = staged_path
+            except Exception:
+                stage_directory.cleanup()
+                raise
+            self.path(self.i.MANIFEST_RELATIVE)
+            self.path(STATE)
+            original = {name: self.path(Path(name)).read_text(encoding='utf-8') if self.path(Path(name)).exists() else None for name in changes}
+            for name in changes:
+                entry = before['files'].get(name, {})
+                if name != self.i.SETTINGS_RELATIVE.as_posix() and entry.get('owned') and (original[name] is None or hashlib.sha256(original[name].encode()).hexdigest() != entry.get('sha256')):
+                    raise ValueError('Managed destination changed during save: ' + name)
+                if name.startswith('.claude/agents/orchestra-slot-') and not entry and original[name] is not None:
+                    raise ValueError('New helper destination appeared during save: ' + name)
+            records = {}
+            for name, content in changes.items():
+                path = self.path(Path(name))
+                saved = self.i.backup(self.target, path, False) if original[name] is not None else None
+                records[name] = {'backup': saved.relative_to(self.target).as_posix() if saved else None,
+                                 'after': hashlib.sha256(content.encode()).hexdigest() if content is not None else None}
+            state = {'files': records, 'manifest': before}
+            old_manifest = manifest_path.read_text(encoding='utf-8')
+            old_state = state_path.read_text(encoding='utf-8') if state_path.exists() else None
+        except Exception:
+            if 'stage_directory' in locals():
+                stage_directory.cleanup()
+            if initial_snapshot is not None:
+                self.restore_initial_install_snapshot(initial_snapshot)
+            raise
+        touched = []
+        try:
+            for name, content in changes.items():
+                path = self.path(Path(name))
+                entry = before['files'].get(name, {})
+                expected = entry.get('sha256') if entry.get('owned') and name != self.i.SETTINGS_RELATIVE.as_posix() else (hashlib.sha256(original[name].encode()).hexdigest() if original[name] is not None else None)
+                current = self.i.digest(path) if path.is_file() else None
+                if current != expected or (expected is None and (path.exists() or path.is_symlink())):
+                    raise ValueError('Destination changed during save: ' + name)
+                if content is None:
+                    path.unlink()
+                    touched.append((name, None))
+                    manifest['files'].pop(name, None)
+                else:
+                    if expected is None:
+                        # Hard-linking a staged file is atomic and refuses a
+                        # newly created destination instead of replacing it.
+                        os.link(staged[name], path)
+                    else:
+                        self.i.atomic_text(path, staged[name].read_text(encoding='utf-8'), False)
+                    touched.append((name, hashlib.sha256(content.encode()).hexdigest()))
+                    if name != 'CLAUDE.md':
+                        # A merged shared settings file must survive uninstall.
+                        self.i.remember(manifest, Path(name), path, name != self.i.SETTINGS_RELATIVE.as_posix())
+            manifest['routing'] = payload['routing']
+            manifest['preset'] = payload.get('preset', 'custom')
+            manifest['roster'] = preview['roster']
+            self.path(self.i.MANIFEST_RELATIVE)
+            self.i.save_manifest(self.target, manifest, self.root, False)
+            state['manifest_after_sha256'] = self.i.digest(manifest_path)
+            self.path(STATE)
+            self.i.atomic_text(state_path, json.dumps(state, indent=2) + '\n', False)
+        except Exception as error:
+            conflicted = []
+            for name, written_digest in reversed(touched):
+                try:
+                    path = self.path(Path(name))
+                except ValueError:
+                    conflicted.append(name)
+                    continue
+                current = self.i.digest(path) if path.is_file() else None
+                if current != written_digest or (written_digest is None and path.exists()):
+                    conflicted.append(name)
+                    continue
+                content = original[name]
+                if content is None:
+                    path.unlink(missing_ok=True)
+                else:
+                    self.i.atomic_text(path, content, False)
+            old_manifest_digest = hashlib.sha256(old_manifest.encode()).hexdigest()
+            manifest_current = self.i.digest(manifest_path) if manifest_path.is_file() and not manifest_path.is_symlink() else None
+            if manifest_current is not None and manifest_current in {old_manifest_digest, state.get('manifest_after_sha256')}:
+                self.i.atomic_text(manifest_path, old_manifest, False)
             else:
-                self.i.atomic_text(path, content, False)
-                if name != 'CLAUDE.md':
-                    # A merged shared settings file must survive uninstall.
-                    self.i.remember(manifest, Path(name), path, name != self.i.SETTINGS_RELATIVE.as_posix())
-        manifest['routing'] = payload['routing']
-        manifest['preset'] = payload.get('preset', 'custom')
-        manifest['roster'] = preview['roster']
-        self.i.save_manifest(self.target, manifest, self.root, False)
-        state['manifest_after_sha256'] = self.i.digest(self.path(self.i.MANIFEST_RELATIVE))
-        self.i.atomic_text(state_path, json.dumps(state, indent=2) + '\n', False)
+                conflicted.append(self.i.MANIFEST_RELATIVE.as_posix())
+            old_state_digest = hashlib.sha256(old_state.encode()).hexdigest() if old_state is not None else None
+            state_current = self.i.digest(state_path) if state_path.is_file() and not state_path.is_symlink() else None
+            saved_state_digest = hashlib.sha256((json.dumps(state, indent=2) + '\n').encode()).hexdigest()
+            if not state_path.is_symlink() and state_current in {old_state_digest, saved_state_digest}:
+                if old_state is None:
+                    state_path.unlink(missing_ok=True)
+                else:
+                    self.i.atomic_text(state_path, old_state, False)
+            else:
+                conflicted.append(STATE.as_posix())
+            if initial_snapshot is not None:
+                self.restore_initial_install_snapshot(initial_snapshot, conflicted)
+            stage_directory.cleanup()
+            if conflicted:
+                raise ValueError('Project changed during failed save; manual repair needed: ' + ', '.join(conflicted)) from error
+            raise
+        stage_directory.cleanup()
         recorded = self.record_history(manifest['preset'], previous_manifest_sha256)
         return {'saved': True, 'history_recorded': recorded, 'message': 'Project saved. Restart Claude Code; unrelated settings preserved.'}
 
@@ -336,15 +451,76 @@ class Settings:
             contents[name] = self.path(Path(saved)).read_text(encoding='utf-8') if saved else None
         self.path(self.i.MANIFEST_RELATIVE)
         self.path(self.i.BACKUP_RELATIVE)
-        for name, content in contents.items():
-            path = self.path(Path(name))
-            if path.exists():
-                self.i.backup(self.target, path, False)
-            if content is None:
-                path.unlink()
-            else:
-                self.i.atomic_text(path, content, False)
-        self.i.save_manifest(self.target, state['manifest'], self.root, False)
-        state_path.unlink()
+        old_manifest = manifest_path.read_text(encoding='utf-8')
+        old_state = state_path.read_text(encoding='utf-8')
+        original = {name: self.path(Path(name)).read_text(encoding='utf-8')
+                    if self.path(Path(name)).exists() else None for name in contents}
+        staged = {}
+        with tempfile.TemporaryDirectory(prefix='console-restore-', dir=state_path.parent) as directory:
+            for index, (name, content) in enumerate(contents.items()):
+                if content is not None:
+                    staged[name] = Path(directory) / str(index)
+                    staged[name].write_text(content, encoding='utf-8')
+            touched = []
+            manifest_written = None
+            try:
+                for name, content in contents.items():
+                    path = self.path(Path(name))
+                    expected = state['files'][name]['after']
+                    current = self.i.digest(path) if path.is_file() else None
+                    if current != expected or (expected is None and (path.exists() or path.is_symlink())):
+                        raise ValueError('File changed during restore: ' + name)
+                    if path.exists():
+                        self.i.backup(self.target, path, False)
+                    if content is None:
+                        path.unlink()
+                        touched.append((name, None))
+                    elif expected is None:
+                        os.link(staged[name], path)
+                        touched.append((name, hashlib.sha256(content.encode()).hexdigest()))
+                    else:
+                        self.i.atomic_text(path, staged[name].read_text(encoding='utf-8'), False)
+                        touched.append((name, hashlib.sha256(content.encode()).hexdigest()))
+                self.path(self.i.MANIFEST_RELATIVE)
+                if self.i.digest(manifest_path) != previous_manifest_sha256:
+                    raise ValueError('Install manifest changed during restore')
+                self.i.save_manifest(self.target, state['manifest'], self.root, False)
+                manifest_written = self.i.digest(manifest_path)
+                self.path(STATE)
+                if self.i.digest(state_path) != hashlib.sha256(old_state.encode()).hexdigest():
+                    raise ValueError('Restore state changed during restore')
+                state_path.unlink()
+            except Exception as error:
+                conflicted = []
+                for name, written_digest in reversed(touched):
+                    try:
+                        path = self.path(Path(name))
+                    except ValueError:
+                        conflicted.append(name)
+                        continue
+                    current = self.i.digest(path) if path.is_file() else None
+                    if current != written_digest or (written_digest is None and path.exists()):
+                        conflicted.append(name)
+                        continue
+                    content = original[name]
+                    if content is None:
+                        path.unlink(missing_ok=True)
+                    else:
+                        self.i.atomic_text(path, content, False)
+                if manifest_path.is_symlink():
+                    conflicted.append(self.i.MANIFEST_RELATIVE.as_posix())
+                elif manifest_path.is_file() and self.i.digest(manifest_path) in {previous_manifest_sha256, manifest_written}:
+                    self.i.atomic_text(manifest_path, old_manifest, False)
+                else:
+                    conflicted.append(self.i.MANIFEST_RELATIVE.as_posix())
+                if state_path.is_symlink():
+                    conflicted.append(STATE.as_posix())
+                elif not state_path.exists():
+                    self.i.atomic_text(state_path, old_state, False)
+                elif self.i.digest(state_path) != hashlib.sha256(old_state.encode()).hexdigest():
+                    conflicted.append(STATE.as_posix())
+                if conflicted:
+                    raise ValueError('Project changed during failed restore; manual repair needed: ' + ', '.join(conflicted)) from error
+                raise
         recorded = self.record_history(state['manifest'].get('preset', 'custom'), previous_manifest_sha256)
         return {'restored': True, 'history_recorded': recorded}

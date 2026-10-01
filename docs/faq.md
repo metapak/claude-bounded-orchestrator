@@ -20,7 +20,7 @@ The installer preserves `.claude/settings.json` by default because replacing it 
 
 Yes. Claude Code environment variables and per-session or per-invocation options can take precedence over project settings. Agent frontmatter supplies the intended role-level routing where supported, while environment effort configuration can still override it. Confirm the active model and effort in your current client when exact routing matters.
 
-The installer also supports `--preset balanced|quality|economy|quota-saver|custom`, plus repeatable `--role-model ROLE=MODEL` and `--role-effort ROLE=EFFORT` overrides. Native role models must be `opus`, `sonnet`, `haiku`, `fable`, or a full `claude-*` ID. GPT, DeepSeek, and other provider IDs are rejected with guidance to use an external proposal provider. The double-click launchers open a browser console for 1–10 real helper slots, including repeated duties, each with a selected model and effort. Model access still depends on your Claude Code account and client.
+The installer also supports `--preset balanced|quality|economy|quota-saver|custom`, plus repeatable `--role-model ROLE=MODEL` and `--role-effort ROLE=EFFORT` overrides. Native role models must be `opus`, `sonnet`, `haiku`, `fable`, or a full `claude-*` ID. GPT, DeepSeek, and other provider IDs are rejected with guidance to use an external proposal provider. The double-click launchers open a browser console for 1–50 real helper slots, including repeated duties, each with a selected model and effort. Model access still depends on your Claude Code account and client.
 
 The main session settings accept efforts through `xhigh`; `max` is available only for child-agent frontmatter. Invalid combinations are rejected before installation writes any files.
 

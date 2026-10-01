@@ -63,8 +63,8 @@ def main() -> int:
     members = files()
     archives = [
         (output / f"{NAME}-v{version}-source.zip", False, None),
-        (output / f"{NAME}-v{version}-macos-linux.zip", False, ("START-HERE-MACOS-LINUX.txt", "Read INSTALL-MACOS.md, then preview with:\npython3 scripts/install.py /path/to/project --dry-run\n")),
-        (output / f"{NAME}-v{version}-windows.zip", True, ("START-HERE-WINDOWS.txt", "Read INSTALL-WINDOWS.md, then preview with:\n.\\scripts\\install.ps1 -Target C:\\path\\to\\project -DryRun\n")),
+        (output / f"{NAME}-v{version}-macos-linux.zip", False, ("START-HERE-MACOS-LINUX.txt", "Install Claude Code and Python 3.11+. On macOS, double-click launchers/Bounded Orchestrator.app, choose a Git project, then review and save in the browser. See INSTALL-MACOS.md. Linux terminal steps are in that guide.\n")),
+        (output / f"{NAME}-v{version}-windows.zip", True, ("START-HERE-WINDOWS.txt", "Install Claude Code and Python 3.11+. Double-click launchers/Launch Bounded Orchestrator.vbs, choose a Git project, then review and save in the browser. See INSTALL-WINDOWS.md.\n")),
     ]
     checksums: dict[str, str] = {}
     for archive, windows, start in archives:

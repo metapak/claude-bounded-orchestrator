@@ -81,7 +81,7 @@ The optional metadata-only ledger is documented in the [examples](docs/examples.
 
 You describe the result in normal language. The main Claude session turns it into bounded tasks, assigns investigation, implementation, verification, and review to separate roles, and keeps one writer responsible for each scope. It records interruptions, user waits, repair routing, and one evidence-backed retry so unfinished work can resume without losing its history.
 
-The browser console offers balanced, quality, economy, quota-saver, and custom profiles; 1–10 real helper slots with a duty, model, effort, and optional short label; and model/token charts from an explicitly supplied Claude Code OpenTelemetry export. Repeating a duty is allowed. Planned slots are distinct from historically observed helpers. If telemetry is unavailable, the console shows no invented usage; Claude Code's `/usage` view remains the source for account usage.
+The browser console offers ten task drafts (visual creation, games, websites, research, backend/API, mobile apps, data analysis, bug fixes, security/review, documents/content) and separate balanced, quality, economy, quota-saver, and custom work intensities. You can save 1–50 real helper slots, each with a duty, model, effort, and optional short label, and view model/token charts from an explicitly supplied Claude Code OpenTelemetry export. Repeating a duty is allowed. Planned slots are distinct from historically observed helpers. If telemetry is unavailable, the console shows no invented usage; Claude Code's `/usage` view remains the source for account usage.
 
 ## Why use it?
 
@@ -96,7 +96,7 @@ The browser console offers balanced, quality, economy, quota-saver, and custom p
 - **Optional expertise:** UI design and security guidance are available only when explicitly invoked and grant no tools.
 - **Safe installation:** existing Claude settings and conflicting managed files are preserved by default.
 - **Claude-only native routing:** every prepared and custom role accepts only Claude aliases or full `claude-*` IDs.
-- **Guided profiles and team:** choose a profile or configure 1–10 real helper slots, including repeated duties, in the local browser console.
+- **Guided task drafts and team:** choose a task and work intensity, undo an unsaved draft, or configure 1–50 real helper slots, including repeated duties, in the local browser console.
 - **Optional external proposals:** local MCP bridges can call OpenAI or DeepSeek without giving either provider workspace access.
 
 ## What gets installed

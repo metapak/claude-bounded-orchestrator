@@ -81,7 +81,7 @@ Yerel modeller `opus`, `sonnet`, `haiku`, `fable` veya tam `claude-*` kimliğidi
 
 Siz istediğiniz sonucu normal şekilde anlatırsınız. Ana Claude oturumu işi sınırlı görevlere ayırır; inceleme, uygulama, doğrulama ve son değerlendirmeyi ayrı rollere verir ve her kapsamta tek bir uygulayıcıyı sorumlu tutar. Kesintiler, kullanıcıdan yanıt bekleyen işler, onarımın kime döneceği ve kanıta dayalı tek yeniden deneme kaydedilir. Böylece yarım kalan çalışma geçmişi kaybolmadan devam ettirilebilir.
 
-Tarayıcı konsolunda dengeli, yüksek kalite, ekonomik, kota tasarrufu ve özel profiller ile 1–10 gerçek yardımcı slotu bulunur. Her slotun görevi, Claude modeli, düşünme düzeyi ve isteğe bağlı kısa etiketi seçilebilir; aynı görev tekrar edebilir. Planlanan ekip, geçmiş kullanımda gözlenen yardımcı sayısı değildir. Model ve token raporu yalnız açıkça verilen Claude Code OpenTelemetry dosyasını özetler; dosya yoksa sayı uydurmaz. Hesap kullanımı için Claude Code içindeki `/usage` ekranına bakın.
+Tarayıcı konsolunda on iş türü taslağı (görsel, oyun, web sitesi, araştırma, backend/API, mobil, veri, hata, güvenlik, belge) ile dengeli, yüksek kalite, ekonomik, kota tasarrufu ve özel çalışma yoğunluğu ayrı seçilir; 1–50 gerçek yardımcı slotu bulunur. Her slotun görevi, Claude modeli, düşünme düzeyi ve isteğe bağlı kısa etiketi seçilebilir; aynı görev tekrar edebilir. Planlanan ekip, geçmiş kullanımda gözlenen yardımcı sayısı değildir. Model ve token raporu yalnız açıkça verilen Claude Code OpenTelemetry dosyasını özetler; dosya yoksa sayı uydurmaz. Hesap kullanımı için Claude Code içindeki `/usage` ekranına bakın.
 
 ## Ne kazandırır?
 
@@ -93,7 +93,7 @@ Tarayıcı konsolunda dengeli, yüksek kalite, ekonomik, kota tasarrufu ve özel
 - Hafif görev listesi bekleyen, engellenen ve tamamlanan adımları görünür tutar.
 - Tasarım ve güvenlik uzmanlığı yalnızca açıkça istendiğinde kullanılır ve yeni yetki vermez.
 - Kurulum mevcut Claude ayarlarını ve çakışan dosyaları varsayılan olarak korur.
-- Yerel konsolda hazır profil veya 1–10 gerçek yardımcı slotu seçilebilir; aynı görev birden çok yardımcıya verilebilir.
+- Yerel konsolda iş türü taslağı ve çalışma yoğunluğuyla 1–50 gerçek yardımcı slotu seçilebilir; aynı görev birden çok yardımcıya verilebilir.
 - Yerel ve özel roller yalnızca Claude kısa adlarını veya tam `claude-*` kimliklerini kabul eder.
 - İstenirse OpenAI GPT veya DeepSeek yalnızca yama önerisi üretmek için haricî API olarak eklenebilir.
 
