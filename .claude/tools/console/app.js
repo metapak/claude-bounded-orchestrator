@@ -137,7 +137,7 @@ function renderRoster(){if(!config)return;
     button.querySelector('.team-actor-model').title=modelName;
     button.addEventListener('click',()=>{selectedTeamSlot=slot.id;for(const actor of stage.querySelectorAll('.team-actor'))actor.setAttribute('aria-pressed',String(actor===button));renderTeamInspector();});stage.append(button);
   }
-  renderTeamInspector();renderModelNote();
+  renderTeamInspector();renderModelNote();keepConductorPhase('settings',stage);
 }
 function renderTeamInspector(){const area=$('team-inspector');area.replaceChildren();if(!config)return;
   const owner=selectedTeamSlot==='owner';const slot=owner?{role:'owner',model:routingState.owner?.model||'sonnet',effort:routingState.owner?.effort||'medium'}:rosterState.find(item=>item.id===selectedTeamSlot);if(!slot)return;
@@ -180,6 +180,15 @@ function conductorSymbol(){
   const first=part('text',{x:'150',y:'77','font-size':'52',class:'baton-note baton-note-first'});first.textContent='♪';
   const second=part('text',{x:'184',y:'93','font-size':'40',class:'baton-note baton-note-second'});second.textContent='♫';
   notes.append(first,second);svg.append(arm,notes);return svg;
+}
+const conductorStartedAt={settings:null,usage:null};
+function keepConductorPhase(surface,container){
+  const pieces=container.querySelectorAll('.conductor-active .baton-arm,.conductor-active .baton-note');
+  const animations=[...pieces].flatMap(piece=>piece.getAnimations());
+  if(!animations.length)return;
+  if(conductorStartedAt[surface]===null)conductorStartedAt[surface]=performance.now();
+  const elapsed=performance.now()-conductorStartedAt[surface];
+  for(const animation of animations)animation.currentTime=elapsed;
 }
 function orchestraAgentLabel(agent){const role=agent.role&&roleNames[agent.role]?t(roleNames[agent.role]):agent.role||t('observedHelpers');return agent.name||role+' · #'+agent.id.slice(-6);}
 function orchestraStageLabel(agent){const shortRole={reviewer:'shortReviewer','failure-analyst':'shortFailure','qa-operator':'shortQa'}[agent.role];const role=shortRole?t(shortRole):(agent.role&&roleNames[agent.role]?t(roleNames[agent.role]):agent.role||t('observedHelpers'));const label=agent.name||role+' · #'+agent.id.slice(-4);return label.length>23?label.slice(0,20)+'…':label;}
@@ -298,8 +307,8 @@ function usageTimeline(rows){const section=node('section',undefined,'usage-reel'
   for(const row of points){const label=row.observed_at?day(row.observed_at):t('timelineUnknown');const button=node('button',undefined,'usage-reel-point');button.type='button';button.append(node('strong',label),node('small',number(row.primary||0)+' '+t('unit')));button.setAttribute('aria-label',interpolate('timelinePoint',{date:label,amount:number(row.primary||0)}));button.setAttribute('aria-pressed','false');button.addEventListener('click',()=>select(button,row));track.append(button);}
   select(track.firstElementChild,points[0]);return section;
 }
-function renderUsage(){const box=$('usage-result');box.replaceChildren();if(!usageData){box.append(orchestraStage(null),node('p',t('usageEmpty'),'empty'));return;}
-  if(usageData.status!=='available'){box.append(orchestraStage(usageData.analysis?.orchestra),node('p',t('noUsage'),'empty'));return;}
+function renderUsage(){const box=$('usage-result');box.replaceChildren();if(!usageData){box.append(orchestraStage(null),node('p',t('usageEmpty'),'empty'));keepConductorPhase('usage',box);return;}
+  if(usageData.status!=='available'){box.append(orchestraStage(usageData.analysis?.orchestra),node('p',t('noUsage'),'empty'));keepConductorPhase('usage',box);return;}
   box.append(node('p',t(usageIsSample?'sampleBadge':'realBadge'),'note'));
   box.append(orchestraStage(usageData.analysis?.orchestra));
   box.append(usageTimeline(usageData.analysis?.timeline));
@@ -311,13 +320,13 @@ function renderUsage(){const box=$('usage-result');box.replaceChildren();if(!usa
   box.append(node('p',Object.keys(usageData.cost_totals||{}).length?t('costAvailable')+': '+Object.entries(usageData.cost_totals).map(([k,v])=>k+' '+number(v)).join(', '):t('costUnavailable'),'note'));
   if(!usageIsSample&&usageData.events?.length){const groups=new Map();for(const event of usageData.events){if(!primaryEvent(event))continue;const key=[event.date?.slice(0,10)||'',event.model||'',event.agent||''].join('|');groups.set(key,(groups.get(key)||0)+Number(event.value||0));}
     if(groups.size){const wrap=node('div',undefined,'table-wrap');const table=node('table');const head=node('thead');const headRow=node('tr');for(const key of ['date','modelLabel','agent','amount'])headRow.append(node('th',t(key)));head.append(headRow);table.append(head);const body=node('tbody');for(const [key,value] of groups){const [eventDay,model,agent]=key.split('|');const row=node('tr');row.append(node('td',eventDay?day(eventDay):t('unknown')),node('td',model||t('unknown')),node('td',agent||t('unknown')),node('td',number(value)+' '+t('unit')));body.append(row);}table.append(body);wrap.append(table);box.append(wrap);}}
-  const technical={source:usageIsSample?'synthetic sample':usageData.source,dimensions:usageData.dimensions,groups:usageData.groups,metric_points_observed:usageData.metric_points_observed,limitations:usageData.limitations};box.append(details(t('usageDetails'),JSON.stringify(technical,null,2)));
+  const technical={source:usageIsSample?'synthetic sample':usageData.source,dimensions:usageData.dimensions,groups:usageData.groups,metric_points_observed:usageData.metric_points_observed,limitations:usageData.limitations};box.append(details(t('usageDetails'),JSON.stringify(technical,null,2)));keepConductorPhase('usage',box);
 }
 function renderTasks(){const box=$('task-result');box.replaceChildren();if(!taskData)return;const tasks=taskData.tasks||[];if(!tasks.length){box.append(node('p',t('tasksEmpty'),'empty'));return;}box.append(node('p',t('taskLimit'),'note'));for(const task of tasks){const card=node('article',undefined,'work-card');card.append(node('h3',task.summary||t('unknown')));const state=t(statusNames[task.status]||'unknown');card.append(node('p',t('taskStatus')+': '+state));card.append(node('p',t('taskUpdated')+': '+date(task.updated_at)));if(task.role)card.append(node('p',t('taskRole')+': '+t(roleNames[task.role]||'unknown')));if(task.evidence)card.append(node('p',t('taskEvidence')+': '+task.evidence));card.append(details(t('taskDetails'),JSON.stringify({id:task.id,depends_on:task.depends_on,attempts:task.attempts},null,2)));box.append(card);}}
 function translate(){document.documentElement.lang=language;document.title=t('pageTitle');for(const el of document.querySelectorAll('[data-i18n]'))el.textContent=t(el.dataset.i18n);for(const el of document.querySelectorAll('[data-i18n-aria]'))el.setAttribute('aria-label',t(el.dataset.i18nAria));for(const el of document.querySelectorAll('[data-i18n-placeholder]'))el.placeholder=t(el.dataset.i18nPlaceholder);for(const button of document.querySelectorAll('[data-lang]'))button.setAttribute('aria-pressed',String(button.dataset.lang===language));$('settings-limits').textContent=t('limitsText');translateRoleLabels();renderTaskProfiles();renderRoster();renderPresetExplain();renderSummary();renderPreview();renderActivity();renderUsage();renderTasks();}
 async function refresh(){config=await api('settings');$('target').textContent=config.target;$('preset').value=config.preset;$('parallel').value=config.max_parallelism||1;$('restore').disabled=!config.restore_available;rosterPresetSeeded=false;rosterState=config.roster?.length?config.roster.map(slot=>({...slot})):[defaultSlot(1)];selectedTaskProfile=null;taskDraftBefore=null;stagePage=0;roles(config.routing);markDirty();translate();}
 for(const button of document.querySelectorAll('[data-lang]'))button.addEventListener('click',()=>{language=button.dataset.lang;try{localStorage.setItem('console-language',language);}catch{}translate();});
-for(const button of document.querySelectorAll('[data-tab]'))button.addEventListener('click',()=>action(async()=>{activeTab=button.dataset.tab;for(const item of document.querySelectorAll('[data-tab]')){item.classList.toggle('active',item.dataset.tab===activeTab);if(item.dataset.tab===activeTab)item.setAttribute('aria-current','page');else item.removeAttribute('aria-current');}for(const id of ['settings','usage','tasks'])$(id).hidden=id!==activeTab;if(activeTab==='tasks'&&!taskData){taskData=await api('tasks');renderTasks();}}));
+for(const button of document.querySelectorAll('[data-tab]'))button.addEventListener('click',()=>action(async()=>{activeTab=button.dataset.tab;for(const item of document.querySelectorAll('[data-tab]')){item.classList.toggle('active',item.dataset.tab===activeTab);if(item.dataset.tab===activeTab)item.setAttribute('aria-current','page');else item.removeAttribute('aria-current');}for(const id of ['settings','usage','tasks'])$(id).hidden=id!==activeTab;if(activeTab==='settings')keepConductorPhase('settings',$('team-slots'));if(activeTab==='usage')keepConductorPhase('usage',$('usage-result'));if(activeTab==='tasks'&&!taskData){taskData=await api('tasks');renderTasks();}}));
 for(const radio of document.querySelectorAll('input[name=approach]'))radio.addEventListener('change',()=>{if(radio.checked){$('preset').value=radio.value;if(selectedTaskProfile)applyTaskTemplate(true);else {roles(config.presets[radio.value]);seedRosterFromPreset();}markDirty();renderTaskProfiles();renderRoster();}});
 $('preset').addEventListener('change',()=>{if(config.presets[selectedPreset()]){if(selectedTaskProfile)applyTaskTemplate(true);else {roles(config.presets[selectedPreset()]);seedRosterFromPreset();}}markDirty();renderTaskProfiles();renderRoster();});
 for(const [id,delta] of [['roster-minus',-1],['roster-plus',1]])$(id).addEventListener('click',()=>setRosterCount(rosterState.length+delta));
