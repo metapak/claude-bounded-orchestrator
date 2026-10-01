@@ -7,7 +7,7 @@ Have [Claude Code](https://code.claude.com/docs/en/getting-started) and [Python 
 3. **Choose a project:** Pick the folder where you use Claude Code.
 4. **Install:** In the browser, keep the suggested team or change it. Click **Check changes**, then **Install**. Restart Claude Code in that project.
 
-For later changes, reopen the app and click **Save**; no uninstall is needed. An already-open Claude Code session may need to be reopened before it uses the changes. If macOS blocks the unsigned app, Control-click it and choose **Open**. Keep the app inside the extracted folder beside the launcher script and setup files. If macOS runs the app from a temporary location, choose the extracted Claude Bounded Orchestrator folder when prompted; then choose your project. If the browser cannot open, an alert shows the full local address to open manually.
+For later changes, reopen the app and click **Save**; no uninstall is needed. An already-open Claude Code session may need to be reopened before it uses the changes. If macOS blocks the unsigned app, Control-click it and choose **Open**. Keep the app inside the extracted folder beside the launcher script and setup files. If macOS opens the app from a temporary location, step 1/2 asks for the extracted setup package in Downloads containing `launchers` and `scripts`. A wrong choice explains the difference and lets you try again. Step 2/2 asks for the separate Git project where you use Claude Code; settings go to that project, then setup continues in the browser. If the browser cannot open, an alert shows the full local address to open manually.
 
 ## Linux: the same four steps
 
