@@ -59,7 +59,7 @@ class Settings:
         files = (*self.i.BASE_MANAGED_FILES, self.i.SETTINGS_RELATIVE,
                  self.i.SETTINGS_EXAMPLE_RELATIVE, Path('CLAUDE.md'),
                  self.i.MANIFEST_RELATIVE, STATE, HISTORY)
-        return {relative: self.path(relative).read_text(encoding='utf-8')
+        return {relative: self.path(relative).read_bytes().decode('utf-8')
                 if self.path(relative).exists() else None for relative in files}
 
     def restore_initial_install_snapshot(self, snapshot, skip=()):
@@ -323,7 +323,7 @@ class Settings:
                 raise
             self.path(self.i.MANIFEST_RELATIVE)
             self.path(STATE)
-            original = {name: self.path(Path(name)).read_text(encoding='utf-8') if self.path(Path(name)).exists() else None for name in changes}
+            original = {name: self.path(Path(name)).read_bytes().decode('utf-8') if self.path(Path(name)).exists() else None for name in changes}
             for name in changes:
                 entry = before['files'].get(name, {})
                 if name != self.i.SETTINGS_RELATIVE.as_posix() and entry.get('owned') and (original[name] is None or hashlib.sha256(original[name].encode()).hexdigest() != entry.get('sha256')):
@@ -364,7 +364,7 @@ class Settings:
                         # newly created destination instead of replacing it.
                         os.link(staged[name], path)
                     else:
-                        self.i.atomic_text(path, staged[name].read_text(encoding='utf-8'), False)
+                        self.i.atomic_text(path, staged[name].read_bytes().decode('utf-8'), False)
                     touched.append((name, hashlib.sha256(content.encode()).hexdigest()))
                     if name != 'CLAUDE.md':
                         # A merged shared settings file must survive uninstall.
@@ -449,12 +449,12 @@ class Settings:
             saved = record['backup']
             if saved and not Path(saved).is_relative_to(self.i.BACKUP_RELATIVE):
                 raise ValueError('Invalid backup path')
-            contents[name] = self.path(Path(saved)).read_text(encoding='utf-8') if saved else None
+            contents[name] = self.path(Path(saved)).read_bytes().decode('utf-8') if saved else None
         self.path(self.i.MANIFEST_RELATIVE)
         self.path(self.i.BACKUP_RELATIVE)
         old_manifest = manifest_path.read_text(encoding='utf-8')
         old_state = state_path.read_text(encoding='utf-8')
-        original = {name: self.path(Path(name)).read_text(encoding='utf-8')
+        original = {name: self.path(Path(name)).read_bytes().decode('utf-8')
                     if self.path(Path(name)).exists() else None for name in contents}
         staged = {}
         with tempfile.TemporaryDirectory(prefix='console-restore-', dir=state_path.parent) as directory:
@@ -481,7 +481,7 @@ class Settings:
                         os.link(staged[name], path)
                         touched.append((name, hashlib.sha256(content.encode()).hexdigest()))
                     else:
-                        self.i.atomic_text(path, staged[name].read_text(encoding='utf-8'), False)
+                        self.i.atomic_text(path, staged[name].read_bytes().decode('utf-8'), False)
                         touched.append((name, hashlib.sha256(content.encode()).hexdigest()))
                 self.path(self.i.MANIFEST_RELATIVE)
                 if self.i.digest(manifest_path) != previous_manifest_sha256:

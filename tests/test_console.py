@@ -290,7 +290,7 @@ class ConsoleTests(unittest.TestCase):
         original = json.loads(path.read_text())
         original['permissions'] = {'deny': ['Write(secret)']}
         original['env']['KEEP_PRIVATE'] = 'do-not-return'
-        path.write_text(json.dumps(original))
+        path.write_bytes(json.dumps(original, indent=2).replace('\n', '\r\n').encode('utf-8'))
         before = path.read_bytes()
         payload = self.payload()
         preview = self.settings.plan(payload)[2]
