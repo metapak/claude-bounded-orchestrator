@@ -143,7 +143,7 @@ Both bridges use Python's standard library and Claude Code's [local stdio MCP su
 
 Omitting `--external-provider` on a later non-interactive run preserves an earlier selection. Use `--external-provider none`, `--no-external-openai`, or `--no-external-deepseek` to remove an unchanged installer-owned integration. Modified or unowned entries are kept with a warning. External API calls can incur separate provider charges.
 
-Uninstall unchanged files created by the installer:
+On macOS and Linux, uninstall unchanged files created by the installer:
 
 ```bash
 python scripts/install.py /path/to/your-project --uninstall --dry-run
@@ -151,6 +151,7 @@ python scripts/install.py /path/to/your-project --uninstall
 ```
 
 Files changed after installation are kept. The runtime `.gitignore` is also retained so any remaining ledger state or backups stay untracked.
+On Windows, both `--uninstall` and `--uninstall --dry-run` stop without changing files because the required secure removal operations are unavailable. Use the conservative [Windows manual cleanup steps](INSTALL-WINDOWS.md); they leave `CLAUDE.md` and MCP configuration for separate review.
 
 ## Roles
 

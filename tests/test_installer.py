@@ -169,6 +169,19 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(self.installer("--dry-run", "--preset", "quality", "--external-openai").returncode, 0)
         self.assertEqual(list(self.target.iterdir()), [])
 
+    @unittest.skipIf(SECURE_UNINSTALL, 'secure uninstall is available on this platform')
+    def test_unsupported_cli_uninstall_and_preview_do_not_mutate_project(self) -> None:
+        self.assertEqual(self.installer().returncode, 0)
+        def snapshot() -> dict[str, bytes | None]:
+            return {str(path.relative_to(self.target)): path.read_bytes() if path.is_file() else None
+                    for path in self.target.rglob('*')}
+        before = snapshot()
+        for args in (("--uninstall", "--dry-run"), ("--uninstall",)):
+            result = self.installer(*args)
+            self.assertEqual(result.returncode, 2)
+            self.assertIn('secure uninstall is unsupported on this platform', result.stderr)
+            self.assertEqual(snapshot(), before)
+
     def test_prepared_profiles_and_noninteractive_overrides(self) -> None:
         self.assertEqual(self.installer("--preset", "quality").returncode, 0)
         settings = json.loads((self.target / ".claude/settings.json").read_text())

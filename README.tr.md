@@ -141,7 +141,7 @@ Her iki köprü de Python standart kütüphanesini ve Claude Code'un [yerel MCP 
 
 Sonraki komutlu kurulumda `--external-provider` yazılmazsa önceki seçim korunur. Kurucuya ait değişmemiş bağlantıyı kaldırmak için `--external-provider none`, `--no-external-openai` veya `--no-external-deepseek` kullanılabilir. Değiştirilmiş veya başkasına ait girdiler uyarıyla korunur. Haricî API kullanımı ayrıca ücret oluşturabilir.
 
-Kaldırma işlemini önce önizleyebilirsiniz:
+macOS ve Linux'ta kaldırma işlemini önce önizleyebilirsiniz:
 
 ```bash
 python scripts/install.py /projenizin/yolu --uninstall --dry-run
@@ -149,6 +149,7 @@ python scripts/install.py /projenizin/yolu --uninstall
 ```
 
 Kurulumdan sonra değiştirilmiş dosyalar silinmez. Kalan görev durumu ve yedeklerin Git'e eklenmemesi için çalışma klasöründeki `.gitignore` dosyası da korunur.
+Windows'ta `--uninstall` ve `--uninstall --dry-run`, gerekli güvenli silme işlemleri desteklenmediğinden hiçbir dosyayı değiştirmeden durur. Temkinli [Windows elle temizleme adımlarını](INSTALL-WINDOWS.md) izleyin; `CLAUDE.md` ve MCP ayarları ayrıca incelenmek üzere korunur.
 
 ## Roller
 
