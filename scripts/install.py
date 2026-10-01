@@ -8,7 +8,9 @@ import hashlib
 import json
 import os
 import re
+import secrets
 import shutil
+import stat
 import sys
 import tempfile
 from datetime import datetime, timezone
@@ -158,10 +160,18 @@ ALLOWED_UNINSTALL_FILES = frozenset(
     for path in (*BASE_MANAGED_FILES, *OPTIONAL_MANAGED_FILES, SETTINGS_RELATIVE, SETTINGS_EXAMPLE_RELATIVE)
 )
 ROSTER_AGENT_PATH = re.compile(r"\.claude/agents/orchestra-slot-(?:0[1-9]|[1-9][0-9])\.md\Z")
+SECURE_UNINSTALL_DIR_FD = all(
+    function in getattr(os, "supports_dir_fd", ())
+    for function in (os.open, os.rename, os.unlink, os.link, os.mkdir, os.stat)
+)
 
 
 class InstallError(RuntimeError):
     """Expected installer failure."""
+
+
+class PartialUninstallError(InstallError):
+    """An uninstall error after a file mutation may require manual review."""
 
 
 def configure_stdio() -> None:
@@ -718,18 +728,25 @@ def disable_external_openai(target: Path, manifest: dict[str, Any], dry_run: boo
 
 
 def uninstall_mcp_provider(
-    target: Path, manifest: dict[str, Any], provider: str, dry_run: bool, output: list[str]
+    target: Path, manifest: dict[str, Any], provider: str, dry_run: bool, output: list[str],
+    expected_state: dict[str, str | None] | None = None,
+    mutation_started: list[bool] | None = None,
 ) -> Path | None:
     spec = EXTERNAL_PROVIDERS[provider]
     server_name = str(spec["server"])
     entry = manifest_mcp_entry(manifest, provider)
     if not isinstance(entry, dict):
         return None
+    if expected_state is not None and expected_state[MCP_RELATIVE.as_posix()] is None:
+        return None
     path = safe_uninstall_path(target, MCP_RELATIVE)
     if not path.exists():
         return None
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
+        original = path.read_bytes()
+        if expected_state is not None and hashlib.sha256(original).hexdigest() != expected_state[MCP_RELATIVE.as_posix()]:
+            raise InstallError(f"file changed during uninstall: {MCP_RELATIVE}")
+        data = json.loads(original.decode("utf-8"))
     except (OSError, json.JSONDecodeError):
         output.append(f"KEEP {MCP_RELATIVE}: modified after installation")
         return Path(spec["bridge"])
@@ -737,21 +754,23 @@ def uninstall_mcp_provider(
     if not isinstance(servers, dict) or servers.get(server_name) != entry.get("server"):
         output.append(f"KEEP {MCP_RELATIVE}: modified after installation")
         return Path(spec["bridge"])
-    output.append(f"REMOVE {MCP_RELATIVE}" if entry.get("owned_file") and len(servers) == 1 else f"UPDATE {MCP_RELATIVE}: remove {server_name}")
+    output.append(f"REMOVE {MCP_RELATIVE}" if entry.get("owned_file") and len(servers) == 1 and set(data) == {"mcpServers"} else f"UPDATE {MCP_RELATIVE}: remove {server_name}")
     if dry_run:
         return None
     del servers[server_name]
-    if entry.get("owned_file") and not servers and set(data) == {"mcpServers"}:
-        path.unlink()
-    else:
-        atomic_text(path, json.dumps(data, indent=2) + "\n", False)
+    replacement = None if entry.get("owned_file") and not servers and set(data) == {"mcpServers"} else json.dumps(data, indent=2) + "\n"
+    if mutation_started is not None:
+        mutation_started[0] = True
+    mutate_verified_uninstall_file(target, MCP_RELATIVE, original, replacement)
     return None
 
 
-def uninstall_mcp(target: Path, manifest: dict[str, Any], dry_run: bool, output: list[str]) -> set[str]:
+def uninstall_mcp(target: Path, manifest: dict[str, Any], dry_run: bool, output: list[str],
+                  expected_state: dict[str, str | None] | None = None,
+                  mutation_started: list[bool] | None = None) -> set[str]:
     retained_bridges: set[str] = set()
     for provider in EXTERNAL_PROVIDERS:
-        bridge = uninstall_mcp_provider(target, manifest, provider, dry_run, output)
+        bridge = uninstall_mcp_provider(target, manifest, provider, dry_run, output, expected_state, mutation_started)
         if bridge is not None:
             retained_bridges.add(bridge.as_posix())
     return retained_bridges
@@ -772,6 +791,15 @@ def remove_managed_block(text: str) -> tuple[str, bool]:
     else:
         result = after
     return result, True
+
+
+def managed_block_digest(text: str) -> str | None:
+    start = text.find(START_MARKER)
+    end = text.find(END_MARKER, start + len(START_MARKER)) if start >= 0 else -1
+    if end < 0:
+        return None
+    block = text[start:end + len(END_MARKER)]
+    return hashlib.sha256(block.encode("utf-8")).hexdigest()
 
 
 def install_claude_block(root: Path, target: Path, manifest: dict[str, Any], dry_run: bool, output: list[str]) -> None:
@@ -805,6 +833,7 @@ def install_claude_block(root: Path, target: Path, manifest: dict[str, Any], dry
         atomic_text(destination, content, dry_run)
     if not dry_run:
         manifest["claude_block"] = True
+        manifest["claude_block_sha256"] = managed_block_digest(content)
 
 
 def save_manifest(target: Path, manifest: dict[str, Any], root: Path, dry_run: bool) -> None:
@@ -836,7 +865,176 @@ def safe_uninstall_path(target: Path, relative: Path) -> Path:
     return candidate
 
 
-def uninstall(target: Path, manifest: dict[str, Any], dry_run: bool, output: list[str]) -> None:
+def require_secure_uninstall_backend() -> None:
+    required = ("O_DIRECTORY", "O_NOFOLLOW")
+    if not SECURE_UNINSTALL_DIR_FD or any(not isinstance(getattr(os, name, None), int) for name in required):
+        raise InstallError("secure uninstall is unsupported on this platform")
+
+
+def open_uninstall_recovery(root_fd: int, flags: int) -> int:
+    """Open the ignored private recovery directory without following symlinks."""
+    claude_fd = os.open(".claude", flags, dir_fd=root_fd)
+    try:
+        runtime_fd = os.open(".bounded-orchestrator", flags, dir_fd=claude_fd)
+        try:
+            try:
+                os.mkdir("backups", 0o700, dir_fd=runtime_fd)
+            except FileExistsError:
+                pass
+            return os.open("backups", flags, dir_fd=runtime_fd)
+        finally:
+            os.close(runtime_fd)
+    finally:
+        os.close(claude_fd)
+
+
+def retain_uninstall_inode(root_fd: int, parent_fd: int, staged: str,
+                           relative: Path, flags: int, kind: str) -> None:
+    recovery_fd = open_uninstall_recovery(root_fd, flags)
+    try:
+        name = f"{kind}-{relative.as_posix().replace('/', '_')}-{secrets.token_hex(12)}"
+        os.link(staged, name, src_dir_fd=parent_fd,
+                dst_dir_fd=recovery_fd, follow_symlinks=False)
+    finally:
+        os.close(recovery_fd)
+
+
+def move_failed_stage_to_recovery(root_fd: int, parent_fd: int, staged: str,
+                                  relative: Path, flags: int) -> None:
+    """Atomically move whichever inode now occupies the failed stage."""
+    recovery_fd = open_uninstall_recovery(root_fd, flags)
+    try:
+        name = f"uninstall-failed-stage-{relative.as_posix().replace('/', '_')}-{secrets.token_hex(12)}"
+        os.rename(staged, name, src_dir_fd=parent_fd, dst_dir_fd=recovery_fd)
+    finally:
+        os.close(recovery_fd)
+
+
+def recover_failed_replacement(root_fd: int, parent_fd: int, leaf: str,
+                               relative: Path, flags: int,
+                               created_identity: tuple[int, int]) -> None:
+    """Retain a failed replacement or restore an intervening user collision."""
+    failed_stage = f".{leaf.lstrip('.')}.bounded-failed-{secrets.token_hex(12)}"
+    try:
+        os.rename(leaf, failed_stage, src_dir_fd=parent_fd, dst_dir_fd=parent_fd)
+    except FileNotFoundError:
+        return
+    current = os.stat(failed_stage, dir_fd=parent_fd, follow_symlinks=False)
+    if (current.st_dev, current.st_ino) != created_identity:
+        # The new name belongs to someone else. Restore it without overwriting.
+        try:
+            os.link(failed_stage, leaf, src_dir_fd=parent_fd,
+                    dst_dir_fd=parent_fd, follow_symlinks=False)
+        except FileExistsError:
+            pass
+        move_failed_stage_to_recovery(root_fd, parent_fd, failed_stage, relative, flags)
+        return
+    retain_uninstall_inode(root_fd, parent_fd, failed_stage, relative, flags,
+                           "uninstall-failed-replacement")
+    # Rename, rather than unlink: an atomic save may replace the stage after
+    # the hardlink and must remain recoverable as its own inode.
+    move_failed_stage_to_recovery(root_fd, parent_fd, failed_stage, relative, flags)
+
+
+def verify_uninstall_parents(descriptors: list[int], relative: Path, flags: int) -> None:
+    check_fd = descriptors[0]
+    for index, part in enumerate(relative.parts[:-1], 1):
+        reopened = os.open(part, flags, dir_fd=check_fd)
+        try:
+            current_dir = os.fstat(reopened)
+            original_dir = os.fstat(descriptors[index])
+            if (current_dir.st_dev, current_dir.st_ino) != (original_dir.st_dev, original_dir.st_ino):
+                raise InstallError(f"directory changed during uninstall: {relative}")
+        finally:
+            os.close(reopened)
+        check_fd = descriptors[index]
+
+
+def mutate_verified_uninstall_file(
+    target: Path, relative: Path, expected: bytes, replacement: str | None = None,
+) -> None:
+    """Change a verified file; retain its inode in private recovery."""
+    require_secure_uninstall_backend()
+    flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    descriptors = [os.open(target, flags)]
+    staged: str | None = None
+    try:
+        for part in relative.parts[:-1]:
+            descriptors.append(os.open(part, flags, dir_fd=descriptors[-1]))
+        parent_fd = descriptors[-1]
+        leaf = relative.name
+        file_fd = os.open(leaf, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=parent_fd)
+        try:
+            initial = os.fstat(file_fd)
+            if not stat.S_ISREG(initial.st_mode):
+                raise InstallError(f"file changed during uninstall: {relative}")
+            os.lseek(file_fd, 0, os.SEEK_SET)
+            with os.fdopen(os.dup(file_fd), "rb") as handle:
+                actual = handle.read()
+            read_stat = os.fstat(file_fd)
+            if actual != expected or (initial.st_dev, initial.st_ino, initial.st_size, initial.st_mtime_ns, initial.st_ctime_ns) != (
+                read_stat.st_dev, read_stat.st_ino, read_stat.st_size, read_stat.st_mtime_ns, read_stat.st_ctime_ns
+            ):
+                raise InstallError(f"file changed during uninstall: {relative}")
+
+            # Ensure the still-visible project path names the same directories.
+            verify_uninstall_parents(descriptors, relative, flags)
+            linked = os.stat(leaf, dir_fd=parent_fd, follow_symlinks=False)
+            latest = os.fstat(file_fd)
+            if (linked.st_dev, linked.st_ino, linked.st_size, linked.st_mtime_ns, linked.st_ctime_ns) != (
+                initial.st_dev, initial.st_ino, initial.st_size, initial.st_mtime_ns, initial.st_ctime_ns
+            ) or (latest.st_size, latest.st_mtime_ns, latest.st_ctime_ns) != (
+                initial.st_size, initial.st_mtime_ns, initial.st_ctime_ns
+            ):
+                raise InstallError(f"file changed during uninstall: {relative}")
+
+            staged = f".{leaf}.bounded-remove-{secrets.token_hex(12)}"
+            os.rename(leaf, staged, src_dir_fd=parent_fd, dst_dir_fd=parent_fd)
+            staged_stat = os.stat(staged, dir_fd=parent_fd, follow_symlinks=False)
+            os.lseek(file_fd, 0, os.SEEK_SET)
+            with os.fdopen(os.dup(file_fd), "rb") as handle:
+                staged_content = handle.read()
+            if (staged_stat.st_dev, staged_stat.st_ino) != (initial.st_dev, initial.st_ino) or staged_content != expected:
+                raise InstallError(f"file changed during uninstall: {relative}")
+            verify_uninstall_parents(descriptors, relative, flags)
+            retain_uninstall_inode(descriptors[0], parent_fd, staged, relative, flags, "uninstall")
+            verify_uninstall_parents(descriptors, relative, flags)
+            if replacement is not None:
+                created_fd = os.open(leaf, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=parent_fd)
+                created_stat = os.fstat(created_fd)
+                try:
+                    with os.fdopen(created_fd, "w", encoding="utf-8", newline="\n") as handle:
+                        handle.write(replacement)
+                        handle.flush()
+                        os.fsync(handle.fileno())
+                except BaseException:
+                    recover_failed_replacement(descriptors[0], parent_fd, leaf, relative, flags,
+                                               (created_stat.st_dev, created_stat.st_ino))
+                    raise
+            os.unlink(staged, dir_fd=parent_fd)
+            staged = None
+            verify_uninstall_parents(descriptors, relative, flags)
+        finally:
+            os.close(file_fd)
+    except BaseException:
+        if staged is not None:
+            try:
+                os.link(staged, leaf, src_dir_fd=descriptors[-1], dst_dir_fd=descriptors[-1], follow_symlinks=False)
+                os.unlink(staged, dir_fd=descriptors[-1])
+            except FileExistsError:
+                # Keep the staged original if another file appeared at its name.
+                pass
+        raise
+    finally:
+        for descriptor in reversed(descriptors):
+            os.close(descriptor)
+
+
+def uninstall(target: Path, manifest: dict[str, Any], dry_run: bool, output: list[str],
+              expected_state: dict[str, str | None] | None = None,
+              approved_actions: list[str] | None = None,
+              mutation_started: list[bool] | None = None) -> None:
+    require_secure_uninstall_backend()
     entries = manifest.get("files", {})
     safe_paths: dict[str, Path] = {}
     for name, entry in entries.items():
@@ -847,11 +1045,26 @@ def uninstall(target: Path, manifest: dict[str, Any], dry_run: bool, output: lis
         safe_paths[name] = safe_uninstall_path(target, Path(name))
     manifest_path = safe_uninstall_path(target, MANIFEST_RELATIVE)
     claude = safe_uninstall_path(target, Path("CLAUDE.md"))
+    manifest_bytes = manifest_path.read_bytes() if manifest_path.exists() else None
 
-    retained_bridges = uninstall_mcp(target, manifest, dry_run, output)
+    if expected_state is not None:
+        for name, expected in expected_state.items():
+            path = safe_uninstall_path(target, Path(name))
+            current = digest(path) if path.is_file() else None
+            if current != expected:
+                raise InstallError(f"file changed during uninstall: {name}")
+    if approved_actions is not None:
+        planned: list[str] = []
+        uninstall(target, manifest, True, planned)
+        if planned != approved_actions:
+            raise InstallError("uninstall actions changed since preview")
+
+    retained_bridges = uninstall_mcp(target, manifest, dry_run, output, expected_state, mutation_started)
 
     for name, entry in sorted(entries.items(), reverse=True):
         path = safe_paths[name]
+        if expected_state is not None and expected_state[name] is None:
+            continue
         if not entry.get("owned") or not path.exists():
             continue
         if name in retained_bridges:
@@ -860,25 +1073,47 @@ def uninstall(target: Path, manifest: dict[str, Any], dry_run: bool, output: lis
         if Path(name) == RUNTIME_IGNORE_RELATIVE:
             output.append(f"KEEP {name}: protects retained private runtime data")
             continue
-        if not path.is_file() or digest(path) != entry.get("sha256"):
+        if not path.is_file():
+            output.append(f"KEEP {name}: modified after installation")
+            continue
+        original = path.read_bytes()
+        if expected_state is not None and hashlib.sha256(original).hexdigest() != expected_state[name]:
+            raise InstallError(f"file changed during uninstall: {name}")
+        if hashlib.sha256(original).hexdigest() != entry.get("sha256"):
             output.append(f"KEEP {name}: modified after installation")
             continue
         output.append(f"REMOVE {name}")
         if not dry_run:
-            path.unlink()
-    if manifest.get("claude_block") and claude.is_file():
+            if mutation_started is not None:
+                mutation_started[0] = True
+            mutate_verified_uninstall_file(target, Path(name), original)
+    if manifest.get("claude_block") and (expected_state is None or expected_state["CLAUDE.md"] is not None) and claude.is_file():
         current = claude.read_text(encoding="utf-8")
+        if expected_state is not None and hashlib.sha256(current.encode("utf-8")).hexdigest() != expected_state["CLAUDE.md"]:
+            raise InstallError("file changed during uninstall: CLAUDE.md")
         cleaned, removed = remove_managed_block(current)
         if removed:
-            output.append("REMOVE CLAUDE.md block")
-            if not dry_run:
-                if cleaned:
-                    atomic_text(claude, cleaned, False)
-                else:
-                    claude.unlink()
+            if not manifest.get("claude_block_sha256"):
+                output.append("KEEP CLAUDE.md block: original content not recorded; review manually")
+            elif managed_block_digest(current) != manifest["claude_block_sha256"]:
+                output.append("KEEP CLAUDE.md block: modified after installation")
+            else:
+                output.append("REMOVE CLAUDE.md block")
+                if not dry_run:
+                    if mutation_started is not None:
+                        mutation_started[0] = True
+                    mutate_verified_uninstall_file(target, Path("CLAUDE.md"), current.encode("utf-8"), cleaned or None)
     output.append(f"REMOVE {MANIFEST_RELATIVE}")
+    if approved_actions is not None and output != approved_actions:
+        raise InstallError("uninstall actions changed since preview")
     if not dry_run and manifest_path.exists():
-        manifest_path.unlink()
+        if manifest_bytes is None:
+            raise InstallError("install manifest changed during uninstall")
+        if expected_state is not None and hashlib.sha256(manifest_bytes).hexdigest() != expected_state[MANIFEST_RELATIVE.as_posix()]:
+            raise InstallError("install manifest changed during uninstall")
+        if mutation_started is not None:
+            mutation_started[0] = True
+        mutate_verified_uninstall_file(target, MANIFEST_RELATIVE, manifest_bytes)
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

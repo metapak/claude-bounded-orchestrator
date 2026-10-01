@@ -131,12 +131,61 @@ class Settings:
         return {'target': str(self.target), 'scope': 'project', 'preset': manifest.get('preset', 'custom'),
                 'routing': routing, 'max_parallelism': settings.get('env', {}).get(CONCURRENCY),
                 'roster': roster, 'roster_read_only': len(roster) > 50,
-                'installed': bool(manifest.get('files')), 'restore_available': self.path(STATE).exists(),
+                'installed': bool(manifest.get('files')), 'uninstall_available': self.path(self.i.MANIFEST_RELATIVE).is_file(),
+                'restore_available': self.path(STATE).exists(),
                 'presets': {key: {role: {'model': pair[0], 'effort': pair[1]} for role, pair in value.items()} for key, value in self.i.PRESETS.items()},
                 'limitations': 'Project files shown. Managed/local settings, environment and CLI/session choices may override them. Concurrency requires Claude Code 2.1.217+; ultracode and resumed agents can bypass it.'}
 
     def project_hash(self):
         return hashlib.sha256(str(self.target).encode('utf-8')).hexdigest()
+
+    def _uninstall_plan(self):
+        self.i.require_secure_uninstall_backend()
+        manifest_path = self.path(self.i.MANIFEST_RELATIVE)
+        if not manifest_path.is_file():
+            raise ValueError('No installation manifest found for this project')
+        manifest = self.i.load_manifest(self.target)
+        names = set(manifest['files']) | {self.i.MANIFEST_RELATIVE.as_posix(),
+                'CLAUDE.md', self.i.MCP_RELATIVE.as_posix()}
+        def identities():
+            result = {}
+            for name in sorted(names):
+                path = self.i.safe_uninstall_path(self.target, Path(name))
+                result[name] = self.i.digest(path) if path.is_file() else None
+            return result
+        before = identities()
+        output = []
+        self.i.uninstall(self.target, manifest, True, output)
+        after = identities()
+        if before != after:
+            raise ValueError('Uninstall preview is stale; check it again')
+        fingerprint = hashlib.sha256()
+        fingerprint.update(str(self.target).encode('utf-8'))
+        for name, identity in after.items():
+            fingerprint.update(name.encode('utf-8'))
+            fingerprint.update(b'\0')
+            fingerprint.update(identity.encode('ascii') if identity is not None else b'absent')
+        return {'target': str(self.target), 'actions': output,
+                'unowned': sorted(name for name, entry in manifest['files'].items() if not entry.get('owned')),
+                'revision': fingerprint.hexdigest()}, after, manifest
+
+    def uninstall_preview(self):
+        return self._uninstall_plan()[0]
+
+    def uninstall_confirm(self, revision):
+        preview, expected_state, manifest = self._uninstall_plan()
+        if not isinstance(revision, str) or revision != preview['revision']:
+            raise ValueError('Uninstall preview is stale; check it again')
+        output = []
+        mutation_started = [False]
+        try:
+            self.i.uninstall(self.target, manifest, False, output, expected_state=expected_state,
+                             approved_actions=preview['actions'], mutation_started=mutation_started)
+        except (OSError, self.i.InstallError, ValueError) as exc:
+            if mutation_started[0]:
+                raise self.i.PartialUninstallError('Uninstall stopped after removal began; inspect project and recovery backups') from exc
+            raise
+        return {'removed': True, 'target': str(self.target), 'actions': output}
 
     def usage_history(self):
         path = self.path(HISTORY)
@@ -366,7 +415,9 @@ class Settings:
                     else:
                         self.i.atomic_text(path, staged[name].read_bytes().decode('utf-8'), False)
                     touched.append((name, hashlib.sha256(content.encode()).hexdigest()))
-                    if name != 'CLAUDE.md':
+                    if name == 'CLAUDE.md':
+                        manifest['claude_block_sha256'] = self.i.managed_block_digest(content)
+                    else:
                         # A merged shared settings file must survive uninstall.
                         self.i.remember(manifest, Path(name), path, name != self.i.SETTINGS_RELATIVE.as_posix())
             manifest['routing'] = payload['routing']

@@ -111,6 +111,49 @@ class InstallerTests(unittest.TestCase):
         self.assertTrue(agent.exists())
         self.assertIn("modified after installation", result.stdout)
 
+    def test_uninstall_preserves_user_edits_inside_claude_block(self) -> None:
+        self.assertEqual(self.installer().returncode, 0)
+        claude = self.target / "CLAUDE.md"
+        edited = claude.read_text(encoding="utf-8").replace(
+            "<!-- claude-bounded-orchestrator:end -->",
+            "User instructions inside managed block\n<!-- claude-bounded-orchestrator:end -->",
+        )
+        claude.write_text(edited, encoding="utf-8")
+        preview = self.installer("--uninstall", "--dry-run")
+        self.assertEqual(preview.returncode, 0, preview.stderr)
+        self.assertIn("KEEP CLAUDE.md block: modified after installation", preview.stdout)
+        self.assertEqual(self.installer("--uninstall").returncode, 0)
+        self.assertEqual(claude.read_text(encoding="utf-8"), edited)
+
+    def test_uninstall_keeps_legacy_block_without_recorded_digest(self) -> None:
+        self.assertEqual(self.installer().returncode, 0)
+        claude = self.target / "CLAUDE.md"
+        original = claude.read_text(encoding="utf-8")
+        manifest_path = self.target / ".claude/.bounded-orchestrator/install.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest.pop("claude_block_sha256")
+        manifest_path.write_text(json.dumps(manifest) + "\n", encoding="utf-8")
+        preview = self.installer("--uninstall", "--dry-run")
+        self.assertEqual(preview.returncode, 0, preview.stderr)
+        self.assertIn("KEEP CLAUDE.md block: original content not recorded; review manually", preview.stdout)
+        self.assertEqual(self.installer("--uninstall").returncode, 0)
+        self.assertEqual(claude.read_text(encoding="utf-8"), original)
+        self.assertFalse((self.target / ".claude/agents/explorer.md").exists())
+
+    def test_uninstall_preview_updates_mcp_with_unrelated_metadata(self) -> None:
+        self.assertEqual(self.installer("--external-openai").returncode, 0)
+        mcp = self.target / ".mcp.json"
+        data = json.loads(mcp.read_text(encoding="utf-8"))
+        data["customMetadata"] = {"keep": True}
+        mcp.write_text(json.dumps(data) + "\n", encoding="utf-8")
+        preview = self.installer("--uninstall", "--dry-run")
+        self.assertEqual(preview.returncode, 0, preview.stderr)
+        self.assertIn("UPDATE .mcp.json: remove openai-bounded-implementer", preview.stdout)
+        self.assertNotIn("REMOVE .mcp.json\n", preview.stdout)
+        self.assertEqual(self.installer("--uninstall").returncode, 0)
+        self.assertEqual(json.loads(mcp.read_text(encoding="utf-8")),
+                         {"mcpServers": {}, "customMetadata": {"keep": True}})
+
     def test_dry_run_writes_nothing(self) -> None:
         self.assertEqual(self.installer("--dry-run", "--preset", "quality", "--external-openai").returncode, 0)
         self.assertEqual(list(self.target.iterdir()), [])

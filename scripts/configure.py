@@ -7,6 +7,7 @@ import json
 import secrets
 import sys
 import threading
+import time
 import webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
@@ -21,6 +22,7 @@ from usage_report import report
 def make_server(target, port=0):
     settings = Settings(install, ROOT, target)
     token = secrets.token_urlsafe(32)
+    pending_uninstall = {}
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
@@ -87,6 +89,33 @@ def make_server(target, port=0):
                     result = settings.plan(payload)[2]
                 elif self.path == '/api/save':
                     result = settings.save(payload)
+                elif self.path == '/api/uninstall-preview':
+                    if payload:
+                        raise ValueError('Uninstall preview body must be empty')
+                    pending_uninstall.clear()
+                    result = settings.uninstall_preview()
+                    confirmation = secrets.token_urlsafe(32)
+                    pending_uninstall.update(token=confirmation, revision=result['revision'],
+                                             target=result['target'], expires=time.monotonic() + 120)
+                    result['confirmation'] = confirmation
+                elif self.path == '/api/uninstall':
+                    if set(payload) != {'confirmation', 'revision', 'target'}:
+                        raise ValueError('Fresh uninstall preview required')
+                    approved = (isinstance(payload['confirmation'], str)
+                                and hmac.compare_digest(payload['confirmation'], pending_uninstall.get('token', ''))
+                                and payload['revision'] == pending_uninstall.get('revision')
+                                and payload['target'] == pending_uninstall.get('target')
+                                and time.monotonic() < pending_uninstall.get('expires', 0))
+                    pending_uninstall.clear()
+                    if not approved:
+                        raise ValueError('Uninstall preview expired or changed; check it again')
+                    result = settings.uninstall_confirm(payload['revision'])
+                elif self.path == '/api/uninstall-cancel':
+                    if set(payload) != {'confirmation'} or not isinstance(payload['confirmation'], str):
+                        raise ValueError('Uninstall confirmation required')
+                    if hmac.compare_digest(payload['confirmation'], pending_uninstall.get('token', '')):
+                        pending_uninstall.clear()
+                    result = {'cancelled': True}
                 elif self.path == '/api/restore':
                     if payload:
                         raise ValueError('Restore body must be empty')
@@ -112,6 +141,8 @@ def make_server(target, port=0):
                 self.respond(200, result)
                 if stopping:
                     threading.Thread(target=self.server.shutdown, daemon=True).start()
+            except install.PartialUninstallError as exc:
+                self.respond(409, {'error': str(exc), 'kind': 'partial_uninstall'})
             except (ValueError, OSError, install.InstallError, TypeError, KeyError) as exc:
                 # No full settings content, credentials or malformed file bodies are returned.
                 self.respond(400, {'error': str(exc) if isinstance(exc, install.InstallError) or type(exc) is ValueError else 'Local operation failed; inspect selected files.'})

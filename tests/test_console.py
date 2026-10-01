@@ -634,6 +634,30 @@ class ConsoleTests(unittest.TestCase):
             # Runtime browser QA covers the JavaScript path on systems without Node.
             self.assertIn('const words =', source)
 
+    def test_uninstall_success_status_retranslates_after_language_change(self):
+        import shutil
+        import subprocess
+        if not shutil.which('node'):
+            self.skipTest('Node unavailable; browser QA covers language switching')
+        program = """const fs=require('fs'),vm=require('vm');const s=fs.readFileSync(process.argv[1],'utf8');
+          const catalog=s.slice(s.indexOf('const words ='),s.indexOf('const roleNames='));
+          const status=s.slice(s.indexOf('const statusState=new Map();'),s.indexOf('async function action('));
+          const translate=s.slice(s.indexOf('function translate(){'),s.indexOf('async function refresh(){'));
+          const harness=`let language='tr';function t(key){return words[language][key]||key;}
+            const elements={};function $(id){return elements[id]||(elements[id]={children:[],classList:{toggle(){}},replaceChildren(){this.children=[];},append(child){this.children.push(child);}});}
+            function node(tag,text){return{textContent:text};}function details(){return{};}
+            const document={documentElement:{},querySelectorAll(){return[];}};
+            function translateRoleLabels(){}function renderTaskProfiles(){}function renderRoster(){}function renderPresetExplain(){}function renderSummary(){}function renderPreview(){}function renderUninstall(){}function renderActivity(){}function renderUsage(){}function renderTasks(){}
+            settingStatus('uninstall-status','uninstallDone');
+            if(elements['uninstall-status'].children[0].textContent!==words.tr.uninstallDone)throw Error('Turkish status missing');
+            language='en';translate();
+            if(elements['uninstall-status'].children[0].textContent!==words.en.uninstallDone)throw Error('English status missing');
+            if(elements['uninstall-status'].hidden)throw Error('Result became hidden');`;
+          vm.runInNewContext(catalog+status+translate+harness);"""
+        result = subprocess.run(['node', '-e', program, str(ROOT / '.claude/tools/console/app.js')],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_actual_http_auth_origin_body_and_usage(self):
         server, token = configure.make_server(self.target)
         thread = threading.Thread(target=server.serve_forever, daemon=True)
@@ -664,8 +688,10 @@ class ConsoleTests(unittest.TestCase):
             self.assertEqual(imported['analysis']['styles'][0]['key'], 'unknown')
             self.assertEqual(imported['events'][0]['metric'], 'claude_code.token.usage')
             for kwargs in [{'authenticated': False}, {'remote': True}]:
-                with self.assertRaises(urllib.error.HTTPError) as caught: request('/api/preview', self.payload(), **kwargs)
-                self.assertEqual(caught.exception.code, 403)
+                for path, body in [('/api/preview', self.payload()), ('/api/uninstall-preview', {}),
+                                   ('/api/uninstall', {'confirmation': 'bad', 'revision': 'bad', 'target': str(self.target)})]:
+                    with self.assertRaises(urllib.error.HTTPError) as caught: request(path, body, **kwargs)
+                    self.assertEqual(caught.exception.code, 403)
             payload = self.payload()
             preview = json.load(request('/api/preview', payload))
             payload['revision'] = preview['revision']
@@ -679,6 +705,355 @@ class ConsoleTests(unittest.TestCase):
             self.assertTrue(json.load(request('/api/quit', {}))['stopping'])
             thread.join(3)
             self.assertFalse(thread.is_alive())
+        finally:
+            server.shutdown(); server.server_close(); thread.join(3)
+
+    def test_browser_uninstall_preview_confirmation_stale_and_preservation(self):
+        kept = self.target / '.claude/agents/reviewer.md'
+        kept.write_text(kept.read_text(encoding='utf-8') + '\nUser edit\n', encoding='utf-8')
+        claude = self.target / 'CLAUDE.md'
+        edited_block = claude.read_text(encoding='utf-8').replace(
+            install.END_MARKER, 'User instructions inside managed block\n' + install.END_MARKER)
+        claude.write_text(edited_block, encoding='utf-8')
+        backup = self.target / '.claude/.bounded-orchestrator/backups/user-note.txt'
+        backup.parent.mkdir(parents=True, exist_ok=True)
+        backup.write_text('private backup', encoding='utf-8')
+        unrelated = self.target / 'project-work.txt'
+        unrelated.write_text('project data', encoding='utf-8')
+        server, token = configure.make_server(self.target)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        origin = f'http://127.0.0.1:{server.server_port}'
+        def post(path, payload):
+            req = urllib.request.Request(origin + path, data=json.dumps(payload).encode(), headers={
+                'Host': f'127.0.0.1:{server.server_port}', 'Origin': origin,
+                'X-Console-Token': token, 'Content-Type': 'application/json'})
+            return json.load(urllib.request.urlopen(req, timeout=3))
+        try:
+            first = post('/api/uninstall-preview', {})
+            self.assertEqual(first['target'], str(self.target.resolve()))
+            self.assertTrue(any(line.startswith('KEEP .claude/agents/reviewer.md') for line in first['actions']))
+            self.assertIn('KEEP CLAUDE.md block: modified after installation', first['actions'])
+            self.assertTrue(any('KEEP .claude/.bounded-orchestrator/.gitignore' in line for line in first['actions']))
+            self.assertTrue((self.target / install.MANIFEST_RELATIVE).exists())
+            # Preview and a cancelled confirmation leave every file untouched.
+            second = post('/api/uninstall-preview', {})
+            with self.assertRaises(urllib.error.HTTPError) as caught:
+                post('/api/uninstall', {key: first[key] for key in ('confirmation', 'revision', 'target')})
+            self.assertEqual(caught.exception.code, 400)
+            self.assertTrue(post('/api/uninstall-cancel', {'confirmation': second['confirmation']})['cancelled'])
+            with self.assertRaises(urllib.error.HTTPError):
+                post('/api/uninstall', {key: second[key] for key in ('confirmation', 'revision', 'target')})
+            second = post('/api/uninstall-preview', {})
+            unrelated.write_text('new project data', encoding='utf-8')
+            # Unrelated project edits do not broaden or invalidate removal.
+            watched = self.target / '.claude/agents/explorer.md'
+            watched.write_text(watched.read_text(encoding='utf-8') + '\nChanged after preview\n', encoding='utf-8')
+            with self.assertRaises(urllib.error.HTTPError) as caught:
+                post('/api/uninstall', {key: second[key] for key in ('confirmation', 'revision', 'target')})
+            self.assertEqual(caught.exception.code, 400)
+            self.assertTrue((self.target / install.MANIFEST_RELATIVE).exists())
+            fresh = post('/api/uninstall-preview', {})
+            with patch.object(configure.time, 'monotonic', return_value=10**15):
+                with self.assertRaises(urllib.error.HTTPError):
+                    post('/api/uninstall', {key: fresh[key] for key in ('confirmation', 'revision', 'target')})
+            fresh = post('/api/uninstall-preview', {})
+            result = post('/api/uninstall', {key: fresh[key] for key in ('confirmation', 'revision', 'target')})
+            self.assertTrue(result['removed'])
+            self.assertEqual(result['actions'], fresh['actions'])
+            with self.assertRaises(urllib.error.HTTPError):
+                post('/api/uninstall', {key: fresh[key] for key in ('confirmation', 'revision', 'target')})
+            self.assertFalse((self.target / install.MANIFEST_RELATIVE).exists())
+            self.assertEqual(kept.read_text(encoding='utf-8').splitlines()[-1], 'User edit')
+            self.assertEqual(claude.read_text(encoding='utf-8'), edited_block)
+            self.assertTrue(watched.exists())
+            self.assertEqual(backup.read_text(encoding='utf-8'), 'private backup')
+            self.assertEqual(unrelated.read_text(encoding='utf-8'), 'new project data')
+            self.assertTrue((self.target / install.RUNTIME_IGNORE_RELATIVE).exists())
+            with self.assertRaisesRegex(ValueError, 'manifest'):
+                self.settings.uninstall_preview()
+        finally:
+            server.shutdown(); server.server_close(); thread.join(3)
+
+    def test_uninstall_preview_rejects_symlinked_managed_path(self):
+        path = self.target / '.claude/agents/explorer.md'
+        outside = self.target.parent / 'outside-uninstall-test.txt'
+        outside.write_text('outside', encoding='utf-8')
+        path.unlink()
+        path.symlink_to(outside)
+        try:
+            with self.assertRaises(install.InstallError):
+                self.settings.uninstall_preview()
+            self.assertEqual(outside.read_text(encoding='utf-8'), 'outside')
+        finally:
+            outside.unlink()
+
+    def test_restore_after_two_saves_keeps_installation_until_uninstall(self):
+        first = self.payload()
+        first['revision'] = self.settings.plan(first)[2]['revision']
+        self.settings.save(first)
+        second = self.payload()
+        second['max_parallelism'] = 3
+        second['revision'] = self.settings.plan(second)[2]['revision']
+        self.settings.save(second)
+        self.settings.restore()
+        self.assertTrue((self.target / install.MANIFEST_RELATIVE).exists())
+        self.assertTrue(self.settings.read()['installed'])
+        preview = self.settings.uninstall_preview()
+        self.assertIn('REMOVE .claude/.bounded-orchestrator/install.json', preview['actions'])
+        self.settings.uninstall_confirm(preview['revision'])
+        self.assertFalse((self.target / install.MANIFEST_RELATIVE).exists())
+        self.assertFalse((self.target / 'CLAUDE.md').exists())
+
+    def test_uninstall_preview_rejects_symlinked_parent(self):
+        agents = self.target / '.claude/agents'
+        moved = self.target / '.claude/agents-original'
+        agents.rename(moved)
+        agents.symlink_to(moved, target_is_directory=True)
+        try:
+            with self.assertRaises(install.InstallError):
+                self.settings.uninstall_preview()
+            self.assertTrue((self.target / install.MANIFEST_RELATIVE).exists())
+        finally:
+            agents.unlink()
+            moved.rename(agents)
+
+    def test_uninstall_rejects_parent_symlink_swap_after_validation(self):
+        relative = Path('.claude/agents/reviewer.md')
+        original = self.target / relative
+        expected = original.read_bytes()
+        agents = original.parent
+        moved = self.target / '.claude/agents-original'
+        outside = Path(tempfile.mkdtemp(prefix=self.target.name + '-outside-', dir=self.target.parent))
+        external = outside / 'reviewer.md'
+        external.write_text('Unrelated outside data', encoding='utf-8')
+        real_open = install.os.open
+        opens = 0
+        def swap_on_recheck(path, *args, **kwargs):
+            nonlocal opens
+            if path == 'agents':
+                opens += 1
+                if opens == 2:
+                    agents.rename(moved)
+                    agents.symlink_to(outside, target_is_directory=True)
+            return real_open(path, *args, **kwargs)
+        try:
+            with patch.object(install.os, 'open', side_effect=swap_on_recheck):
+                with self.assertRaises((OSError, install.InstallError)):
+                    install.mutate_verified_uninstall_file(self.target, relative, expected)
+            self.assertEqual(external.read_text(encoding='utf-8'), 'Unrelated outside data')
+            self.assertEqual((moved / 'reviewer.md').read_bytes(), expected)
+        finally:
+            if agents.is_symlink():
+                agents.unlink()
+                moved.rename(agents)
+            external.unlink()
+            outside.rmdir()
+
+    def test_uninstall_preserves_edit_injected_during_staging(self):
+        preview = self.settings.uninstall_preview()
+        real_rename = install.os.rename
+        changed = []
+        def edit_before_stage(source, destination, *args, **kwargs):
+            if not changed and str(destination).startswith('.') and 'bounded-remove' in str(destination):
+                fd = install.os.open(source, install.os.O_WRONLY | install.os.O_APPEND,
+                                     dir_fd=kwargs['src_dir_fd'])
+                try:
+                    install.os.write(fd, b'\nUser edit during removal\n')
+                finally:
+                    install.os.close(fd)
+                changed.append(source)
+            return real_rename(source, destination, *args, **kwargs)
+        with patch.object(install.os, 'rename', side_effect=edit_before_stage):
+            with self.assertRaises((OSError, install.InstallError)):
+                self.settings.uninstall_confirm(preview['revision'])
+        self.assertTrue(changed)
+        self.assertTrue((self.target / install.MANIFEST_RELATIVE).exists())
+        self.assertTrue(any('User edit during removal' in path.read_text(encoding='utf-8')
+                            for path in (self.target / '.claude').rglob('*') if path.is_file()))
+
+    def test_uninstall_rejects_new_file_after_final_preview(self):
+        reviewer = self.target / '.claude/agents/reviewer.md'
+        reviewer.unlink()
+        preview = self.settings.uninstall_preview()
+        real_uninstall = install.uninstall
+        def appear_before_apply(target, manifest, dry_run, output, **kwargs):
+            if not dry_run:
+                reviewer.write_text('New user file', encoding='utf-8')
+            return real_uninstall(target, manifest, dry_run, output, **kwargs)
+        with patch.object(install, 'uninstall', side_effect=appear_before_apply):
+            with self.assertRaises((OSError, install.InstallError)):
+                self.settings.uninstall_confirm(preview['revision'])
+        self.assertEqual(reviewer.read_text(encoding='utf-8'), 'New user file')
+        self.assertTrue((self.target / install.MANIFEST_RELATIVE).exists())
+
+    def test_uninstall_recovery_retains_edit_at_final_unlink(self):
+        relative = Path('.claude/agents/reviewer.md')
+        original = self.target / relative
+        expected = original.read_bytes()
+        real_unlink = install.os.unlink
+        def edit_at_unlink(path, *args, **kwargs):
+            if isinstance(path, str) and 'bounded-remove' in path:
+                fd = install.os.open(path, install.os.O_WRONLY | install.os.O_APPEND,
+                                     dir_fd=kwargs['dir_fd'])
+                try:
+                    install.os.write(fd, b'\nLate user edit\n')
+                finally:
+                    install.os.close(fd)
+            return real_unlink(path, *args, **kwargs)
+        with patch.object(install.os, 'unlink', side_effect=edit_at_unlink):
+            install.mutate_verified_uninstall_file(self.target, relative, expected)
+        self.assertFalse(original.exists())
+        backups = list((self.target / install.BACKUP_RELATIVE).glob('uninstall-.claude_agents_reviewer.md-*'))
+        self.assertEqual(len(backups), 1)
+        self.assertIn(b'Late user edit', backups[0].read_bytes())
+
+    def test_failed_replacement_keeps_edit_in_recovery(self):
+        relative = Path('CLAUDE.md')
+        path = self.target / relative
+        original = path.read_bytes()
+        def edit_then_fail(fd):
+            install.os.write(fd, b'\nUser edit during replacement\n')
+            raise OSError('injected fsync failure')
+        with patch.object(install.os, 'fsync', side_effect=edit_then_fail):
+            with self.assertRaises(OSError):
+                install.mutate_verified_uninstall_file(self.target, relative, original, 'New content\n')
+        self.assertEqual(path.read_bytes(), original)
+        recovered = list((self.target / install.BACKUP_RELATIVE).glob('uninstall-failed-replacement-CLAUDE.md-*'))
+        self.assertEqual(len(recovered), 1)
+        self.assertIn(b'User edit during replacement', recovered[0].read_bytes())
+
+    def test_failed_replacement_preserves_new_leaf_collision(self):
+        relative = Path('CLAUDE.md')
+        path = self.target / relative
+        original = path.read_bytes()
+        moved_replacement = self.target / 'user-moved-replacement.md'
+        def collide_then_fail(fd):
+            path.rename(moved_replacement)
+            path.write_text('USER COLLISION', encoding='utf-8')
+            raise OSError('injected fsync failure')
+        with patch.object(install.os, 'fsync', side_effect=collide_then_fail):
+            with self.assertRaises(OSError):
+                install.mutate_verified_uninstall_file(self.target, relative, original, 'New content\n')
+        self.assertEqual(path.read_text(encoding='utf-8'), 'USER COLLISION')
+        self.assertEqual(moved_replacement.read_text(encoding='utf-8'), 'New content\n')
+        originals = list((self.target / install.BACKUP_RELATIVE).glob('uninstall-CLAUDE.md-*'))
+        self.assertEqual(len(originals), 1)
+        self.assertEqual(originals[0].read_bytes(), original)
+
+    def test_failed_replacement_keeps_atomic_save_after_recovery_link(self):
+        path = self.target / 'CLAUDE.md'
+        original = path.read_bytes()
+        identity = path.stat()
+        user_temp = self.target / 'user-atomic-save.tmp'
+        user_temp.write_text('USER ATOMIC SAVE', encoding='utf-8')
+        flags = install.os.O_RDONLY | install.os.O_DIRECTORY | install.os.O_NOFOLLOW
+        root_fd = install.os.open(self.target, flags)
+        real_retain = install.retain_uninstall_inode
+        def swap_after_recovery(*args, **kwargs):
+            result = real_retain(*args, **kwargs)
+            if len(args) >= 6 and args[5] == 'uninstall-failed-replacement':
+                staged = next(self.target.glob('.CLAUDE.md.bounded-failed-*'))
+                install.os.replace(user_temp, staged)
+            return result
+        try:
+            with patch.object(install, 'retain_uninstall_inode', side_effect=swap_after_recovery):
+                install.recover_failed_replacement(root_fd, root_fd, 'CLAUDE.md', Path('CLAUDE.md'), flags,
+                                                   (identity.st_dev, identity.st_ino))
+        finally:
+            install.os.close(root_fd)
+        stages = list((self.target / install.BACKUP_RELATIVE).glob('uninstall-failed-stage-CLAUDE.md-*'))
+        self.assertEqual(len(stages), 1)
+        self.assertEqual(stages[0].read_text(encoding='utf-8'), 'USER ATOMIC SAVE')
+        backups = list((self.target / install.BACKUP_RELATIVE).glob('uninstall-failed-replacement-CLAUDE.md-*'))
+        self.assertEqual(len(backups), 1)
+        self.assertEqual(backups[0].read_bytes(), original)
+
+    def test_failed_replacement_keeps_atomic_save_after_collision_link(self):
+        path = self.target / '.mcp.json'
+        path.write_text('USER COLLISION', encoding='utf-8')
+        user_temp = self.target / 'user-atomic-save.tmp'
+        user_temp.write_text('USER ATOMIC SAVE', encoding='utf-8')
+        flags = install.os.O_RDONLY | install.os.O_DIRECTORY | install.os.O_NOFOLLOW
+        root_fd = install.os.open(self.target, flags)
+        real_link = install.os.link
+        def swap_after_collision_link(source, destination, *args, **kwargs):
+            result = real_link(source, destination, *args, **kwargs)
+            if source.startswith('.mcp.json.bounded-failed-') and destination == '.mcp.json':
+                install.os.replace(user_temp, self.target / source)
+            return result
+        try:
+            with patch.object(install.os, 'link', side_effect=swap_after_collision_link):
+                install.recover_failed_replacement(root_fd, root_fd, '.mcp.json', Path('.mcp.json'), flags, (-1, -1))
+        finally:
+            install.os.close(root_fd)
+        self.assertEqual(path.read_text(encoding='utf-8'), 'USER COLLISION')
+        stages = list((self.target / install.BACKUP_RELATIVE).glob('uninstall-failed-stage-.mcp.json-*'))
+        self.assertEqual(len(stages), 1)
+        self.assertEqual(stages[0].read_text(encoding='utf-8'), 'USER ATOMIC SAVE')
+
+    def test_uninstall_rejects_parent_swap_during_staging(self):
+        relative = Path('.claude/agents/reviewer.md')
+        original = self.target / relative
+        expected = original.read_bytes()
+        agents = original.parent
+        moved = self.target / '.claude/agents-original'
+        outside = Path(tempfile.mkdtemp(prefix=self.target.name + '-outside-', dir=self.target.parent))
+        external = outside / 'reviewer.md'
+        external.write_text('Unrelated outside data', encoding='utf-8')
+        real_rename = install.os.rename
+        def swap_after_stage(source, destination, *args, **kwargs):
+            result = real_rename(source, destination, *args, **kwargs)
+            if source == 'reviewer.md' and 'bounded-remove' in destination:
+                agents.rename(moved)
+                agents.symlink_to(outside, target_is_directory=True)
+            return result
+        try:
+            with patch.object(install.os, 'rename', side_effect=swap_after_stage):
+                with self.assertRaises((OSError, install.InstallError)):
+                    install.mutate_verified_uninstall_file(self.target, relative, expected)
+            self.assertEqual(external.read_text(encoding='utf-8'), 'Unrelated outside data')
+            self.assertEqual((moved / 'reviewer.md').read_bytes(), expected)
+        finally:
+            if agents.is_symlink():
+                agents.unlink()
+                moved.rename(agents)
+            external.unlink()
+            outside.rmdir()
+
+    def test_uninstall_preview_rejects_unsupported_backend(self):
+        with patch.object(install.os, 'O_NOFOLLOW', None):
+            with self.assertRaisesRegex(install.InstallError, 'unsupported'):
+                self.settings.uninstall_preview()
+        self.assertTrue((self.target / install.MANIFEST_RELATIVE).exists())
+
+    def test_uninstall_partial_failure_has_distinct_api_code(self):
+        server, token = configure.make_server(self.target)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        origin = f'http://127.0.0.1:{server.server_port}'
+        def post(path, payload):
+            req = urllib.request.Request(origin + path, data=json.dumps(payload).encode(), headers={
+                'Host': f'127.0.0.1:{server.server_port}', 'Origin': origin,
+                'X-Console-Token': token, 'Content-Type': 'application/json'})
+            return json.load(urllib.request.urlopen(req, timeout=3))
+        real_mutate = install.mutate_verified_uninstall_file
+        changed = []
+        def fail_after_first(*args, **kwargs):
+            result = real_mutate(*args, **kwargs)
+            if not changed:
+                changed.append(True)
+                raise install.InstallError('changed after first removal')
+            return result
+        try:
+            preview = post('/api/uninstall-preview', {})
+            with patch.object(install, 'mutate_verified_uninstall_file', side_effect=fail_after_first):
+                with self.assertRaises(urllib.error.HTTPError) as caught:
+                    post('/api/uninstall', {key: preview[key] for key in ('confirmation', 'revision', 'target')})
+            self.assertEqual(caught.exception.code, 409)
+            self.assertEqual(json.load(caught.exception)['kind'], 'partial_uninstall')
+            self.assertTrue(changed)
+            self.assertTrue((self.target / install.MANIFEST_RELATIVE).exists())
         finally:
             server.shutdown(); server.server_close(); thread.join(3)
 
