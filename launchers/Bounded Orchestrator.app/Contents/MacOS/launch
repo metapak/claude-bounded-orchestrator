@@ -4,7 +4,7 @@ launcher_dir=$(CDPATH= cd -- "$(dirname -- "$0")/../../../.." && pwd)
 launcher="$launcher_dir/launchers/launch_dashboard.py"
 
 if [ ! -f "$launcher" ]; then
-    if selected_dir=$(/usr/bin/osascript -e 'POSIX path of (choose folder with prompt "Choose the extracted Claude Bounded Orchestrator folder")'); then
+    if selected_dir=$(/usr/bin/osascript -e 'POSIX path of (choose folder with prompt "Choose the extracted Claude Bounded Orchestrator folder")' 2>&1); then
         launcher_dir=${selected_dir%/}
         launcher="$launcher_dir/launchers/launch_dashboard.py"
         app_plist="$launcher_dir/launchers/Bounded Orchestrator.app/Contents/Info.plist"
@@ -14,7 +14,11 @@ if [ ! -f "$launcher" ]; then
             exit 1
         fi
     else
-        exit 0
+        case "$selected_dir" in
+            *"(-128)"*) exit 0 ;;
+        esac
+        /usr/bin/osascript -e 'on run argv' -e 'display alert "Could not choose the extracted folder" message (item 1 of argv) as warning' -e 'end run' "$selected_dir"
+        exit 1
     fi
 fi
 

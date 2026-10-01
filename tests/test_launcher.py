@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 from pathlib import Path
 import plistlib
 import subprocess
@@ -16,6 +17,37 @@ spec.loader.exec_module(launcher)
 
 
 class MacLauncherTests(unittest.TestCase):
+    @unittest.skipIf(os.name == "nt", "POSIX shell launcher")
+    def test_extracted_folder_picker_only_exits_quietly_on_cancel(self) -> None:
+        original = (ROOT / "launchers/Bounded Orchestrator.app/Contents/MacOS/launch").read_text()
+        for error, expected_code, expected_calls in (
+            ("User canceled. (-128)", 0, 1),
+            ("Automation permission denied. (-1743)", 1, 2),
+        ):
+            with self.subTest(error=error), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                shell = root / "launchers/Bounded Orchestrator.app/Contents/MacOS/launch"
+                shell.parent.mkdir(parents=True)
+                stub = root / "osascript"
+                stub.write_text(
+                    "#!/bin/sh\n"
+                    "printf '%s\\n' \"$*\" >> \"$TRACE\"\n"
+                    f"if [ \"$#\" -eq 2 ]; then printf '%s\\n' '{error}' >&2; exit 1; fi\n",
+                    encoding="utf-8",
+                )
+                stub.chmod(0o755)
+                shell.write_text(original.replace("/usr/bin/osascript", str(stub)), encoding="utf-8")
+                trace = root / "calls"
+                result = subprocess.run(
+                    ["/bin/sh", str(shell)],
+                    env={**os.environ, "TRACE": str(trace)},
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, expected_code)
+                self.assertEqual(len(trace.read_text().splitlines()), expected_calls)
+
     def test_app_is_visible_and_picker_does_not_activate_background_script(self) -> None:
         plist = ROOT / "launchers/Bounded Orchestrator.app/Contents/Info.plist"
         self.assertFalse(plistlib.loads(plist.read_bytes())["LSUIElement"])
