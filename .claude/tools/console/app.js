@@ -176,9 +176,9 @@ function conductorSymbol(){
   const part=(tag,attributes)=>{const element=document.createElementNS(ns,tag);for(const [key,value] of Object.entries(attributes))element.setAttribute(key,value);return element;};
   const arm=part('g',{class:'baton-arm'});
   arm.append(part('path',{d:'M143 151q26 10 36 27',fill:'none',stroke:'#252024','stroke-width':'16','stroke-linecap':'round'}),part('circle',{cx:'181',cy:'179',r:'9',fill:'#e9b75e'}),part('path',{d:'m182 178 31-66',stroke:'#f9df9b','stroke-width':'4','stroke-linecap':'round'}));
-  const notes=part('g',{class:'baton-notes',fill:'#f7d58a','font-family':'Georgia,serif','aria-hidden':'true'});
-  const first=part('text',{x:'165',y:'77','font-size':'22',class:'baton-note baton-note-first'});first.textContent='♪';
-  const second=part('text',{x:'193',y:'89','font-size':'16',class:'baton-note baton-note-second'});second.textContent='♫';
+  const notes=part('g',{class:'baton-notes',fill:'#ffe5a3',stroke:'#6b3540','stroke-width':'1.5','paint-order':'stroke','font-family':'Georgia,serif','aria-hidden':'true'});
+  const first=part('text',{x:'150',y:'77','font-size':'52',class:'baton-note baton-note-first'});first.textContent='♪';
+  const second=part('text',{x:'184',y:'93','font-size':'40',class:'baton-note baton-note-second'});second.textContent='♫';
   notes.append(first,second);svg.append(arm,notes);return svg;
 }
 function orchestraAgentLabel(agent){const role=agent.role&&roleNames[agent.role]?t(roleNames[agent.role]):agent.role||t('observedHelpers');return agent.name||role+' · #'+agent.id.slice(-6);}
