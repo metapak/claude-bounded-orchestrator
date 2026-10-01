@@ -35,10 +35,20 @@ def choose_project() -> Path | None:
     if sys.platform != "darwin":
         alert("Choose a project", "Open this launcher with a project folder selected.")
         return None
-    script = (
-        'display dialog "Şimdi Claude Code ile çalıştığınız Git projesinin klasörünü seçeceksiniz. Kurulum ayarları bu projeye yazılacak. Seçimden sonra tarayıcı açılır; önerilen ekibi inceleyin, Değişiklikleri kontrol edin ve Kur düğmesine basın. / Now choose the Git project where you use Claude Code. Setup saves settings there. In the browser, review the suggested team and install it." buttons {"Vazgeç / Cancel", "Devam / Continue"} default button "Devam / Continue" cancel button "Vazgeç / Cancel" with title "2/2 Çalışacağınız proje / Your project"\n'
-        'POSIX path of (choose folder with prompt "2/2 Çalışacağınız Git projesini seçin / Select the Git project where you will work")'
-    )
+    if os.environ.get("BO_LANG") == "tr":
+        script = (
+            'display dialog "Şimdi Claude Code ile üzerinde çalıştığınız kendi proje klasörünüzü seçin. Bu, kodlarınızın bulunduğu Git klasörüdür." & return & return & '
+            '"Kurulum ayarları bu projeye yazılacak. Sonra tarayıcı açılacak: önerilen ekibi inceleyin, değişiklikleri kontrol edin ve Kur düğmesine basın." '
+            'buttons {"Vazgeç", "Devam"} default button "Devam" cancel button "Vazgeç" with title "2/2 · Claude Code projeniz"\n'
+            'POSIX path of (choose folder with prompt "2/2 · Claude Code projenizin klasörünü seçin" default location (path to home folder))'
+        )
+    else:
+        script = (
+            'display dialog "Now choose the Git project where you work with Claude Code." & return & return & '
+            '"Setup settings will be saved in this project. Then the browser opens: review the suggested team, check changes, and click Install." '
+            'buttons {"Cancel", "Continue"} default button "Continue" cancel button "Cancel" with title "2/2 · Your Claude Code project"\n'
+            'POSIX path of (choose folder with prompt "2/2 · Select your Claude Code project folder" default location (path to home folder))'
+        )
     result = subprocess.run(
         ["/usr/bin/osascript", "-e", script], capture_output=True, text=True, check=False
     )

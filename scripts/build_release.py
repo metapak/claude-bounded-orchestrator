@@ -63,7 +63,7 @@ def main() -> int:
     members = files()
     archives = [
         (output / f"{NAME}-v{version}-source.zip", False, None),
-        (output / f"{NAME}-v{version}-macos-linux.zip", False, ("START-HERE-MACOS-LINUX.txt", "Install Claude Code and Python 3.11+. On macOS, double-click launchers/Bounded Orchestrator.app. If asked, first choose this extracted setup package (with launchers and scripts); then choose the separate Git project where you use Claude Code. Review and install in the browser. See INSTALL-MACOS.md. Linux terminal steps are in that guide.\n")),
+        (output / f"{NAME}-v{version}-macos-linux.zip", False, ("START-HERE-MACOS-LINUX.txt", "Install Claude Code and Python 3.11+. On macOS, double-click launchers/Bounded Orchestrator.app. If asked, the first folder picker opens in Downloads: choose the OUTER folder extracted from the claude-bounded-orchestrator ZIP (with launchers and scripts). Then choose the separate Git project where you use Claude Code. Review and install in the browser. See INSTALL-MACOS.md. Linux terminal steps are in that guide.\n")),
         (output / f"{NAME}-v{version}-windows.zip", True, ("START-HERE-WINDOWS.txt", "Install Claude Code and Python 3.11+. Double-click launchers/Launch Bounded Orchestrator.vbs, choose a Git project, then review and save in the browser. See INSTALL-WINDOWS.md.\n")),
     ]
     checksums: dict[str, str] = {}

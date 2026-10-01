@@ -54,8 +54,8 @@ class RepositoryTests(unittest.TestCase):
                     self.assertEqual((app_launch.external_attr >> 16) & 0o111, 0o111)
                 with zipfile.ZipFile(paths[1]) as archive:
                     instructions = archive.read("claude-bounded-orchestrator/START-HERE-MACOS-LINUX.txt").decode("utf-8")
-                    self.assertIn("first choose this extracted setup package", instructions)
-                    self.assertIn("then choose the separate Git project", instructions)
+                    self.assertIn("first folder picker opens in Downloads", instructions)
+                    self.assertIn("Then choose the separate Git project", instructions)
                 with zipfile.ZipFile(paths[2]) as archive:
                     data = archive.read("claude-bounded-orchestrator/setup.ps1")
                     self.assertIn(b"\r\n", data)
