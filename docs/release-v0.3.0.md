@@ -1,6 +1,6 @@
 [English](release-v0.3.0.md) | [Türkçe](release-v0.3.0.tr.md)
 
-# Claude Bounded Orchestrator v0.3.0
+# Ustam v0.3.0
 
 Version 0.3.0 makes model routing selectable during installation and adds an optional OpenAI implementation-proposal role.
 

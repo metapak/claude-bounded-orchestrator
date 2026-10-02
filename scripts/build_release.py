@@ -43,7 +43,7 @@ def write_archive(path: Path, members: list[Path], *, windows: bool, start_file:
         for source in members:
             relative = source.relative_to(ROOT).as_posix()
             info = zipfile.ZipInfo(f"{NAME}/{relative}", (2026, 1, 1, 0, 0, 0))
-            mode = 0o755 if relative in {"setup.command", "scripts/install.sh", "scripts/install.py", "scripts/configure.py", "scripts/build_release.py", "scripts/validate.py", ".claude/tools/task_ledger.py", ".claude/tools/usage_report.py", ".claude/tools/local_eval.py", ".claude/tools/openai_mcp.py", ".claude/tools/deepseek_mcp.py", "launchers/Bounded Orchestrator.app/Contents/MacOS/launch"} else 0o644
+            mode = 0o755 if relative in {"setup.command", "scripts/install.sh", "scripts/install.py", "scripts/configure.py", "scripts/build_release.py", "scripts/validate.py", ".claude/tools/task_ledger.py", ".claude/tools/usage_report.py", ".claude/tools/local_eval.py", ".claude/tools/openai_mcp.py", ".claude/tools/deepseek_mcp.py", "launchers/Ustam.app/Contents/MacOS/launch"} else 0o644
             info.external_attr = (stat.S_IFREG | mode) << 16
             archive.writestr(info, payload(source, windows))
         if start_file:
@@ -63,8 +63,8 @@ def main() -> int:
     members = files()
     archives = [
         (output / f"{NAME}-v{version}-source.zip", False, None),
-        (output / f"{NAME}-v{version}-macos-linux.zip", False, ("START-HERE-MACOS-LINUX.txt", "Install Claude Code and Python 3.11+. On macOS, double-click launchers/Bounded Orchestrator.app. If asked, the first folder picker opens in Downloads: choose the OUTER folder extracted from the claude-bounded-orchestrator ZIP (with launchers and scripts). Then choose the separate Git project where you use Claude Code. Review and install in the browser. See INSTALL-MACOS.md. Linux terminal steps are in that guide.\n")),
-        (output / f"{NAME}-v{version}-windows.zip", True, ("START-HERE-WINDOWS.txt", "Install Claude Code and Python 3.11+. Double-click launchers/Launch Bounded Orchestrator.vbs, choose a Git project, then review and save in the browser. See INSTALL-WINDOWS.md.\n")),
+        (output / f"{NAME}-v{version}-macos-linux.zip", False, ("START-HERE-MACOS-LINUX.txt", "Install Claude Code and Python 3.11+. On macOS, double-click launchers/Ustam.app. If asked, the first folder picker opens in Downloads: choose the OUTER folder extracted from the claude-bounded-orchestrator ZIP (with launchers and scripts). Then choose the separate Git project where you use Claude Code. Review and install in the browser. See INSTALL-MACOS.md. Linux terminal steps are in that guide.\n")),
+        (output / f"{NAME}-v{version}-windows.zip", True, ("START-HERE-WINDOWS.txt", "Install Claude Code and Python 3.11+. Double-click launchers/Launch Ustam.vbs, choose a Git project, then review and save in the browser. See INSTALL-WINDOWS.md.\n")),
     ]
     checksums: dict[str, str] = {}
     for archive, windows, start in archives:

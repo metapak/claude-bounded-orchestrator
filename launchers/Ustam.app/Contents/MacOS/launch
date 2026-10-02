@@ -51,7 +51,10 @@ if [ ! -f "$launcher" ]; then
             */launchers/) selected=${selected%/launchers/} ;;
             */launchers) selected=${selected%/launchers} ;;
         esac
-        app_plist="$selected/launchers/Bounded Orchestrator.app/Contents/Info.plist"
+        app_plist="$selected/launchers/Ustam.app/Contents/Info.plist"
+        if [ ! -f "$app_plist" ]; then
+            app_plist="$selected/launchers/Bounded Orchestrator.app/Contents/Info.plist"
+        fi
         bundle_id=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app_plist" 2>/dev/null)
         if [ -f "$selected/launchers/launch_dashboard.py" ] && [ -f "$selected/scripts/configure.py" ] && [ "$bundle_id" = "local.claude-bounded-orchestrator.launcher" ]; then
             launcher="$selected/launchers/launch_dashboard.py"
@@ -73,4 +76,4 @@ for python in /opt/homebrew/bin/python3 /usr/local/bin/python3 python3.13 python
     fi
 done
 
-/usr/bin/osascript -e 'display alert "Python 3.11 or newer is needed" message "Install Python 3.11 or newer, then open Bounded Orchestrator again." as warning'
+/usr/bin/osascript -e 'display alert "Python 3.11 or newer is needed" message "Install Python 3.11 or newer, then open Ustam again." as warning'

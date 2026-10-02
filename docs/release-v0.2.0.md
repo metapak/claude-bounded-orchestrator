@@ -1,6 +1,6 @@
 [English](release-v0.2.0.md) | [Türkçe](release-v0.2.0.tr.md)
 
-# Claude Bounded Orchestrator v0.2.0
+# Ustam v0.2.0
 
 Version 0.2.0 makes the intended model family and reasoning effort explicit for every role without pinning dated model IDs.
 

@@ -1,6 +1,6 @@
 # Architecture and safety rationale
 
-Claude Bounded Orchestrator treats every execution request, including a small one, as delegated specialist work within a finite workflow with one accountable coordinator.
+Ustam treats every execution request, including a small one, as delegated specialist work within a finite workflow with one accountable coordinator.
 
 ```mermaid
 stateDiagram-v2

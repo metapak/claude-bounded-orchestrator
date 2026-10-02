@@ -50,7 +50,7 @@ class RepositoryTests(unittest.TestCase):
                     self.assertIn("claude-bounded-orchestrator/.claude/tools/openai_mcp.py", names)
                     self.assertIn("claude-bounded-orchestrator/.claude/tools/deepseek_mcp.py", names)
                     self.assertIn("claude-bounded-orchestrator/launchers/launch_dashboard.py", names)
-                    app_launch = archive.getinfo("claude-bounded-orchestrator/launchers/Bounded Orchestrator.app/Contents/MacOS/launch")
+                    app_launch = archive.getinfo("claude-bounded-orchestrator/launchers/Ustam.app/Contents/MacOS/launch")
                     self.assertEqual((app_launch.external_attr >> 16) & 0o111, 0o111)
                 with zipfile.ZipFile(paths[1]) as archive:
                     instructions = archive.read("claude-bounded-orchestrator/START-HERE-MACOS-LINUX.txt").decode("utf-8")
@@ -59,7 +59,7 @@ class RepositoryTests(unittest.TestCase):
                 with zipfile.ZipFile(paths[2]) as archive:
                     data = archive.read("claude-bounded-orchestrator/setup.ps1")
                     self.assertIn(b"\r\n", data)
-                    self.assertIn("claude-bounded-orchestrator/launchers/Launch Bounded Orchestrator.vbs", archive.namelist())
+                    self.assertIn("claude-bounded-orchestrator/launchers/Launch Ustam.vbs", archive.namelist())
         finally:
             sentinel.unlink(missing_ok=True)
 

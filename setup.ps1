@@ -1,9 +1,9 @@
 param([string]$Target)
 
 $ErrorActionPreference = "Stop"
-$Host.UI.RawUI.WindowTitle = "Claude Bounded Orchestrator Setup"
+$Host.UI.RawUI.WindowTitle = "Ustam Setup"
 Write-Host "+=================================================================="
-Write-Host "| Claude Bounded Orchestrator - guided installer                  |"
+Write-Host "| Ustam - guided installer                                        |"
 Write-Host "| Native team: Anthropic Claude only                              |"
 Write-Host "+=================================================================="
 if (-not $Target) {

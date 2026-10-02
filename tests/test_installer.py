@@ -235,7 +235,7 @@ class InstallerTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("Claude Bounded Orchestrator", result.stdout)
+        self.assertIn("Ustam", result.stdout)
         self.assertTrue((self.target / ".claude/settings.json").is_file())
 
         rejected_target = Path(self.temp.name) / "rejected"

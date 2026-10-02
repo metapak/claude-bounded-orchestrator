@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Safely install Claude Bounded Orchestrator into an existing repository."""
+"""Safely install Ustam into an existing repository."""
 
 from __future__ import annotations
 
@@ -411,7 +411,7 @@ def prompt_choice(prompt: str, choices: list[tuple[str, str]], default: str) -> 
 
 def interactive_options(args: argparse.Namespace) -> None:
     print("\n+------------------------------------------------------------------+")
-    print("| Claude Bounded Orchestrator - Guided Setup                      |")
+    print("| Ustam - Guided Setup                                            |")
     print("+------------------------------------------------------------------+")
     print("  Native routing : Anthropic Claude only")
     print("  Safety         : one native Claude writer; bounded review loops")

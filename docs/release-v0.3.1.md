@@ -1,6 +1,6 @@
 [English](release-v0.3.1.md) | [Türkçe](release-v0.3.1.tr.md)
 
-# Claude Bounded Orchestrator v0.3.1
+# Ustam v0.3.1
 
 Version 0.3.1 fixes interactive installation on Windows terminals whose active output encoding cannot represent every Turkish character.
 

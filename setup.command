@@ -3,7 +3,7 @@ set -u
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 printf '%s\n' '+=================================================================='
-printf '%s\n' '| Claude Bounded Orchestrator - guided installer                  |'
+printf '%s\n' '| Ustam - guided installer                                        |'
 printf '%s\n' '| Native team: Anthropic Claude only                              |'
 printf '%s\n' '+=================================================================='
 if [ "$#" -gt 0 ]; then

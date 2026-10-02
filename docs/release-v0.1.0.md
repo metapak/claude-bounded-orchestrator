@@ -1,4 +1,4 @@
-# Claude Bounded Orchestrator v0.1.0
+# Ustam v0.1.0
 
 Initial public-ready Claude Code edition.
 

@@ -1,6 +1,6 @@
 [English](release-v0.4.0.md) | [Türkçe](release-v0.4.0.tr.md)
 
-# Claude Bounded Orchestrator v0.4.0
+# Ustam v0.4.0
 
 Version 0.4.0 keeps the native Claude team single-brand by design and makes every external model an explicit, proposal-only API choice.
 

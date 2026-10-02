@@ -1,6 +1,6 @@
 [English](release-v0.2.0.md) | [Türkçe](release-v0.2.0.tr.md)
 
-# Claude Bounded Orchestrator v0.2.0
+# Ustam v0.2.0
 
 0.2.0 sürümü, tarihli model kimliklerini sabitlemeden her rol için hedeflenen Claude model ailesini ve düşünme düzeyini açıkça belirtir.
 

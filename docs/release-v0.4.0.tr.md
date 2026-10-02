@@ -1,6 +1,6 @@
 [English](release-v0.4.0.md) | [Türkçe](release-v0.4.0.tr.md)
 
-# Claude Bounded Orchestrator v0.4.0
+# Ustam v0.4.0
 
 0.4.0 sürümü, yerel Claude ekibini tek marka olarak korur ve diğer bütün modelleri açıkça seçilen, yalnızca öneri üreten haricî API seçeneği hâline getirir.
 

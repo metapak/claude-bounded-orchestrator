@@ -1,6 +1,6 @@
 [English](release-v0.3.0.md) | [Türkçe](release-v0.3.0.tr.md)
 
-# Claude Bounded Orchestrator v0.3.0
+# Ustam v0.3.0
 
 0.3.0 sürümü, kurulum sırasında model dağılımını seçmeyi ve isteğe bağlı OpenAI değişiklik önerisi rolünü ekler.
 

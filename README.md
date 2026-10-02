@@ -4,7 +4,9 @@
   <img src="docs/assets/cover-en.svg" alt="Claude Code team setup: one chief, distinct specialists, reviewed changes and opt-in OTLP usage" width="100%">
 </p>
 
-# Claude Bounded Orchestrator
+# Ustam
+
+**Claude Code**
 
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB.svg)](https://www.python.org/downloads/)
@@ -20,7 +22,7 @@ You still describe the work normally. The main Claude session coordinates and sp
 Have [Claude Code](https://code.claude.com/docs/en/getting-started) and [Python 3.11 or newer](https://www.python.org/downloads/) installed first. Python is **not included** in this download.
 
 1. **Download:** [Get the current ZIP](https://github.com/metapak/claude-bounded-orchestrator/archive/refs/heads/main.zip) and open the extracted folder.
-2. **Open:** On Mac, open `launchers` and double-click **Bounded Orchestrator.app**. On Windows, double-click **Launch Bounded Orchestrator.vbs** in the same folder. On Linux, use the short command below.
+2. **Open:** On Mac, open `launchers` and double-click **Ustam.app**. On Windows, double-click **Launch Ustam.vbs** in the same folder. On Linux, use the short command below.
 3. **Choose a project:** On Mac or Windows, pick the folder where you use Claude Code. On Linux, the command includes that folder instead.
 4. **Install:** In the browser, keep the suggested team or change it. Click **Check changes**, then **Install**. Restart Claude Code in that project.
 
@@ -41,24 +43,21 @@ To change the team later, open the launcher again (or repeat the Linux command) 
 
 **Preferences — plan your team.** Choose a task draft and work intensity, then set each helper’s duty, Claude model and effort before checking changes.
 
-![Current Claude Preferences screen with task drafts and a planned specialist orchestra](docs/assets/preferences-en.png)
+![Current Ustam Preferences screen with task drafts and a planned specialist orchestra](docs/assets/preferences-en.png)
 
-*Captured from the running Claude console using an empty disposable project. These are unsaved setup choices.*
+*Captured from the running Ustam console using an empty disposable project. These are unsaved setup choices.*
 
 **Usage — inspect past records.** Import your own explicitly supplied OTLP export, or use the built-in sample to explore the charts and observed orchestra.
 
-![Current Claude Usage screen showing labeled synthetic sample data](docs/assets/console-en.png)
+![Current Ustam Usage screen showing labeled synthetic sample data](docs/assets/console-en.png)
 
-*Captured from the running Claude console. Built-in synthetic sample data; no personal usage, live agent activity, or account quota is shown.*
+*Captured from the running Ustam console. Built-in synthetic sample data; no personal usage, live agent activity, or account quota is shown.*
 
-<details>
-<summary>Watch the shared 8-second family preview</summary>
+## Watch Ustam in 40 seconds
 
-<p><img src="docs/assets/bounded-orchestrator-intro-8s.gif" alt="Shared Codex sample preview with a conductor and four helpers" width="480"></p>
+[![Ustam introduction in English](docs/assets/ustam-poster-en.png)](https://raw.githubusercontent.com/metapak/claude-bounded-orchestrator/main/docs/assets/ustam-promo-en-40s.mp4)
 
-Silent, with Turkish titles. This shared-family preview uses sample Codex UI, not a Claude Code recording or live data. [Download the original MP4](https://raw.githubusercontent.com/metapak/claude-bounded-orchestrator/main/docs/assets/bounded-orchestrator-intro-8s.mp4).
-
-</details>
+[Play or download the English video (MP4, 40 seconds)](https://raw.githubusercontent.com/metapak/claude-bounded-orchestrator/main/docs/assets/ustam-promo-en-40s.mp4). This illustrated introduction shows the Ustam family with sample Codex screens; the Claude Code edition is shown in the screenshots above.
 
 Linux uses the short command above for the same browser page; it has no double-click launcher here. The [macOS/Linux guide](INSTALL-MACOS.md) and [Windows guide](INSTALL-WINDOWS.md) cover opening problems and manual setup. Native double-click launch and a live Claude Code session have not been verified by repository tests.
 

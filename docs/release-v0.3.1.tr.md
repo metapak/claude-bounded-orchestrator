@@ -1,6 +1,6 @@
 [English](release-v0.3.1.md) | [Türkçe](release-v0.3.1.tr.md)
 
-# Claude Bounded Orchestrator v0.3.1
+# Ustam v0.3.1
 
 0.3.1 sürümü, etkin çıktı kodlaması bütün Türkçe karakterleri gösteremeyen Windows terminallerindeki etkileşimli kurulum hatasını düzeltir.
 

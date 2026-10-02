@@ -4,7 +4,9 @@
   <img src="docs/assets/cover-tr.svg" alt="Claude Code ekip kurulumu: tek şef, farklı uzmanlar, değişiklik önizlemesi ve isteğe bağlı OTLP kullanımı" width="100%">
 </p>
 
-# Claude Bounded Orchestrator
+# Ustam
+
+**Claude Code**
 
 [![Lisans: Apache-2.0](https://img.shields.io/badge/lisans-Apache--2.0-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB.svg)](https://www.python.org/downloads/)
@@ -20,7 +22,7 @@
 Önce [Claude Code](https://code.claude.com/docs/en/getting-started) ve [Python 3.11 veya yenisi](https://www.python.org/downloads/) kurulu olsun. Python bu indirmeye **dahil değildir**.
 
 1. **İndirin:** [Güncel ZIP dosyasını alın](https://github.com/metapak/claude-bounded-orchestrator/archive/refs/heads/main.zip) ve açılan klasöre girin.
-2. **Açın:** Mac'te `launchers` klasöründeki **Bounded Orchestrator.app** dosyasına çift tıklayın. Windows'ta aynı klasördeki **Launch Bounded Orchestrator.vbs** dosyasına çift tıklayın. Linux'ta aşağıdaki kısa komutu kullanın.
+2. **Açın:** Mac'te `launchers` klasöründeki **Ustam.app** dosyasına çift tıklayın. Windows'ta aynı klasördeki **Launch Ustam.vbs** dosyasına çift tıklayın. Linux'ta aşağıdaki kısa komutu kullanın.
 3. **Proje seçin:** Mac veya Windows'ta Claude Code kullandığınız klasörü seçin. Linux'ta bu klasörü komutta belirtirsiniz.
 4. **Kurun:** Tarayıcıda önerilen ekibi bırakabilir veya değiştirebilirsiniz. **Değişiklikleri kontrol et**, ardından **Kur** düğmesine basın. Claude Code'u bu projede yeniden başlatın.
 
@@ -41,24 +43,21 @@ Ekibi daha sonra değiştirmek için başlatıcıyı yeniden açıp (Linux'ta ko
 
 **Tercihler — ekibinizi planlayın.** Bir iş taslağı ve çalışma yoğunluğu seçin; değişiklikleri kontrol etmeden önce her yardımcının görevini, Claude modelini ve düşünme düzeyini ayarlayın.
 
-![İş taslaklarını ve planlanan uzman orkestrasını gösteren güncel Claude Tercihler ekranı](docs/assets/preferences-tr.png)
+![İş taslaklarını ve planlanan uzman orkestrasını gösteren güncel Ustam Tercihler ekranı](docs/assets/preferences-tr.png)
 
-*Çalışan Claude konsolundan, boş bir geçici projede alındı. Bunlar henüz kaydedilmemiş kurulum seçimleridir.*
+*Çalışan Ustam konsolundan, boş bir geçici projede alındı. Bunlar henüz kaydedilmemiş kurulum seçimleridir.*
 
 **Kullanım — geçmiş kayıtları inceleyin.** Açıkça sağladığınız OTLP dosyasını yükleyin veya grafik ve gözlemlenen orkestrayı incelemek için yerleşik örneği açın.
 
-![Sentetik örnek verileri etiketleriyle gösteren güncel Claude Kullanım ekranı](docs/assets/console-tr.png)
+![Sentetik örnek verileri etiketleriyle gösteren güncel Ustam Kullanım ekranı](docs/assets/console-tr.png)
 
-*Çalışan Claude konsolundan alındı. Yerleşik sentetik örnek veridir; kişisel kullanım, canlı ajan etkinliği veya hesap kotası göstermez.*
+*Çalışan Ustam konsolundan alındı. Yerleşik sentetik örnek veridir; kişisel kullanım, canlı ajan etkinliği veya hesap kotası göstermez.*
 
-<details>
-<summary>Ortak ailenin 8 saniyelik önizlemesini izleyin</summary>
+## Ustam’ı 40 saniyede tanıyın
 
-<p><img src="docs/assets/bounded-orchestrator-intro-8s.gif" alt="Şef ve dört yardımcıyla örnek Codex orkestrasının hareketli görüntüsü" width="480"></p>
+[![Ustam Türkçe tanıtım](docs/assets/ustam-poster-tr.png)](https://raw.githubusercontent.com/metapak/claude-bounded-orchestrator/main/docs/assets/ustam-promo-tr-40s.mp4)
 
-Sessizdir; Türkçe başlıklar içerir. Ortak aile tanıtımında örnek Codex ekranı vardır; Claude Code kaydı veya canlı veri değildir. [Orijinal MP4 dosyasını indirin](https://raw.githubusercontent.com/metapak/claude-bounded-orchestrator/main/docs/assets/bounded-orchestrator-intro-8s.mp4).
-
-</details>
+[Türkçe videoyu oynatın veya indirin (MP4, 40 saniye)](https://raw.githubusercontent.com/metapak/claude-bounded-orchestrator/main/docs/assets/ustam-promo-tr-40s.mp4). Bu görsel tanıtım Ustam ailesini örnek Codex ekranlarıyla anlatır; Claude Code sürümünün ekranları yukarıdadır.
 
 Linux'ta aynı tarayıcı sayfası yukarıdaki kısa komutla açılır; bu pakette çift tıklamalı Linux başlatıcısı yoktur. Açılış sorunları ve elle kurulum için [macOS/Linux rehberine](INSTALL-MACOS.md) veya [Windows rehberine](INSTALL-WINDOWS.md) bakın. Depo testleri çift tıklamayla açılışı ve canlı Claude Code oturumunu doğrulamaz.
 
