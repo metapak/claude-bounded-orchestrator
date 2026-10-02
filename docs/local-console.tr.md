@@ -2,6 +2,10 @@
 
 [Güncel main ZIP dosyasını](https://github.com/metapak/ustam-claude-orchestrator/archive/refs/heads/main.zip) indirip çıkarın ve sonraki güncellemeler için klasörü saklayın. macOS’te `launchers/Ustam.app`, Windows’ta `launchers/Launch Ustam.vbs` dosyasına çift tıklayın. Mac uygulamasını açılan klasörün içinde tutun. macOS kurulum paketini sorarsa ilk pencere, adı `ustam-claude-orchestrator` ile başlayan ZIP dosyasından çıkan dış klasörü anlatır. Kısa başlıklı seçici İndirilenler’de açılır; bu klasörde `launchers` ve `scripts` bulunur. Yanlış seçimde **Yeniden dene** ile tekrar seçebilirsiniz. İkinci pencerede Claude Code kullandığınız ayrı Git projesini seçin; ayarlar oraya yazılır ve kurulum tarayıcıda devam eder. Pencereler birincil sistem diliniz Türkçe ise Türkçe, diğer durumlarda İngilizce gösterilir. Tarayıcıda **Değişiklikleri kontrol et** önizlemesini inceleyin ve ilk kurulum için **Kur** düğmesine basın. Grafik arayüz başlatıcıları Python 3.11+ gerektirir. Mac’te tarayıcı açılamazsa uyarı, elle açabileceğiniz tam yerel adresi gösterir. Tarayıcıdaki **Konsolu kapat** düğmesi yerel sunucuyu durdurur. Sonraki güncellemeler için kurulum klasörünü saklayın; kullanıcı geneline kurulum yapılmaz.
 
+Seçili projenin yolu ekranın başında görünür. İş türünü seçin, **Değişiklikleri kontrol et** ile önizlemeye geçin ve **Kur/Kaydet** ile uygulayın. Model ve düşünme seçenekleri kişi panelinde açılır; diğer teknik seçenekler **İleri ayarlar** altındadır. İşlem durumu ve sonraki adım aynı ekranda görünür.
+
+Güncellemek için yeni ZIP dosyasını ayrı bir klasöre çıkarın. Yeni paket klasöründe `python3 scripts/install.py /projenizin/tam/yolu --dry-run`, ardından aynı komutu `--dry-run` olmadan çalıştırın. Açık profil seçmezseniz kayıtlı profil, görev modelleri, ekip ve eşzamanlılık korunur. `--preset` veya etkileşimli kurulum yeni profil seçer; tek `--role-model`/`--role-effort` yalnız o görevi değiştirir. Mevcut ortak ayarlar korunur; terminalde değişen şef ayarları için üretilen settings örneğini birleştirmek gerekebilir.
+
 <details>
 <summary>İsteğe bağlı terminalden açma</summary>
 

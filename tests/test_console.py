@@ -61,8 +61,12 @@ class ConsoleTests(unittest.TestCase):
         self.assertIn('disallowedTools: Agent', second_slot.read_text())
         self.assertIn('orchestra-slot-02', (self.target / 'CLAUDE.md').read_text())
         self.assertEqual(self.settings.read()['roster'], roster)
-        # A later CLI installer update must preserve the chosen team instructions.
+        # A later CLI update preserves console routing, concurrency and helper slots.
+        configured = self.settings.read()
         self.assertEqual(install.main([str(self.target)]), 0)
+        updated = self.settings.read()
+        for key in ('preset', 'routing', 'max_parallelism', 'roster'):
+            self.assertEqual(updated[key], configured[key])
         self.assertIn('orchestra-slot-02', (self.target / 'CLAUDE.md').read_text())
         changed = {**self.payload(), 'roster': roster[:1]}
         changed['revision'] = self.settings.plan(changed)[2]['revision']
@@ -653,7 +657,7 @@ class ConsoleTests(unittest.TestCase):
           const status=s.slice(s.indexOf('const statusState=new Map();'),s.indexOf('async function action('));
           const translate=s.slice(s.indexOf('function translate(){'),s.indexOf('async function refresh(){'));
           const harness=`let language='tr';function t(key){return words[language][key]||key;}
-            const elements={};function $(id){return elements[id]||(elements[id]={children:[],classList:{toggle(){}},replaceChildren(){this.children=[];},append(child){this.children.push(child);}});}
+            const elements={};function $(id){return elements[id]||(elements[id]={children:[],scrolls:0,scrollIntoView(){this.scrolls++;},classList:{toggle(){}},replaceChildren(){this.children=[];},append(child){this.children.push(child);}});}
             function node(tag,text){return{textContent:text};}function details(){return{};}
             const document={documentElement:{},querySelectorAll(){return[];}};
             function translateRoleLabels(){}function renderTaskProfiles(){}function renderRoster(){}function renderPresetExplain(){}function renderSummary(){}function renderPreview(){}function renderUninstall(){}function renderActivity(){}function renderUsage(){}function renderTasks(){}
@@ -661,7 +665,8 @@ class ConsoleTests(unittest.TestCase):
             if(elements['uninstall-status'].children[0].textContent!==words.tr.uninstallDone)throw Error('Turkish status missing');
             language='en';translate();
             if(elements['uninstall-status'].children[0].textContent!==words.en.uninstallDone)throw Error('English status missing');
-            if(elements['uninstall-status'].hidden)throw Error('Result became hidden');`;
+            if(elements['uninstall-status'].hidden)throw Error('Result became hidden');
+            if(elements['uninstall-status'].scrolls!==1)throw Error('Language switching unexpectedly moved the page');`;
           vm.runInNewContext(catalog+status+translate+harness);"""
         result = subprocess.run(['node', '-e', program, str(ROOT / '.claude/tools/console/app.js')],
                                 capture_output=True, text=True)

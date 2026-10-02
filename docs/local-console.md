@@ -2,6 +2,10 @@
 
 Download and extract the [current main ZIP](https://github.com/metapak/ustam-claude-orchestrator/archive/refs/heads/main.zip), then keep the extracted folder for later updates. On macOS, double-click `launchers/Ustam.app`; on Windows, double-click `launchers/Launch Ustam.vbs`. Keep the Mac app inside the extracted folder. If macOS asks for the setup package, its first dialog explains which folder to choose: the outer folder extracted from the ZIP whose name starts with `ustam-claude-orchestrator`. The short picker opens in Downloads; the folder contains `launchers` and `scripts`. Choose **Try again** after a wrong selection. The second dialog asks for the separate Git project where you use Claude Code; settings go there before setup continues in the browser. Dialogs use Turkish or English based on your primary system language. The browser opens a loopback-only setup screen where **Check changes** shows a preview and **Install** applies the first setup. These GUI launchers require Python 3.11+ and stay open until you choose **Close console** in the browser. If the Mac browser cannot open, an alert shows the full local address to open manually. Keep the installer repository/release folder for later updates. There is no global installation.
 
+The selected project path stays visible at the top. Choose a task, use **Check changes** to reach the preview, then **Install/Save** to apply it. Model and effort choices expand in the person panel; other technical options stay under **Advanced settings**. The action status and next step appear on the same page.
+
+To update, extract a new ZIP into a separate folder. From that new package folder, run `python3 scripts/install.py /absolute/path/to/project --dry-run`, then repeat without `--dry-run`. With no explicit profile, saved profile, role choices, team and concurrency are preserved. `--preset` or interactive setup selects a new profile; a single `--role-model`/`--role-effort` changes only that role. Existing shared settings are preserved; terminal changes to the conductor may require manually merging the generated settings example.
+
 <details>
 <summary>Optional terminal launch</summary>
 

@@ -49,6 +49,32 @@ class InstallerTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.temp.cleanup()
 
+    def test_update_keeps_saved_routing_and_explicit_choices_take_precedence(self) -> None:
+        self.assertEqual(self.installer("--preset", "economy").returncode, 0)
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("installer_update", INSTALLER)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        manifest_path = self.target / module.MANIFEST_RELATIVE
+        before = json.loads(manifest_path.read_text())["routing"]
+        self.assertEqual(self.installer("--dry-run").returncode, 0)
+        self.assertEqual(json.loads(manifest_path.read_text())["routing"], before)
+        self.assertEqual(self.installer().returncode, 0)
+        saved = json.loads(manifest_path.read_text())
+        self.assertEqual(saved["routing"], before)
+        self.assertEqual(saved["preset"], "economy")
+        for role, value in before.items():
+            if role != "owner":
+                agent = agent_frontmatter(self.target / f".claude/agents/{role}.md")
+                self.assertEqual((agent["model"], agent["effort"]), (value["model"], value["effort"]))
+        self.assertEqual(self.installer("--role-model", "reviewer=opus").returncode, 0)
+        changed = json.loads(manifest_path.read_text())
+        self.assertEqual(changed["preset"], "custom")
+        self.assertEqual(changed["routing"]["reviewer"]["model"], "opus")
+        self.assertEqual(changed["routing"]["owner"], before["owner"])
+        self.assertEqual(self.installer("--preset", "quality").returncode, 0)
+        self.assertTrue(all(value["model"] == "opus" for value in json.loads(manifest_path.read_text())["routing"].values()))
+
     def installer(self, *args: str, input_text: str | None = None, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [sys.executable, str(INSTALLER), str(self.target), *args],

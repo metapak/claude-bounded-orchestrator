@@ -39,6 +39,10 @@ python3 scripts/configure.py /projenizin/tam/yolu
 
 Ekibi daha sonra değiştirmek için başlatıcıyı yeniden açıp (Linux'ta komutu yineleyip) **Kaydet** düğmesini kullanın. Ayarlar projeye hemen yazılır; silip yeniden kurmanız gerekmez. Açık Claude Code oturumunun yeni ayarları kullanması için oturumu yeniden açmanız gerekebilir. Kurulum açılmazsa [Mac/Linux](INSTALL-MACOS.md) veya [Windows](INSTALL-WINDOWS.md) rehberine bakın.
 
+Seçili projenin yolu ekranın başında görünür. İş türünü seçin, **Değişiklikleri kontrol et** ile önizlemeye geçin ve **Kur/Kaydet** ile uygulayın. Model ve düşünme seçenekleri kişi panelinde açılır; diğer teknik seçenekler **İleri ayarlar** altındadır. İşlem durumu ve sonraki adım aynı ekranda görünür.
+
+Güncellemek için yeni ZIP dosyasını ayrı bir klasöre çıkarın. Yeni paket klasöründe `python3 scripts/install.py /projenizin/tam/yolu --dry-run`, ardından aynı komutu `--dry-run` olmadan çalıştırın. Açık profil seçmezseniz kayıtlı profil, görev modelleri, ekip ve eşzamanlılık korunur. `--preset` veya etkileşimli kurulum yeni profil seçer; tek `--role-model`/`--role-effort` yalnız o görevi değiştirir. Mevcut ortak ayarlar korunur; terminalde değişen şef ayarları için üretilen settings örneğini birleştirmek gerekebilir.
+
 ## Yerel konsolun içinde
 
 **Tercihler — ekibinizi planlayın.** Bir iş taslağı ve çalışma yoğunluğu seçin; değişiklikleri kontrol etmeden önce her yardımcının görevini, Claude modelini ve düşünme düzeyini ayarlayın.

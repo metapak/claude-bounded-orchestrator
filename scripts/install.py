@@ -480,15 +480,24 @@ def interactive_options(args: argparse.Namespace) -> None:
     print("--------------------------------------------------------------------")
 
 
-def routing_for(args: argparse.Namespace) -> dict[str, tuple[str, str]]:
+def routing_for(args: argparse.Namespace, saved: dict[str, Any] | None = None) -> dict[str, tuple[str, str]]:
     preset = "balanced" if args.preset == "custom" else args.preset
     routing = dict(PRESETS[preset])
+    if saved is not None:
+        if not isinstance(saved, dict) or set(saved) != set(ROLES):
+            raise InstallError("saved routing is incomplete; review it before updating")
+        for role in ROLES:
+            value = saved[role]
+            if not isinstance(value, dict) or not isinstance(value.get("model"), str) or not isinstance(value.get("effort"), str):
+                raise InstallError("saved routing is invalid; review it before updating")
+            routing[role] = (value["model"], value["effort"])
     models = parse_override(args.role_model, "--role-model")
     efforts = parse_override(args.role_effort, "--role-effort", effort=True)
     for role in ROLES:
         model, effort = routing[role]
         routing[role] = (models.get(role, model), efforts.get(role, effort))
         validate_claude_model(routing[role][0], f"{role} model")
+        validate_effort(routing[role][1], f"{role} effort", CLAUDE_OWNER_EFFORTS if role == "owner" else CLAUDE_EFFORTS)
     return routing
 
 
@@ -1127,8 +1136,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--preset",
         choices=("balanced", "quality", "economy", "custom", "quota-saver"),
-        default="balanced",
-        help="prepared model/effort profile (default: balanced)",
+        default=None,
+        help="prepared model/effort profile (new install: balanced; update: keep saved choices)",
     )
     parser.add_argument("--role-model", action="append", default=[], metavar="ROLE=MODEL", help="override one role model; repeatable")
     parser.add_argument("--role-effort", action="append", default=[], metavar="ROLE=EFFORT", help="override one role effort; repeatable")
@@ -1208,6 +1217,8 @@ def print_install_summary(
 def main(argv: list[str] | None = None) -> int:
     configure_stdio()
     args = parse_args(argv)
+    explicit_profile = args.preset is not None or args.interactive
+    args.preset = args.preset or "balanced"
     root = source_root()
     try:
         if args.interactive and not args.uninstall:
@@ -1226,7 +1237,14 @@ def main(argv: list[str] | None = None) -> int:
                 raise InstallError("no installation manifest found")
             uninstall(target, manifest, args.dry_run, output)
         else:
-            routing = routing_for(args)
+            saved_routing = manifest.get("routing") if not explicit_profile else None
+            if saved_routing is not None:
+                args.preset = manifest.get("preset", "custom")
+                if args.preset not in PRESETS and args.preset != "custom":
+                    raise InstallError("saved profile is invalid; review it before updating")
+            routing = routing_for(args, saved_routing)
+            if saved_routing is not None and (args.role_model or args.role_effort):
+                args.preset = "custom"
             if requested_provider not in (None, "none"):
                 spec = EXTERNAL_PROVIDERS[requested_provider]
                 assert args.external_model is not None and args.external_effort is not None

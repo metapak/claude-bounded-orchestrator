@@ -24,3 +24,7 @@ main{max-width:1440px}.team-console{display:grid;grid-template-columns:minmax(20
 .action-status details{margin-top:6px}
 .preview .action-status{margin:12px 0 0}
 .uninstall-section{margin-top:28px;padding-top:22px;border-top:1px solid #d7bd97}.uninstall-section>p{color:#6a5547}.uninstall-section .preview{margin-top:14px}.uninstall-section .change-list{max-height:280px;overflow:auto;overflow-wrap:anywhere}.uninstall-confirm{display:flex;align-items:center;gap:9px;margin:18px 0 12px;font-weight:650;color:#542c35}.uninstall-confirm input{width:18px;height:18px;min-width:18px;accent-color:#642b35}.uninstall-section .actions{margin-top:10px}
+
+.task-profile-card:hover:not(:disabled){background:#f7e7c9;color:#503029}.task-profile-card[aria-pressed=true]:hover:not(:disabled){background:#f3d99c;color:#503029}
+.actor-model-settings{margin-top:16px;border-top:1px solid #d7bd97;padding-top:12px}.actor-model-settings>summary{color:#642b35;font-weight:650;cursor:pointer}
+@media(max-width:760px){.task-profiles{grid-template-columns:repeat(2,minmax(0,1fr))}}

@@ -39,6 +39,10 @@ python3 scripts/configure.py /absolute/path/to/your-project
 
 To change the team later, open the launcher again (or repeat the Linux command) and use **Save**. It updates the project settings without uninstalling. An already-open Claude Code session may need to be reopened before it uses the changes. If setup does not open, see the [Mac/Linux](INSTALL-MACOS.md) or [Windows](INSTALL-WINDOWS.md) guide.
 
+The selected project path stays visible at the top. Choose a task, use **Check changes** to reach the preview, then **Install/Save** to apply it. Model and effort choices expand in the person panel; other technical options stay under **Advanced settings**. The action status and next step appear on the same page.
+
+To update, extract a new ZIP into a separate folder. From that new package folder, run `python3 scripts/install.py /absolute/path/to/project --dry-run`, then repeat without `--dry-run`. With no explicit profile, saved profile, role choices, team and concurrency are preserved. `--preset` or interactive setup selects a new profile; a single `--role-model`/`--role-effort` changes only that role. Existing shared settings are preserved; terminal changes to the conductor may require manually merging the generated settings example.
+
 ## Inside the local console
 
 **Preferences — plan your team.** Choose a task draft and work intensity, then set each helper’s duty, Claude model and effort before checking changes.
