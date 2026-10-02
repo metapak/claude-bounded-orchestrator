@@ -21,7 +21,7 @@
 
 Önce [Claude Code](https://code.claude.com/docs/en/getting-started) ve [Python 3.11 veya yenisi](https://www.python.org/downloads/) kurulu olsun. Python bu indirmeye **dahil değildir**.
 
-1. **İndirin:** [Güncel ZIP dosyasını alın](https://github.com/metapak/claude-bounded-orchestrator/archive/refs/heads/main.zip) ve açılan klasöre girin.
+1. **İndirin:** [Güncel ZIP dosyasını alın](https://github.com/metapak/ustam-claude-orchestrator/archive/refs/heads/main.zip) ve açılan klasöre girin.
 2. **Açın:** Mac'te `launchers` klasöründeki **Ustam.app** dosyasına çift tıklayın. Windows'ta aynı klasördeki **Launch Ustam.vbs** dosyasına çift tıklayın. Linux'ta aşağıdaki kısa komutu kullanın.
 3. **Proje seçin:** Mac veya Windows'ta Claude Code kullandığınız klasörü seçin. Linux'ta bu klasörü komutta belirtirsiniz.
 4. **Kurun:** Tarayıcıda önerilen ekibi bırakabilir veya değiştirebilirsiniz. **Değişiklikleri kontrol et**, ardından **Kur** düğmesine basın. Claude Code'u bu projede yeniden başlatın.
@@ -55,9 +55,9 @@ Ekibi daha sonra değiştirmek için başlatıcıyı yeniden açıp (Linux'ta ko
 
 ## Ustam’ı 40 saniyede tanıyın
 
-[![Ustam Türkçe tanıtım](docs/assets/ustam-poster-tr.png)](https://raw.githubusercontent.com/metapak/claude-bounded-orchestrator/main/docs/assets/ustam-promo-tr-40s.mp4)
+[![Ustam Türkçe tanıtım](docs/assets/ustam-poster-tr.png)](https://raw.githubusercontent.com/metapak/ustam-claude-orchestrator/main/docs/assets/ustam-promo-tr-40s.mp4)
 
-[Türkçe videoyu oynatın veya indirin (MP4, 40 saniye)](https://raw.githubusercontent.com/metapak/claude-bounded-orchestrator/main/docs/assets/ustam-promo-tr-40s.mp4). Bu görsel tanıtım Ustam ailesini örnek Codex ekranlarıyla anlatır; Claude Code sürümünün ekranları yukarıdadır.
+[Türkçe videoyu oynatın veya indirin (MP4, 40 saniye)](https://raw.githubusercontent.com/metapak/ustam-claude-orchestrator/main/docs/assets/ustam-promo-tr-40s.mp4). Bu görsel tanıtım Ustam ailesini örnek Codex ekranlarıyla anlatır; Claude Code sürümünün ekranları yukarıdadır.
 
 Linux'ta aynı tarayıcı sayfası yukarıdaki kısa komutla açılır; bu pakette çift tıklamalı Linux başlatıcısı yoktur. Açılış sorunları ve elle kurulum için [macOS/Linux rehberine](INSTALL-MACOS.md) veya [Windows rehberine](INSTALL-WINDOWS.md) bakın. Depo testleri çift tıklamayla açılışı ve canlı Claude Code oturumunu doğrulamaz.
 
@@ -206,7 +206,7 @@ Talimatlar tek başına kesin bir güvenlik sınırı değildir. Yardımcı deri
 
 ## Projenin durumu
 
-`0.5.0`; sınırlı çalışma düzeni, gerçek yardımcı ekibi kuran yerel tarayıcı ekranı, isteğe bağlı OpenTelemetry kullanım görünümü, son dosyalara bağlı yerel değerlendirme ve devam ettirilebilir görev denemeleri sunar. Orkestradaki bilinen görevlerin karakterleri ayrıdır. Şef süs amaçlı ve sürekli hareket eder; sistemde azaltılmış hareket seçili olsa da bu sahne hareketlidir. Sahne canlı çalışma, bağlam doluluğu veya kalan kota yerine gözlenen token paylarını gösterir. Sınırlı inceleme düzeni ve isteğe bağlı, yalnız öneri üreten haricî sağlayıcılar korunur. Proje, [Codex Bounded Orchestrator](https://github.com/metapak/codex-bounded-orchestrator) çalışma düzenini Claude Code'un proje yardımcılarına, becerilerine, ortak talimatlarına ve ayarlarına uyarlar. Atıflar için [NOTICE](NOTICE) ve [kaynak bilgisi](docs/provenance.md) belgelerine bakabilirsiniz.
+`0.5.0`; sınırlı çalışma düzeni, gerçek yardımcı ekibi kuran yerel tarayıcı ekranı, isteğe bağlı OpenTelemetry kullanım görünümü, son dosyalara bağlı yerel değerlendirme ve devam ettirilebilir görev denemeleri sunar. Orkestradaki bilinen görevlerin karakterleri ayrıdır. Şef süs amaçlı ve sürekli hareket eder; sistemde azaltılmış hareket seçili olsa da bu sahne hareketlidir. Sahne canlı çalışma, bağlam doluluğu veya kalan kota yerine gözlenen token paylarını gösterir. Sınırlı inceleme düzeni ve isteğe bağlı, yalnız öneri üreten haricî sağlayıcılar korunur. Proje, [Codex Bounded Orchestrator](https://github.com/metapak/ustam-codex-orchestrator) çalışma düzenini Claude Code'un proje yardımcılarına, becerilerine, ortak talimatlarına ve ayarlarına uyarlar. Atıflar için [NOTICE](NOTICE) ve [kaynak bilgisi](docs/provenance.md) belgelerine bakabilirsiniz.
 
 Proje işinize yararsa vereceğiniz bir GitHub yıldızı daha fazla kişinin projeyi bulmasına yardımcı olur. Hata bildirimleri ve odaklı katkılar memnuniyetle karşılanır.
 

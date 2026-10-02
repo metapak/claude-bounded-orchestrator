@@ -21,7 +21,7 @@ You still describe the work normally. The main Claude session coordinates and sp
 
 Have [Claude Code](https://code.claude.com/docs/en/getting-started) and [Python 3.11 or newer](https://www.python.org/downloads/) installed first. Python is **not included** in this download.
 
-1. **Download:** [Get the current ZIP](https://github.com/metapak/claude-bounded-orchestrator/archive/refs/heads/main.zip) and open the extracted folder.
+1. **Download:** [Get the current ZIP](https://github.com/metapak/ustam-claude-orchestrator/archive/refs/heads/main.zip) and open the extracted folder.
 2. **Open:** On Mac, open `launchers` and double-click **Ustam.app**. On Windows, double-click **Launch Ustam.vbs** in the same folder. On Linux, use the short command below.
 3. **Choose a project:** On Mac or Windows, pick the folder where you use Claude Code. On Linux, the command includes that folder instead.
 4. **Install:** In the browser, keep the suggested team or change it. Click **Check changes**, then **Install**. Restart Claude Code in that project.
@@ -55,9 +55,9 @@ To change the team later, open the launcher again (or repeat the Linux command) 
 
 ## Watch Ustam in 40 seconds
 
-[![Ustam introduction in English](docs/assets/ustam-poster-en.png)](https://raw.githubusercontent.com/metapak/claude-bounded-orchestrator/main/docs/assets/ustam-promo-en-40s.mp4)
+[![Ustam introduction in English](docs/assets/ustam-poster-en.png)](https://raw.githubusercontent.com/metapak/ustam-claude-orchestrator/main/docs/assets/ustam-promo-en-40s.mp4)
 
-[Play or download the English video (MP4, 40 seconds)](https://raw.githubusercontent.com/metapak/claude-bounded-orchestrator/main/docs/assets/ustam-promo-en-40s.mp4). This illustrated introduction shows the Ustam family with sample Codex screens; the Claude Code edition is shown in the screenshots above.
+[Play or download the English video (MP4, 40 seconds)](https://raw.githubusercontent.com/metapak/ustam-claude-orchestrator/main/docs/assets/ustam-promo-en-40s.mp4). This illustrated introduction shows the Ustam family with sample Codex screens; the Claude Code edition is shown in the screenshots above.
 
 Linux uses the short command above for the same browser page; it has no double-click launcher here. The [macOS/Linux guide](INSTALL-MACOS.md) and [Windows guide](INSTALL-WINDOWS.md) cover opening problems and manual setup. Native double-click launch and a live Claude Code session have not been verified by repository tests.
 
@@ -208,7 +208,7 @@ This project does not turn model instructions into a security boundary. The nati
 
 ## Project status
 
-Version `0.5.0` provides the bounded workflow, local browser setup with a configurable real helper team, opt-in OpenTelemetry usage views, candidate-bound local evaluation, and recoverable task attempts. The orchestra uses distinct characters for known duties; the conductor animates decoratively and continuously, including when the system prefers reduced motion. It shows observed token shares, not live activity, context-window fill, or quota remaining. The project adapts [Codex Bounded Orchestrator](https://github.com/metapak/codex-bounded-orchestrator) to Claude Code's native project agents, skills, shared instructions, and settings. See [NOTICE](NOTICE) and [provenance](docs/provenance.md) for attribution.
+Version `0.5.0` provides the bounded workflow, local browser setup with a configurable real helper team, opt-in OpenTelemetry usage views, candidate-bound local evaluation, and recoverable task attempts. The orchestra uses distinct characters for known duties; the conductor animates decoratively and continuously, including when the system prefers reduced motion. It shows observed token shares, not live activity, context-window fill, or quota remaining. The project adapts [Codex Bounded Orchestrator](https://github.com/metapak/ustam-codex-orchestrator) to Claude Code's native project agents, skills, shared instructions, and settings. See [NOTICE](NOTICE) and [provenance](docs/provenance.md) for attribution.
 
 If the project helps your team, a GitHub star helps other people discover it. Issues and focused pull requests are welcome.
 

@@ -2,16 +2,16 @@
 
 Have [Claude Code](https://code.claude.com/docs/en/getting-started) and [Python 3.11 or newer](https://www.python.org/downloads/) installed. Python is not included.
 
-1. **Download:** [Get the current ZIP](https://github.com/metapak/claude-bounded-orchestrator/archive/refs/heads/main.zip) and open the extracted folder.
+1. **Download:** [Get the current ZIP](https://github.com/metapak/ustam-claude-orchestrator/archive/refs/heads/main.zip) and open the extracted folder.
 2. **Open:** Open `launchers` and double-click **Ustam.app**.
 3. **Choose a project:** Pick the folder where you use Claude Code.
 4. **Install:** In the browser, keep the suggested team or change it. Click **Check changes**, then **Install**. Restart Claude Code in that project.
 
-For later changes, reopen the app and click **Save**; no uninstall is needed. An already-open Claude Code session may need to be reopened before it uses the changes. If macOS blocks the unsigned app, Control-click it and choose **Open**. Keep the app inside the extracted folder beside the launcher script and setup files. If macOS asks for the setup package, its first dialog explains which folder to choose: the outer folder extracted from the ZIP whose name starts with `claude-bounded-orchestrator`. The short picker opens in Downloads; the folder contains `launchers` and `scripts`. Choose **Try again** after a wrong selection. The second dialog asks for the separate Git project where you use Claude Code; settings go there before setup continues in the browser. Dialogs use Turkish or English based on your primary system language. If the browser cannot open, an alert shows the full local address to open manually.
+For later changes, reopen the app and click **Save**; no uninstall is needed. An already-open Claude Code session may need to be reopened before it uses the changes. If macOS blocks the unsigned app, Control-click it and choose **Open**. Keep the app inside the extracted folder beside the launcher script and setup files. If macOS asks for the setup package, its first dialog explains which folder to choose: the outer folder extracted from the ZIP whose name starts with `ustam-claude-orchestrator`. The short picker opens in Downloads; the folder contains `launchers` and `scripts`. Choose **Try again** after a wrong selection. The second dialog asks for the separate Git project where you use Claude Code; settings go there before setup continues in the browser. Dialogs use Turkish or English based on your primary system language. If the browser cannot open, an alert shows the full local address to open manually.
 
 ## Linux: the same four steps
 
-Use the same [current ZIP](https://github.com/metapak/claude-bounded-orchestrator/archive/refs/heads/main.zip) and prerequisites. Linux has no double-click launcher or folder picker in this package. For **Open** and **Choose a project**, open a terminal in the extracted folder and include your project folder in this command:
+Use the same [current ZIP](https://github.com/metapak/ustam-claude-orchestrator/archive/refs/heads/main.zip) and prerequisites. Linux has no double-click launcher or folder picker in this package. For **Open** and **Choose a project**, open a terminal in the extracted folder and include your project folder in this command:
 
 ```bash
 python3 scripts/configure.py /absolute/path/to/your-project
