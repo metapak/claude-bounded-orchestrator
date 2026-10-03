@@ -139,11 +139,11 @@
     "ustam/runtime.py": "e93af715de6842da60690eaaa30c1e58fc35aeba40ca2def869cf3e94a500e8d",
     "ustam/server.py": "f65c4817172f1de445532b3bdb4c13c069451281523ab9b19ea75c7cb6ccacb9",
     "ustam/storage.py": "a413316ff9fe815683e31708e0baf51fdb22b5aa266810424657951228bb54ec",
-    "ustam/ui/app.js": "23641696e26a0c34d93ec6ae2451f58c5dff5deb103f8c9499a4db02e3791802",
+    "ustam/ui/app.js": "617b9e3f77a14aedd567bdf2367ea67e905e3c17c9b7735bacec41f10bbc77ca",
     "ustam/ui/index.html": "e286d4b507df3b49e8abc32cb7fbb1fde5d4403d0cf958cf7e7e3f2fb40a0bbc",
     "ustam/ui/orchestra.svg": "93a713f5de47f227e599f615c9c5b9df51b35e0a1c7ccdab1bb9ad132b2070e3",
-    "ustam/ui/style.css": "b1c43e08cb81eccdd97b3ef599aa827010ebaa3161684b65c61352020a6e5067"
+    "ustam/ui/style.css": "df68d397d41eedbac96d5f23712a495daafcfb31d678bb625f4ef555be5a3536"
   },
   "schema": 1,
-  "snapshot_sha256": "9e83aa53d463d0539ae98bbede24449d604f724eae3e09fca025f065b91661cd"
+  "snapshot_sha256": "a1b7ac6e88d42f8c8637493c5b99c33454a2164c003235d6ad806f65b8a8d367"
 }
