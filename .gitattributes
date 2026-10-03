@@ -6,3 +6,6 @@
 *.py text eol=lf
 *.md text eol=lf
 *.json text eol=lf
+
+# Immutable engine snapshots must retain their Git-object bytes on every OS.
+ustam/engines/** -text

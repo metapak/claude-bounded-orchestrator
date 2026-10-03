@@ -6,6 +6,23 @@
 
 # Ustam
 
+<!-- ustam-hub-quickstart:start -->
+## Start with Ustam 1.0.0-beta.1
+
+The same local application for Codex, Claude Code, and OpenCode.
+
+1. **Download:** Open the [beta release](https://github.com/metapak/ustam-claude-orchestrator/releases/tag/ustam-v1.0.0-beta.1) and extract the native ZIP for your system completely: [Mac Apple silicon](https://github.com/metapak/ustam-claude-orchestrator/releases/download/ustam-v1.0.0-beta.1/ustam-1.0.0-beta.1-macos-arm64.zip) · [Mac Intel](https://github.com/metapak/ustam-claude-orchestrator/releases/download/ustam-v1.0.0-beta.1/ustam-1.0.0-beta.1-macos-x86_64.zip) · [Windows](https://github.com/metapak/ustam-claude-orchestrator/releases/download/ustam-v1.0.0-beta.1/ustam-1.0.0-beta.1-windows-x86_64.zip) · [Linux](https://github.com/metapak/ustam-claude-orchestrator/releases/download/ustam-v1.0.0-beta.1/ustam-1.0.0-beta.1-linux-x86_64.zip).
+2. **Open:** Open **Ustam.app** on Mac, **Ustam.exe** on Windows, or **Ustam** on Linux. The Mac app contains its runtime and can be moved on its own; keep the extracted Windows/Linux files together. No external Python is required.
+3. **Select apps:** Choose Codex, Claude Code, or OpenCode. Install and sign in to each selected provider's CLI.
+4. **Add projects:** Add folders inside the local browser page, choose an orchestra, check changes, and apply them.
+
+This beta is unsigned and not notarized. Mac Gatekeeper may block the download. Provider accounts and model access are separate requirements. [Local hub guide](docs/ustam-hub.md).
+<!-- ustam-hub-quickstart:end -->
+
+## Advanced Claude source console compatibility
+
+The provider-specific console and source installation steps below remain available. Their Python requirement applies to this source path.
+
 **Claude Code**
 
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)

@@ -6,6 +6,23 @@
 
 # Ustam
 
+<!-- ustam-hub-quickstart:start -->
+## Ustam 1.0.0-beta.1 ile başlayın
+
+Codex, Claude Code ve OpenCode için aynı yerel uygulama.
+
+1. **İndirin:** [Beta sürümü](https://github.com/metapak/ustam-claude-orchestrator/releases/tag/ustam-v1.0.0-beta.1) açın ve sisteminize uygun yerel ZIP’i tamamen çıkarın: [Mac Apple silicon](https://github.com/metapak/ustam-claude-orchestrator/releases/download/ustam-v1.0.0-beta.1/ustam-1.0.0-beta.1-macos-arm64.zip) · [Mac Intel](https://github.com/metapak/ustam-claude-orchestrator/releases/download/ustam-v1.0.0-beta.1/ustam-1.0.0-beta.1-macos-x86_64.zip) · [Windows](https://github.com/metapak/ustam-claude-orchestrator/releases/download/ustam-v1.0.0-beta.1/ustam-1.0.0-beta.1-windows-x86_64.zip) · [Linux](https://github.com/metapak/ustam-claude-orchestrator/releases/download/ustam-v1.0.0-beta.1/ustam-1.0.0-beta.1-linux-x86_64.zip).
+2. **Açın:** Mac’te **Ustam.app**, Windows’ta **Ustam.exe**, Linux’ta **Ustam** dosyasını açın. Mac uygulaması kendi çalışma ortamını içerir ve tek başına taşınabilir; Windows/Linux’ta çıkarılan dosyaları birlikte tutun. Haricî Python gerekmez.
+3. **Uygulamaları seçin:** Codex, Claude Code veya OpenCode seçin. Kullandığınız sağlayıcının CLI’ı kurulu ve oturumu açık olmalıdır.
+4. **Projeleri ekleyin:** Klasörleri yerel tarayıcı sayfasında ekleyin; orkestrayı seçin, değişiklikleri kontrol edip uygulayın.
+
+Bu beta imzasızdır ve notarize edilmemiştir. Mac Gatekeeper indirmeyi engelleyebilir. Sağlayıcıların hesap/model erişimi ayrıca gereklidir. [Yerel merkez rehberi](docs/ustam-hub.tr.md).
+<!-- ustam-hub-quickstart:end -->
+
+## İleri düzey Claude kaynak konsolu uyumluluğu
+
+Aşağıdaki sağlayıcıya özel konsol ve kaynak kurulum adımları korunmuştur; Python gereksinimi bu kaynak yoluna aittir.
+
 **Claude Code**
 
 [![Lisans: Apache-2.0](https://img.shields.io/badge/lisans-Apache--2.0-blue.svg)](LICENSE)
