@@ -1,19 +1,19 @@
 {
   "files": {
     ".github/workflows/ustam-app.yml": "ee599dd5e1a45299bee2cb54fa1b051db0f92200dde6b5d483bde57bc982254e",
-    "docs/ustam-hub.md": "aaa8836950405a6134e5056f8cb1335a56410ba48a3571582000620aa033b69a",
-    "docs/ustam-hub.tr.md": "633427e4f4d75dcd860e216b17fa66f5a7f74a248e5c564f91a1650e7e22fd06",
+    "docs/ustam-hub.md": "75f87cf54f774eddb9a0e0010c5b7cdd58e60593a36adc2732ff2333d43347be",
+    "docs/ustam-hub.tr.md": "07d71194e37f4819d87293c15f3b8e4e91de81df76e92f847049daffed2514b9",
     "launchers/launch_ustam.py": "7a537bd84861d7fef58eab16f60e4051b096729b374374f0f097cf2938276f6b",
     "launchers/ustam_worker.py": "057c2b28a314d61adef373271cf6b520e317db318f486e085f53e9b75bab94bb",
-    "scripts/build_ustam_app.py": "0d2ebe24f67a1a492f1e02e5ffca4b7efe8cb0d755563fae9fd561628c852e60",
+    "scripts/build_ustam_app.py": "82428747254c31c28e7d218365b8c18b3ce52d551a88974c8e8874e136ce438d",
     "scripts/build_ustam_engines.py": "e788ff921b4c3f331c1baa0f5e558c3ab71d52d240e122f6182b40c0bbe29634",
     "scripts/sync_ustam_distribution.py": "71921327fc996e21a77d199fd7b9ea552c0f1a3ea8422ff921738d7a2090d8a3",
     "tests/test_ustam_adapters.py": "e215f29d0b9d411715a6ba74a15d32569731bedc2679ff827d5c372437d2c90b",
     "tests/test_ustam_hub.py": "8fe6ac32d08317e7728d935f1609189c549356707c9f0b0444cff3aef1602d14",
     "tests/test_ustam_jobs.py": "b19e8dd3b827b37f33f66811b82ae3d08707ac3025956f8854728c7ae8bdc801",
-    "tests/test_ustam_packaging.py": "31ce018a160ea0b5bbe8516dd33ececfe0c1cad98d8ecb8a151de3febe22ce87",
+    "tests/test_ustam_packaging.py": "292d45b384caee9f554606e8830ad093c6e643fbf89e634053ae960eee1ed9b3",
     "ustam/CONTRACT.md": "7ccca4f341c8115e92bd8cb4b54a3a05736211ec5bfc572f778c804c97348221",
-    "ustam/VERSION": "fca907d028183644b1e56166c0cb15c00c7627663302b9d7fbeee438561aab22",
+    "ustam/VERSION": "a1ed1eee8351c90366a595fc553b6dd2e25922417c02d3adbac189d12fef7f3a",
     "ustam/__init__.py": "d69f59275dd8f934e868eeac7b048b93acd6dadde00938dc1fc2b869a5ca3639",
     "ustam/__main__.py": "58725cb051db795f61eed2f8eef32450005da11f5758e195419ecc6e63d24ae6",
     "ustam/adapter_worker.py": "7f22860086f2edc663b36adf4cced7298c2e2854300edcd049da39f4f8308aa9",
@@ -145,5 +145,5 @@
     "ustam/ui/style.css": "6c16adbaf82c8388daa120ddab4b4bf04f4e80a08de9df92cc622a2e172b0553"
   },
   "schema": 1,
-  "snapshot_sha256": "cf1f8607ce928872df17fab1582e11628625b2574d764633df0ede28c7ef9d14"
+  "snapshot_sha256": "dad70a60e919b0210ba5099a1389474b911383e746849fec8cefa3adb58274ad"
 }

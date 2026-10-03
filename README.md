@@ -11,15 +11,15 @@
 
 The same local application for Codex, Claude Code, and OpenCode.
 
-1. **Download:** Open the [beta release](https://github.com/metapak/ustam-claude-orchestrator/releases/tag/ustam-v1.0.0-beta.2) and extract the native ZIP for your system completely: [Mac Apple silicon](https://github.com/metapak/ustam-claude-orchestrator/releases/download/ustam-v1.0.0-beta.2/ustam-1.0.0-beta.2-macos-arm64.zip) · [Mac Intel](https://github.com/metapak/ustam-claude-orchestrator/releases/download/ustam-v1.0.0-beta.2/ustam-1.0.0-beta.2-macos-x86_64.zip) · [Windows](https://github.com/metapak/ustam-claude-orchestrator/releases/download/ustam-v1.0.0-beta.2/ustam-1.0.0-beta.2-windows-x86_64.zip) · [Linux](https://github.com/metapak/ustam-claude-orchestrator/releases/download/ustam-v1.0.0-beta.2/ustam-1.0.0-beta.2-linux-x86_64.zip).
-2. **Open:** Open **Ustam.app** on Mac, **Ustam.exe** on Windows, or **Ustam** on Linux. The Mac app contains its runtime and can be moved on its own; keep the extracted Windows/Linux files together. No external Python is required.
+**Mac status:** The published beta.1/beta.2 Mac downloads have unresolved first-launch issues. A locally built app was verified on one Mac; this does not establish that the public download opens. beta.3 is not published. See [the Mac notes](docs/ustam-hub.md).
+
+1. **Download:** Open the [beta release](https://github.com/metapak/ustam-claude-orchestrator/releases/tag/ustam-v1.0.0-beta.2) and extract the Windows/Linux native ZIP completely: [Windows](https://github.com/metapak/ustam-claude-orchestrator/releases/download/ustam-v1.0.0-beta.2/ustam-1.0.0-beta.2-windows-x86_64.zip) · [Linux](https://github.com/metapak/ustam-claude-orchestrator/releases/download/ustam-v1.0.0-beta.2/ustam-1.0.0-beta.2-linux-x86_64.zip).
+2. **Open:** Open **Ustam.exe** on Windows or **Ustam** on Linux. For a locally built Mac app, open **Ustam.app**. The Mac app contains its runtime and can be moved on its own; keep the extracted Windows/Linux files together. No external Python is required.
 3. **Select apps:** Choose Codex, Claude Code, or OpenCode. Install and sign in to each selected provider's CLI.
 4. **Add projects:** Add folders inside the local browser page, choose an orchestra, check changes, and apply them.
 
 This beta is unsigned and not notarized. Mac Gatekeeper may block the download. Provider accounts and model access are separate requirements. [Local hub guide](docs/ustam-hub.md).
 <!-- ustam-hub-quickstart:end -->
-
-Mac beta.1 showed a “damaged” warning because of a packaging signature error. Replace only the app with beta.2; project and provider settings do not need reinstalling.
 
 ## Advanced Claude source console compatibility
 

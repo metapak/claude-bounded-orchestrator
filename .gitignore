@@ -6,3 +6,4 @@ __pycache__/
 .claude/.bounded-orchestrator/tasks.json
 .claude/.bounded-orchestrator/tasks.json.lock
 dist/
+.venv-build/
