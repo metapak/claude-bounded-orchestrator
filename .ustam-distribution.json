@@ -5,13 +5,13 @@
     "docs/ustam-hub.tr.md": "a4c1c328315dd234698cada2bcf5d52eacf9dbee37773d79be7c856c5b2cf19b",
     "launchers/launch_ustam.py": "7a537bd84861d7fef58eab16f60e4051b096729b374374f0f097cf2938276f6b",
     "launchers/ustam_worker.py": "057c2b28a314d61adef373271cf6b520e317db318f486e085f53e9b75bab94bb",
-    "scripts/build_ustam_app.py": "a36290437e4064b3c438b7d886baa4dc0ff4fddfb5ca032618cc5045e8171f4f",
+    "scripts/build_ustam_app.py": "ed289997fd8315d566f01fa7b5743b3677a10a3246ec494897650d58a8038ec0",
     "scripts/build_ustam_engines.py": "e788ff921b4c3f331c1baa0f5e558c3ab71d52d240e122f6182b40c0bbe29634",
     "scripts/sync_ustam_distribution.py": "71921327fc996e21a77d199fd7b9ea552c0f1a3ea8422ff921738d7a2090d8a3",
-    "tests/test_ustam_adapters.py": "7e0f3ce1afc0ca9e17ff08002cea4cdcd48d45d181801aca17174500c32241e9",
-    "tests/test_ustam_hub.py": "23e4a5f60ed34f8d6967e7ee9786881cd4e48623ca4a08b8ae8646efffcacb1d",
-    "tests/test_ustam_jobs.py": "48f9c39c9aad7732b85034f43be1a45df898277cc3c9573ebb9a27c0c77eb8d8",
-    "tests/test_ustam_packaging.py": "2a04208affeeba2457872e884a00b29619bd76f5ff5e96fad5d7267e489cfb9a",
+    "tests/test_ustam_adapters.py": "e215f29d0b9d411715a6ba74a15d32569731bedc2679ff827d5c372437d2c90b",
+    "tests/test_ustam_hub.py": "8fe6ac32d08317e7728d935f1609189c549356707c9f0b0444cff3aef1602d14",
+    "tests/test_ustam_jobs.py": "b19e8dd3b827b37f33f66811b82ae3d08707ac3025956f8854728c7ae8bdc801",
+    "tests/test_ustam_packaging.py": "6f3ceeee51bf742676ca8e40f769a109363ebbedc6a0d8fff036d7ad2e3f6464",
     "ustam/CONTRACT.md": "7ccca4f341c8115e92bd8cb4b54a3a05736211ec5bfc572f778c804c97348221",
     "ustam/VERSION": "5703a2f830f2a6e2ce9be19e37c5309e39b6566d071f641cf11c5dc2c1c6331d",
     "ustam/__init__.py": "d69f59275dd8f934e868eeac7b048b93acd6dadde00938dc1fc2b869a5ca3639",
@@ -145,5 +145,5 @@
     "ustam/ui/style.css": "6c16adbaf82c8388daa120ddab4b4bf04f4e80a08de9df92cc622a2e172b0553"
   },
   "schema": 1,
-  "snapshot_sha256": "c2a9cfbad1ecb705b05dcbaa9345664ad335065ed48c206d74e3214234f97370"
+  "snapshot_sha256": "7c115e2e7e9531829f27349aee2d315c828b23dcd01083d56a544280d0cf05f1"
 }
