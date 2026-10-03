@@ -1,58 +1,23 @@
-# Mac setup (Linux below)
+# Install on macOS
 
-Have [Claude Code](https://code.claude.com/docs/en/getting-started) and [Python 3.11 or newer](https://www.python.org/downloads/) installed. Python is not included.
+Published Mac beta.1/beta.2 downloads have unresolved first-launch blocks. They are not the recommended installation route. A local source build opened successfully on the development Mac; this does not prove public downloaded apps work. Apple Developer ID signing and notarization are unavailable. Do not remove quarantine or disable Gatekeeper.
 
-1. **Download:** [Get the current ZIP](https://github.com/metapak/ustam-claude-orchestrator/archive/refs/heads/main.zip) and open the extracted folder.
-2. **Open:** Open `launchers` and double-click **Ustam.app**.
-3. **Choose a project:** Pick the folder where you use Claude Code.
-4. **Install:** In the browser, keep the suggested team or change it. Click **Check changes**, then **Install**. Restart Claude Code in that project.
+The source build requires Python 3.11+ and PyInstaller. Follow the [local source build instructions](docs/ustam-hub.md). A guided Script Editor source installer is being tested; its downloaded-source opening route is not yet accepted. Once locally built, open **Ustam.app**, select apps, then add projects in the browser. The app includes its runtime and can be moved on its own.
 
-For later changes, reopen the app and click **Save**; no uninstall is needed. An already-open Claude Code session may need to be reopened before it uses the changes. If macOS blocks the unsigned app, Control-click it and choose **Open**. Keep the app inside the extracted folder beside the launcher script and setup files. If macOS asks for the setup package, its first dialog explains which folder to choose: the outer folder extracted from the ZIP whose name starts with `ustam-claude-orchestrator`. The short picker opens in Downloads; the folder contains `launchers` and `scripts`. Choose **Try again** after a wrong selection. The second dialog asks for the separate Git project where you use Claude Code; settings go there before setup continues in the browser. Dialogs use Turkish or English based on your primary system language. If the browser cannot open, an alert shows the full local address to open manually.
+Install and sign in to each selected provider CLI before starting real work. Configuration and previews do not start paid jobs. Review changes before applying project configuration. See the [unified guide](docs/ustam-hub.md).
 
-## Linux: the same four steps
+Removing a project from Ustam removes its registration, not its folder. Restore is a separate operation for supported managed configuration; OpenCode restore is unavailable. Deleting the app does not uninstall project configuration or erase saved Ustam state. The hub has no project uninstall action.
 
-Use the same [current ZIP](https://github.com/metapak/ustam-claude-orchestrator/archive/refs/heads/main.zip) and prerequisites. Linux has no double-click launcher or folder picker in this package. For **Open** and **Choose a project**, open a terminal in the extracted folder and include your project folder in this command:
+[Older provider console installation](docs/legacy-macos.md) is advanced compatibility only.
 
-```bash
-python3 scripts/configure.py /absolute/path/to/your-project
-```
+# macOS kurulumu
 
-In the browser, click **Check changes**, then **Install**. Later, repeat the command and use **Save**; no uninstall is needed. Reopen an already-running Claude Code session if it does not use the new settings.
+Yayımlanmış Mac beta.1/beta.2 indirmelerinde ilk açılış engeli sürüyor; önerilen kurulum yolu değiller. Geliştirme Mac’inde yerel kaynak derlemesi açıldı; bu, herkese açık indirmelerin çalıştığını kanıtlamaz. Apple Developer ID imzası ve noter onayı mevcut değil. Karantinayı kaldırmayın, Gatekeeper’ı kapatmayın.
 
-<details>
-<summary>Optional terminal, Linux, external-provider, and uninstall steps</summary>
+Kaynak derlemesi Python 3.11+ ve PyInstaller gerektirir. [Yerel kaynak derleme yönergelerini](docs/ustam-hub.tr.md) izleyin. Script Editor üzerinden yönlendirmeli kaynak kurucusu test ediliyor; indirilmiş kaynağın açılış yolu henüz kabul edilmedi. Yerel derlemeden sonra **Ustam.app** açın, uygulamaları seçin ve tarayıcıda projeleri ekleyin. Uygulama çalışma zamanını içerir ve tek başına taşınabilir.
 
-Run the direct installer from the extracted folder:
+Gerçek iş başlatmadan önce seçilen sağlayıcı CLI’sini kurup oturum açın. Yapılandırma ve önizleme ücretli görev başlatmaz. Proje ayarlarını uygulamadan önce değişiklikleri inceleyin. [Birleşik rehbere](docs/ustam-hub.tr.md) bakın.
 
-```bash
-python3 scripts/install.py /path/to/project --dry-run
-python3 scripts/install.py /path/to/project
-```
+Projeyi Ustam’dan kaldırmak kaydını kaldırır; klasörünü silmez. Geri yükleme, desteklenen yönetilen ayarlar için ayrı işlemdir; OpenCode geri yüklemesi yoktur. Uygulamayı silmek proje ayarlarını kaldırmaz veya kayıtlı Ustam verisini silmez. Hub’da proje kurulumunu kaldırma işlemi yoktur.
 
-You may also run `./setup.command` after making it executable. It asks for the target folder, install/preview/uninstall action, native profile, and optional external proposal provider. Existing settings and conflicting files are preserved by default. Review `.claude/bounded-orchestrator.settings.example.json` if the target already had settings.
-
-The guided screen explains balanced, quality, economy, quota saver, and per-role custom settings, then shows a final configuration review and next steps. Every native/custom role must use an Anthropic Claude alias or full `claude-*` ID. The Python command remains non-interactive.
-
-External APIs default to none. To explicitly add a proposal-only provider, set its key in the shell that launches Claude Code and run one of:
-
-```bash
-export OPENAI_API_KEY="your key"
-python3 scripts/install.py /path/to/project --external-openai --external-model gpt-5.6-sol --external-effort high
-export DEEPSEEK_API_KEY="your key"
-python3 scripts/install.py /path/to/project --external-provider deepseek --external-model deepseek-flash --external-effort high
-```
-
-API keys are inherited at runtime and are never written to project files. The external provider is proposal-only; native Claude remains the sole writer.
-
-Later non-interactive runs preserve the existing provider choice when no provider flag is supplied. Use `--external-provider none`, `--no-external-openai`, or `--no-external-deepseek` to remove only an unchanged installer-owned MCP entry and bridge. Modified entries are kept with a warning.
-
-To remove unchanged installed files:
-
-```bash
-python3 scripts/install.py /path/to/project --uninstall --dry-run
-python3 scripts/install.py /path/to/project --uninstall
-```
-
-The runtime `.gitignore` remains in place to keep any retained ledger state and backups out of Git.
-
-</details>
+[Eski sağlayıcı konsolu kurulumu](docs/legacy-macos.md) yalnız ileri düzey uyumluluk içindir.

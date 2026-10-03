@@ -1,21 +1,23 @@
 {
   "files": {
     ".github/workflows/ustam-app.yml": "ee599dd5e1a45299bee2cb54fa1b051db0f92200dde6b5d483bde57bc982254e",
-    "docs/ustam-hub.md": "75f87cf54f774eddb9a0e0010c5b7cdd58e60593a36adc2732ff2333d43347be",
-    "docs/ustam-hub.tr.md": "07d71194e37f4819d87293c15f3b8e4e91de81df76e92f847049daffed2514b9",
+    "docs/ustam-hub.md": "062e40a86b3257420c932f3bd6d1e82dd75f3b3ea0d4f675a176e295c57869c3",
+    "docs/ustam-hub.tr.md": "32318b9f5a4cb7c700bed6e4a7e043d651d96b484b8cbd517034d8ce4678e397",
+    "launchers/Install Ustam.applescript": "1cc0ee577b7d4bdcafdf336e25a098428d58aa4def54dd1991595a45ab3dc9e8",
     "launchers/launch_ustam.py": "7a537bd84861d7fef58eab16f60e4051b096729b374374f0f097cf2938276f6b",
     "launchers/ustam_worker.py": "057c2b28a314d61adef373271cf6b520e317db318f486e085f53e9b75bab94bb",
     "scripts/build_ustam_app.py": "82428747254c31c28e7d218365b8c18b3ce52d551a88974c8e8874e136ce438d",
     "scripts/build_ustam_engines.py": "e788ff921b4c3f331c1baa0f5e558c3ab71d52d240e122f6182b40c0bbe29634",
-    "scripts/sync_ustam_distribution.py": "71921327fc996e21a77d199fd7b9ea552c0f1a3ea8422ff921738d7a2090d8a3",
+    "scripts/install_ustam_macos.py": "10957005fc2bd677d45cedd75f20e8d2a13d96e271ef95c61492fe2a417f77b7",
+    "scripts/sync_ustam_distribution.py": "88b1def761f7ab3c0783713e8a6448275de8a3d91bd616a8eb36014905598e3d",
     "tests/test_ustam_adapters.py": "e215f29d0b9d411715a6ba74a15d32569731bedc2679ff827d5c372437d2c90b",
     "tests/test_ustam_hub.py": "ac6452c2387dcc4d1b280d2f96942592cd1849004389b5971a4d4b5d460dd763",
     "tests/test_ustam_jobs.py": "644e20fcd3f2f359f47fc7810332fc1ae4ce654175df7e11dc45a3f59906e563",
-    "tests/test_ustam_packaging.py": "292d45b384caee9f554606e8830ad093c6e643fbf89e634053ae960eee1ed9b3",
+    "tests/test_ustam_packaging.py": "844413366bc28aed983a3cbc0d47d4feada30c39b86194ca2ba27eff4415f6fc",
     "ustam/CONTRACT.md": "7ccca4f341c8115e92bd8cb4b54a3a05736211ec5bfc572f778c804c97348221",
     "ustam/VERSION": "a1ed1eee8351c90366a595fc553b6dd2e25922417c02d3adbac189d12fef7f3a",
     "ustam/__init__.py": "d69f59275dd8f934e868eeac7b048b93acd6dadde00938dc1fc2b869a5ca3639",
-    "ustam/__main__.py": "58725cb051db795f61eed2f8eef32450005da11f5758e195419ecc6e63d24ae6",
+    "ustam/__main__.py": "50f9a6c87ae603303d198ba54a6c2965ca3bd4e06040780cd40c453ffd7b76c9",
     "ustam/adapter_worker.py": "7f22860086f2edc663b36adf4cced7298c2e2854300edcd049da39f4f8308aa9",
     "ustam/adapters.py": "134841ed6f1fe6906007be70ffb263699c1c8203f005a56367b12ead62e68afe",
     "ustam/core.py": "6da2b1773a9e8e3ff292f798e10a78e3cd1c51f200a43aed257f6d8f302e5cd9",
@@ -139,11 +141,11 @@
     "ustam/runtime.py": "7c341cd6694dda702c13fc4fbf18eb7c0573ed324d4159aa208101fdca1edbed",
     "ustam/server.py": "f65c4817172f1de445532b3bdb4c13c069451281523ab9b19ea75c7cb6ccacb9",
     "ustam/storage.py": "a413316ff9fe815683e31708e0baf51fdb22b5aa266810424657951228bb54ec",
-    "ustam/ui/app.js": "011094ff07e547edf81166cda1dae454dcd0546f4cf0b94febd9f13a02bd15ff",
+    "ustam/ui/app.js": "81bd68a37f0a9654da2889afae2fca49387a724c02760c3099b12567d0272515",
     "ustam/ui/index.html": "e286d4b507df3b49e8abc32cb7fbb1fde5d4403d0cf958cf7e7e3f2fb40a0bbc",
     "ustam/ui/orchestra.svg": "93a713f5de47f227e599f615c9c5b9df51b35e0a1c7ccdab1bb9ad132b2070e3",
-    "ustam/ui/style.css": "fbdac2f74aa9fa274de7546287f87ff25a1611ca65a4e9cc03dabd832eabf27d"
+    "ustam/ui/style.css": "fd0eeb89088da38679a585bb5bd3e3bdf67f87958b7595601b296067556a6aef"
   },
   "schema": 1,
-  "snapshot_sha256": "4a6927b674e0a43394b4cc6fa4e010dddeaeb62b65c2a13ea9ee532e88938f3f"
+  "snapshot_sha256": "2032865c0faa74b347470837010a596efdb285e7b0d5cc7d9068a80bdca6f75e"
 }
