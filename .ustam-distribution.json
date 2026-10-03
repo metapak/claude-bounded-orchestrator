@@ -1,6 +1,6 @@
 {
   "files": {
-    ".github/workflows/ustam-app.yml": "316cd9d95462e1df56a4202ccd2597dd1a521c8383d119f60473e7a8c62f09e3",
+    ".github/workflows/ustam-app.yml": "ee599dd5e1a45299bee2cb54fa1b051db0f92200dde6b5d483bde57bc982254e",
     "docs/ustam-hub.md": "462884ec9eccb3a278745a6614a2738a97fc263e3c15d7905cda4576e2970394",
     "docs/ustam-hub.tr.md": "a4c1c328315dd234698cada2bcf5d52eacf9dbee37773d79be7c856c5b2cf19b",
     "launchers/launch_ustam.py": "7a537bd84861d7fef58eab16f60e4051b096729b374374f0f097cf2938276f6b",
@@ -8,10 +8,10 @@
     "scripts/build_ustam_app.py": "a36290437e4064b3c438b7d886baa4dc0ff4fddfb5ca032618cc5045e8171f4f",
     "scripts/build_ustam_engines.py": "e788ff921b4c3f331c1baa0f5e558c3ab71d52d240e122f6182b40c0bbe29634",
     "scripts/sync_ustam_distribution.py": "71921327fc996e21a77d199fd7b9ea552c0f1a3ea8422ff921738d7a2090d8a3",
-    "tests/test_ustam_adapters.py": "b722edb8a5748fd66e81e2b63f07fa8dc86e64df8fd8dc882ea38b8e20fc6817",
+    "tests/test_ustam_adapters.py": "7e0f3ce1afc0ca9e17ff08002cea4cdcd48d45d181801aca17174500c32241e9",
     "tests/test_ustam_hub.py": "23e4a5f60ed34f8d6967e7ee9786881cd4e48623ca4a08b8ae8646efffcacb1d",
-    "tests/test_ustam_jobs.py": "1c2370c771a826bc205c500c6706fb37c27e7d76f55e3bf59bd6fe8ffeda51d8",
-    "tests/test_ustam_packaging.py": "9415c6965bc9e643a3580102f3cc3dd22a6609531df751047ffa3b23a4976f4a",
+    "tests/test_ustam_jobs.py": "48f9c39c9aad7732b85034f43be1a45df898277cc3c9573ebb9a27c0c77eb8d8",
+    "tests/test_ustam_packaging.py": "2a04208affeeba2457872e884a00b29619bd76f5ff5e96fad5d7267e489cfb9a",
     "ustam/CONTRACT.md": "7ccca4f341c8115e92bd8cb4b54a3a05736211ec5bfc572f778c804c97348221",
     "ustam/VERSION": "5703a2f830f2a6e2ce9be19e37c5309e39b6566d071f641cf11c5dc2c1c6331d",
     "ustam/__init__.py": "d69f59275dd8f934e868eeac7b048b93acd6dadde00938dc1fc2b869a5ca3639",
@@ -136,7 +136,7 @@
     "ustam/engines/opencode/scripts/validate.py": "5a361e44f624709dcef86a727f5accf369beaadb138cbd448cf66fd89f3cbcb3",
     "ustam/engines/opencode/templates/AGENTS.block.md": "84c96ff5799e96972d00e16ca56597344a2e0c77f1ebc85849a3bed647278acf",
     "ustam/jobs.py": "a40111c9e60733a43c34a53d473c3a742af064bea0509cd6826e28f3b2405ec3",
-    "ustam/runtime.py": "96760030a33f5bcbfd689ec9a04068506d638e653713abd77bd8b458042bfb33",
+    "ustam/runtime.py": "e93af715de6842da60690eaaa30c1e58fc35aeba40ca2def869cf3e94a500e8d",
     "ustam/server.py": "f65c4817172f1de445532b3bdb4c13c069451281523ab9b19ea75c7cb6ccacb9",
     "ustam/storage.py": "a413316ff9fe815683e31708e0baf51fdb22b5aa266810424657951228bb54ec",
     "ustam/ui/app.js": "c4fcf856d54d03ec64eaa542c4e40a7c585352c732ce1774db74729f34db808d",
@@ -145,5 +145,5 @@
     "ustam/ui/style.css": "6c16adbaf82c8388daa120ddab4b4bf04f4e80a08de9df92cc622a2e172b0553"
   },
   "schema": 1,
-  "snapshot_sha256": "7cb2dfcc95bd782c806a929802dff3dd7a8b11bc196c83ac67507fa7b0d8f1f1"
+  "snapshot_sha256": "c2a9cfbad1ecb705b05dcbaa9345664ad335065ed48c206d74e3214234f97370"
 }
